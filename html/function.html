@@ -1,4 +1,4 @@
-<!-- $Id: function.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: function.html,v 1.3 2003/03/17 03:10:03 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,7 +11,25 @@ NAP Built-in Functions
 Built-in Functions
 </center> </h2>
 
-<h3>Elemental Functions</h3>
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Elemental">Elemental Functions</a>
+    <li><a href="#Reduction">Reduction and Scan Functions</a>
+    <li><a href="#Metadata">Metadata Functions</a>
+    <li><a href="#change_shape_or_order">Functions which change shape or order</a>
+    <li><a href="#Linear_algebra">Linear-algebra Functions</a>
+    <li><a href="#Correlation">Correlation</a>
+    <li><a href="#Grid">Grid Functions</a>
+    <li><a href="#Special_Data_types">Functions related to Special Data-types</a>
+    <li><a href="#Morphological">Morphological Functions</a>
+    <ol>
+	<li><a href="#Dilation_and_Erosion">Morphological Binary Dilation and Erosion</a>
+	<li><a href="#Moving_Range">Moving Range</a>
+    </ol>
+</ol>
+
+<h3><a name=Elemental>Elemental Functions</h3>
 
 <p>
 The result of an elemental function has the same shape as its argument(s).
@@ -198,7 +216,7 @@ Value:
 abcdef
 </pre>
 
-<h3>Reduction and Scan Functions</h3>
+<h3><a name=Reduction>Reduction and Scan Functions</h3>
 
 <p>
 A <em>reduction</em> or <em>insert</em> function is one which has the effect of
@@ -397,7 +415,7 @@ How about averages of a moving window in 2 dimensions?
 Other similar <em>scan</em> functions can be defined for partial products and so on.
 However NAP currently has only <code>psum</code>.
 
-<h3>Metadata Functions</h3>
+<h3><a name=Metadata>Metadata Functions</h3>
 
 Metadata functions return information (other than data values) from a NAO.
 The same information can be obtained using an OOC, but these functions are
@@ -445,7 +463,7 @@ more convenient within expressions.
     </td>
 </table>
 
-<h3>Functions which change shape or order</h3>
+<h3><a name=change_shape_or_order>Functions which change shape or order</h3>
 
 <p>
 <table border rules=groups>
@@ -513,7 +531,7 @@ Value:
 3 9
 7 2
 </pre>
-<h3>Linear-algebra Functions</h3>
+<h3><a name=Linear_algebra>Linear-algebra Functions</h3>
 
 <p>
 The function 
@@ -561,7 +579,7 @@ We can check the result using matrix multiplication:
 20 -36
 </pre>
 
-<h3>Correlation</h3>
+<h3><a name=Correlation>Correlation</h3>
 
 <p>
 Function <code>correlation</code> calculates Pearson product-moment correlations 
@@ -679,7 +697,7 @@ is vector of row    lags (default: all possible)<br>
 <var>lag</var><sub>1</sub> 
 is vector of column lags (default: all possible)
 
-<h3>Grid Functions</h3>
+<h3><a name=Grid>Grid Functions</h3>
 
 <p>
 There is currently just one grid function,
@@ -751,7 +769,7 @@ We can think of the result as two matrices defining mappings from
 <var>xy</var> space to <var>i</var>
 and <var>j</var> respectively.
 
-<h3>Functions related to Special Data-types</h3>
+<h3><a name=Special_Data_types>Functions related to Special Data-types</h3>
 
 <p>
 <table border rules=groups>
@@ -854,7 +872,7 @@ Value:
    _    _  9.0 -9.0
 </pre>
 
-<h3>Morphological Functions</h3>
+<h3><a name=Morphological>Morphological Functions</h3>
 
 <p>
 <table border rules=groups>
@@ -889,9 +907,7 @@ Value:
     </td>
 </table>
 
-<h4>
-    Morphological Binary Dilation and Erosion
-</h4>
+<h4><a name=Dilation_and_Erosion>Morphological Binary Dilation and Erosion</h4>
 
 <p>
     <var>x</var> is an <var>n</var> by <var>m</var> non-negative matrix that is being
@@ -901,9 +917,7 @@ Value:
     and <var>b</var>&lt;<var>m</var>.<br>
     <var>seo</var> is the origin of the structure element indexed from 0 at the top left corner.<br>
 
-<h4>
-    Moving Range
-</h4>
+<h4><a name=Moving_Range>Moving Range</h4>
 
 <p>
     Move a window over the matrix <var>x</var> and find
@@ -921,7 +935,7 @@ Value:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: function.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: function.html,v 1.3 2003/03/17 03:10:03 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

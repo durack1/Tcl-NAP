@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.80 2002/04/12 04:56:49 tur158 Exp $
+# $Id: hdf.tcl,v 1.83 2003/03/24 01:31:58 dav480 Exp $
 
 
 # hdf --
@@ -36,6 +36,7 @@ namespace eval Hdf {
     variable is_current 0;	# 1 means nao is up-to-date
     variable nao "";		# points to NAO
     variable nao_name "";	# name specified by user
+    variable raw 0;		# 1 means want raw data (ignoring attributes like scale_factor)
     variable sds_name "";	# sds-name : attribute-name)
     variable sds_rank ""
     variable windows "";	# list of windows for animation
@@ -52,6 +53,7 @@ namespace eval Hdf {
 	trace variable ::Hdf::filename w ::Hdf::need_read
 	trace variable ::Hdf::sds_name w ::Hdf::need_read
 	trace variable ::Hdf::index    w ::Hdf::need_read
+	trace variable ::Hdf::raw      w ::Hdf::need_read
 	set Hdf::filename ""
 	set Hdf::sds_name ""
 	set Hdf::hdf_netcdf $hdf_netcdf
@@ -93,7 +95,13 @@ namespace eval Hdf {
 	# Create a frame to put the HDF file tree in and put it in the grid
 
 	frame .hdf.grid.tree -bg white
-	grid .hdf.grid.tree -columnspan 2 -sticky news
+        # This frame forces the tree frame to the right
+        # allowing the scroll bar to be on the far right
+        # On Sun systems the scroll bar had white space on the right
+        # This plus an increase in canvas width from 400 to 450
+        # fixes this problem. It seems like there is a bug in Tk. 
+        frame .hdf.grid.pad -bg white
+        grid .hdf.grid.pad .hdf.grid.tree -sticky news
 
 	# Spatial index widget
 
@@ -122,13 +130,22 @@ namespace eval Hdf {
 	    -expand true \
 	    -padx 1 \
 	    -pady 2
-	pack .hdf.head .hdf.grid .hdf.do -expand true -fill x
+#
+# Can use either pack or grid. Tried grid to see if it
+# helped with the scroll bar bug - it did not!
+#
+#	pack .hdf.head  -expand true -fill x
+#	pack .hdf.grid  -expand true -fill x -anchor e
+#	pack .hdf.do -expand true -fill x
+	grid .hdf.head  -sticky ew
+	grid .hdf.grid  -sticky ew
+	grid .hdf.do -sticky ew
     }
 
 
     # need_read --
     #
-    # Called by write trace on variables ::Hdf::filename, ::Hdf::sds_name, ::Hdf::index
+    # Called by write trace on variables ::Hdf::filename, ::Hdf::sds_name, ::Hdf::index, ::Hdf::raw
     # If any of these change we need to read variable again from file
 
     proc need_read {
@@ -296,6 +313,7 @@ namespace eval Hdf {
 	global Hdf::index
 	global Hdf::sds_name
 	global Hdf::is_current
+	global Hdf::raw
 	set status 0
 	if {$is_current} {
 	    set status 1
@@ -303,7 +321,8 @@ namespace eval Hdf {
 	    if [hdf_select_file] {
 		hdf_var_name
 		setIndex
-		if {[catch {nap "::Hdf::nao = [nap_get $hdf_netcdf $filename $sds_name $index]"}]} {
+		if {[catch {nap "::Hdf::nao = 
+			    [nap_get $hdf_netcdf $filename $sds_name $index $raw]"}]} {
 		    Hdf::hdf_warn "Unable to read NAO"
 		} else {
 		    set status 1
@@ -339,7 +358,10 @@ namespace eval Hdf {
 	    \n   (A ':' is used as a separator in an attribute name. Attributes cannot be\
 	    \n   spatially sampled.)\
 	    \n\
-	    \n3. Change the spatial scaling values to your requirements.\
+	    \n3. Select 'Raw' mode if you want the following attributes to be ignored:\
+	    \n   scale_factor, add_offset, valid_min, valid_max, valid_range.\
+	    \n\
+	    \n4. Change the spatial scaling values to your requirements.\
 	    \n   Each row corresponds to a dimension. Click in the 'Units' column to toggle\
 	    \n   between coordinate-variable-mode and index-mode. Click in the 'Expr'\
 	    \n   column to toggle between arithmetic-progression-mode and expression-mode.\
@@ -347,7 +369,7 @@ namespace eval Hdf {
 	    \n   fractional index requests -- it does not interpolate.) A right mouse click\
 	    \n   toggles each scale value between the default value and what you entered.\
 	    \n\
-	    \n4. Use the buttons along the bottom to initiate the following actions.\
+	    \n5. Use the buttons along the bottom to initiate the following actions.\
 	    \n   'Range'   button: Display minimum and maximum value.\
 	    \n   'Text'    button: Display start of data as text.\
 	    \n   'Graph'   button: Display data as XY graph(s).\
@@ -398,12 +420,11 @@ namespace eval Hdf {
 
     proc animate {
     } {
-	foreach win $::Hdf::windows {
-	    after $::Hdf::delay
-	    raise $win
-	    update 
+	set ms 0
+	foreach win "$::Hdf::windows ." {
+	    after $ms "raise $win; update idletasks"
+	    incr ms $::Hdf::delay
 	}
-	raise .
     }
     
 
@@ -505,20 +526,36 @@ namespace eval Hdf {
 	    return
 	}
 	. config -bd 3 -relief flat
+
 	destroy $w.w
 	destroy $w.sb
 	#
 	# Create the space for a tree with scroll bar
 	#
-	::Tree::Tree:create $w.w -width 400 -height 100 -yscrollcommand "$w.sb set"
+	set hdfList [split $hdfContents "\n"]
+        #
+        # Adjust the tree window size according to
+        # the number of items in the file
+        #
+        set number_items [llength $hdfList]
+        set view_height 100 
+        if {$number_items > 10} {
+            set view_height 150
+        }
+        if {$number_items > 20} {
+            set view_height 200
+        }
+	::Tree::Tree:create $w.w -width 450 -height $view_height \
+             -yscrollcommand "$w.sb set"
 	scrollbar $w.sb -orient vertical -command "$w.w yview"
-	grid $w.w $w.sb -sticky news
+	grid $w.w -row 0 -column 0 -sticky nes
+	grid $w.sb -row 0 -column 1 -sticky nes
+        update idletasks
 	#
 	# Write out the information
 	#
 	set global_attribute 0
-	set hdfList [split $hdfContents "\n"]
-
+        set update_counter 0
 	foreach item $hdfList {
 	    set items [split $item ":"]
 	    set sds [lindex $items 0]
@@ -537,8 +574,16 @@ namespace eval Hdf {
 		    ::Tree::Tree:newitem $w.w "/${sds}/$attr"
 		}
 	    }
+#
+# Only update in groups to avoid countinuous updating
+#
+            incr update_counter
+            if {$update_counter == 20} {
+                set update_counter 0
+                update idletasks
+            }
 	}
-
+        update idletasks
 	#
 	# set bindings and draw the tree
 	#
@@ -631,10 +676,12 @@ namespace eval Hdf {
 	    grid ${win}.l1 -row 1 -column 0 -sticky nw
 	    return
 	}  
+	checkbutton $win.l1 -text Raw -variable ::Hdf::raw
 	label ${win}.l2 -text "Units" -anchor w -padx 20
 	label ${win}.ap -text "Expr"
 	label ${win}.l3 -text "Range"
 	label ${win}.l5 -text "Step"
+	grid ${win}.l1 -row 1 -column 0 -sticky nw
 	grid ${win}.l2 -row 1 -column 1 -sticky nw
 	grid ${win}.ap -row 1 -column 2
 	grid ${win}.l3 -row 1 -column 3 -columnspan 2

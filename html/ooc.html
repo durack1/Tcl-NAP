@@ -1,4 +1,4 @@
-<!-- $Id: ooc.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: ooc.html,v 1.3 2003/03/14 08:22:34 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,9 +11,73 @@ NAP OOCs
 NAP Object-Oriented Commands (OOCs)
 </center> </h2>
 
-<h3>Methods which return Data Values (with or without metadata)</h3>
+<h3>Table of Contents</h3>
 
-<h4>Method <code>all</code></h4>
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Data">Methods which return Data Values (with or without metadata)</a>
+    <ol>
+	<li><a href="#all">Method <code>all</code></a>
+        <li><a href="#value">Method <code>value</code></a>
+        <li><a href="#default_method">Default method</a>
+        <li><a href="#format_strings">Format Conversion Strings</a>
+    </ol>
+    <li><a href="#Metadata">Methods which return Metadata</a>
+    <ol>
+        <li><a href="#coordinate">Method <code>coordinate</code></a>
+        <li><a href="#count">Method <code>count</code></a>
+        <li><a href="#datatype">Method <code>datatype</code></a>
+        <li><a href="#dimension">Method <code>dimension</code></a>
+        <li><a href="#header">Method <code>header</code></a>
+        <li><a href="#label">Method <code>label</code></a>
+        <li><a href="#link">Method <code>link</code></a>
+        <li><a href="#missing">Method <code>missing</code></a>
+        <li><a href="#ooc">Method <code>ooc</code></a>
+        <li><a href="#rank">Method <code>rank</code></a>
+        <li><a href="#sequence">Method <code>sequence</code></a>
+        <li><a href="#shape">Method <code>shape</code></a>
+        <li><a href="#slot">Method <code>slot</code></a>
+        <li><a href="#step">Method <code>step</code></a>
+        <li><a href="#unit">Method <code>unit</code></a>
+    </ol>
+    <li><a href="#Modify">Methods which Modify NAO</a>
+    <ol>
+        <li><a href="#draw">Method <code>draw</code></a>
+        <li><a href="#fill">Method <code>fill</code></a>
+        <li><a href="#set">Method <code>set</code></a>
+	<ol>
+            <li><a href="#set_coordinate">set coordinate</CODE></a>
+            <li><a href="#set_count">set count</CODE></a>
+            <li><a href="#set_dimension">Set dimension</CODE></a>
+            <li><a href="#set_label">set label</CODE></a>
+            <li><a href="#set_link">Set link</CODE></a>
+            <li><a href="#set_missing">Set missing</CODE></a>
+            <li><a href="#set_unit">Set unit</CODE></a>
+            <li><a href="#set_value">Set value</CODE></a>
+	</ol>
+    </ol>
+    <li><a href="#Write">Methods which Write to File or Internal Structure</a>
+    <ol>
+        <li><a href="#binary">Method <code>binary</code></a>
+        <li><a href="#blt_vector">Method <code>blt_vector</code></a>
+        <li><a href="#netcdf">Method <code>netcdf</code></a>
+        <li><a href="#swap">Method <code>swap</code></a>
+    </ol>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
+
+Object-Oriented Commands (OOCs) are used to
+<ul>
+    <li>display the data in a NAO
+    <li>display other information (metadata e.g. data-type, dimensions) about a NAO 
+    <li>change data or other aspects of a NAO
+    <li>write data from a NAO to a file, etc.
+</ul>
+
+<h3><a name=Data>Methods which return Data Values (with or without metadata)</h3>
+
+<h4><a name=all>Method <code>all</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> all</CODE>
 <CODE>-format</CODE> <VAR>format</VAR>
@@ -55,7 +119,7 @@ Value:
 2 2 2 n/a n/a -9
 </pre>
 
-<h4>Method <code>value</code></h4>
+<h4><a name=value>Method <code>value</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> value</CODE>
 <CODE>-format</CODE> <VAR>format</VAR>
@@ -92,7 +156,7 @@ in this and subsequent examples:
 0.000 0.250 1.000 2.250 4.000
 </pre>
 
-<h4>Default method</h4>
+<h4><a name=default_method>Default method</h4>
 <p>
 <var>ooc_name</var>
 <CODE>-format</CODE> <var>format</var>
@@ -168,7 +232,7 @@ The following example shows how to use switch <code>-list</code>:
 }
 </pre>
 
-<h4>Format Conversion Strings</h4>
+<h4><a name=format_strings>Format Conversion Strings</h4>
 
 <p>
 The <code>-format</code> option specifies a <i>format conversion string</i>
@@ -319,9 +383,9 @@ g: 88 89 90 91 92
 G: 88 89 90 91 92
 </pre>
 
-<h3>Methods which return Metadata</h3>
+<h3><a name=Metadata>Methods which return Metadata</h3>
 
-<h4>Method <code>coordinate</code></h4>
+<h4><a name=coordinate>Method <code>coordinate</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> coordinate</CODE> ?<VAR>dim_name</VAR>|<VAR>dim_number</VAR>? ?<VAR>dim_name</VAR>|<VAR>dim_number</VAR>? &hellip;<br>
 
@@ -340,7 +404,7 @@ Example:
 0 0.5 1 1.5 2
 </pre>
 
-<h4>Method <code>count</code></h4>
+<h4><a name=count>Method <code>count</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> count</CODE>
 <CODE>-keep</CODE><br>
@@ -358,7 +422,7 @@ Note that the reference count is 2 because this NAO is referenced by both
 <li>Tcl variable <code>x</code>
 <li> coordinate variable pointer of NAO <code>::NAP::61-61</code> 
 
-<h4>Method <code>datatype</code></h4>
+<h4><a name=datatype>Method <code>datatype</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> datatype</CODE><br>
 
@@ -373,7 +437,7 @@ Example:
 c8
 </pre>
 
-<h4>Method <code>dimension</code></h4>
+<h4><a name=dimension>Method <code>dimension</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> dimension</CODE> ?<VAR>dim_number</VAR>? ?<VAR>dim_number</VAR>? &hellip;<br>
 
@@ -393,7 +457,7 @@ Example (again continuing above example):
 x
 </pre>
 
-<h4>Method <code>header</code></h4>
+<h4><a name=header>Method <code>header</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> header</CODE>
 <CODE>-keep</CODE><br>
@@ -420,7 +484,7 @@ Dimension 0   Size: 5      Name: x         Coordinate-variable: ::NAP::58-58
 % 
 </pre>
 
-<h4>Method <code>label</code></h4>
+<h4><a name=label>Method <code>label</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> label</CODE><br>
 
@@ -436,7 +500,7 @@ Example:
 areas of squares
 </pre>
 
-<h4>Method <code>link</code></h4>
+<h4><a name=link>Method <code>link</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> link</CODE><br>
 
@@ -452,7 +516,7 @@ Example:
 42
 </pre>
 
-<h4>Method <code>missing</code></h4>
+<h4><a name=missing>Method <code>missing</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> missing</CODE><br>
 
@@ -468,7 +532,7 @@ Example:
 NaN
 </pre>
 
-<h4>Method <code>ooc</code></h4>
+<h4><a name=ooc>Method <code>ooc</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> ooc</CODE>
 <CODE>-keep</CODE><br>
@@ -484,7 +548,7 @@ $y ooc
 ::NAP::61-61
 </pre>
 
-<h4>Method <code>rank</code></h4>
+<h4><a name=rank>Method <code>rank</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> rank</CODE><br>
 
@@ -499,7 +563,7 @@ Example:
 1
 </pre>
 
-<h4>Method <code>sequence</code></h4>
+<h4><a name=sequence>Method <code>sequence</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> sequence</CODE>
 <CODE>-keep</CODE><br>
@@ -516,7 +580,7 @@ Example:
 61
 </pre>
 
-<h4>Method <code>shape</code></h4>
+<h4><a name=shape>Method <code>shape</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> shape</CODE><br>
 
@@ -531,7 +595,7 @@ Example:
 5
 </pre>
 
-<h4>Method <code>slot</code></h4>
+<h4><a name=slot>Method <code>slot</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> slot</CODE>
 <CODE>-keep</CODE><br>
@@ -547,7 +611,7 @@ Example:
 61
 </pre>
 
-<h4>Method <code>step</code></h4>
+<h4><a name=step>Method <code>step</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> step</CODE><br>
 
@@ -572,7 +636,7 @@ Example:
 AP
 </pre>
 
-<h4>Method <code>unit</code></h4>
+<h4><a name=unit>Method <code>unit</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> unit</CODE><br>
 
@@ -590,9 +654,9 @@ Example:
 seconds
 </pre>
 
-<h3>Methods which Modify NAO</h3>
+<h3><a name=Modify>Methods which Modify NAO</h3>
 
-<h4>Method <code>draw</code></h4>
+<h4><a name=draw>Method <code>draw</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> draw</CODE> <VAR>xy</VAR> ?<VAR>value</VAR>?<br>
 
@@ -621,7 +685,7 @@ Example:
 0 0 1 0 0
 </pre>
 
-<h4>Method <code>fill</code></h4>
+<h4><a name=fill>Method <code>fill</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> fill</CODE> <VAR>xy</VAR> ?<VAR>value</VAR>?<br>
 
@@ -653,7 +717,7 @@ Example:
 0 0 0 0 0 0 0 0
 </pre>
 
-<h4>Method <code>set</code></h4>
+<h4><a name=set>Method <code>set</code></h4>
 
 <p>
 <VAR>ooc_name</VAR><CODE> set </code> <VAR>attribute arg arg</VAR> &hellip;
@@ -665,7 +729,7 @@ in separate sections.
 Note that the names of these attributes is the same as that of
 the method which returns their value.
 
-<h5><CODE> set coordinate</CODE></h5>
+<h5><a name=set_coordinate>set coordinate</CODE></h5>
 
 <p>
 <VAR>ooc_name</VAR><CODE> set coordinate</CODE> <VAR>coord_var</VAR> <VAR>coord_var</VAR> <VAR>coord_var</VAR> &hellip;<br>
@@ -691,7 +755,7 @@ Thus the following command removes all coordinate variables:
 <p>
 See above ("<b>Method</b> <code>coordinate</code>") for an example.
 
-<h5><CODE> set count</CODE></h5>
+<h5><a name=set_count>set count</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set count</CODE> ?<VAR>int</VAR>?
 ?<CODE>-keep</CODE>?<br>
@@ -708,7 +772,7 @@ If <VAR>int</VAR> is unsigned then set reference count to <VAR>int</VAR>.<br>
 If <VAR>int</VAR> not specified then add 1 to reference count 
 (i.e. treat as "+1")
 
-  <h5><CODE> Set dimension</CODE></h5>
+<h5><a name=set_dimension>Set dimension</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set dimension</CODE> <VAR>dim_name</VAR> <VAR>dim_name</VAR> <VAR>dim_name</VAR> &hellip;<br>
 
@@ -734,7 +798,7 @@ Example:
 % $x dim
 </pre>
 
-<h5><CODE> set label</CODE></h5>
+<h5><a name=set_label>set label</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set label</CODE> ?<VAR>string</VAR>?<br>
 
@@ -745,7 +809,7 @@ The default is NULL i.e. no label.
 <p>
 See above ("<b>Method</b> <code>label</code>") for an example.
 
-  <h5><CODE> Set link</CODE></h5>
+<h5><a name=set_link>Set link</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set link</CODE> ?<VAR>nao</VAR>?<br>
 
@@ -756,7 +820,7 @@ The default is NULL i.e. no link.
 <p>
 See above ("<b>Method</b> <code>link</code>") for an example.
 
-  <h5><CODE> Set missing</CODE></h5>
+<h5><a name=set_missing>Set missing</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set missing</CODE> ?<VAR>value</VAR>?<br>
 
@@ -773,7 +837,7 @@ _ 0.5 1 1.5 2
 </pre>
 Note that the value of 0 is now treated as missing.
 
-  <h5><CODE> Set unit</CODE></h5>
+<h5><a name=set_unit>Set unit</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set unit</CODE> ?<VAR>unit</VAR>?<br>
 
@@ -784,7 +848,7 @@ The default is NULL i.e.  no unit.
 <p>
 See above ("<b>Method</b> <code>unit</code>") for an example.
 
-  <h5><CODE> Set value</CODE></h5>
+<h5><a name=set_value>Set value</CODE></h5>
 <p>
 <VAR>ooc_name</VAR><CODE> set value</CODE> ?<VAR>value</VAR>? ?<VAR>index</VAR>?<br>
 
@@ -797,9 +861,33 @@ to new values copied from successive elements of NAO
 (default: <code>""</code> meaning null value).
 Elements of <VAR>value</VAR> are recycled if necessary.
 
-<h3>Methods which Write to File or Internal Structure</h3>
+<h3><a name=Write>Methods which Write to File or Internal Structure</h3>
 
-<h4>Method <code>blt_vector</code></h4>
+<h4><a name=binary>Method <code>binary</code></h4>
+<p>
+<VAR>ooc_name</VAR><CODE> binary</CODE> ?<VAR>tcl_channel</VAR>?<br>
+
+<p>
+This writes raw (binary) data to the file specified by
+<VAR>tcl_channel</VAR>, 
+which defaults to <CODE>stdout</CODE> (standard output).
+For example:
+<pre>
+% set file [open y.tmp w]
+file4
+% $y binary $file
+% close $file
+% set file [open y.tmp]
+file4
+% [nap_get binary $file f64] all
+::NAP::248-248  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+0 0.25 1 2.25 4
+% close $file
+</pre>
+
+<h4><a name=blt_vector>Method <code>blt_vector</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> blt_vector</CODE> <VAR>name</VAR><br>
 
@@ -808,7 +896,7 @@ This sets the
 BLT vector named <VAR>name</VAR> (which may or may not already exist) to 
 the value of the data in the NAO. 
 
-  <h4>Method <code>hdf</code></h4>
+  <h4><a name=hdf>Method <code>hdf</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> hdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>sds</VAR><br>
 
@@ -872,7 +960,7 @@ Variable Name = vec
                 3 4 5 6 7
 </pre>
 
-<h4>Method <code>netcdf</code></h4>
+<h4><a name=netcdf>Method <code>netcdf</code></h4>
 <p>
 <VAR>ooc_name</VAR><CODE> netcdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>var</VAR><br>
 
@@ -943,29 +1031,13 @@ argument specified by the
 </nobr>
 option).
 
-<h4>Method <code>write</code></h4>
+<h4><a name=swap>Method <code>swap</code></h4>
 <p>
-<VAR>ooc_name</VAR><CODE> write</CODE> ?<VAR>tcl_channel</VAR>?<br>
+<VAR>ooc_name</VAR><CODE> swap</CODE> ?<VAR>tcl_channel</VAR>?<br>
 
-<p>
-This writes raw (binary) data to the file specified by
-<VAR>tcl_channel</VAR>, 
-which defaults to <CODE>stdout</CODE> (standard output).
-For example:
-<pre>
-% set file [open y.tmp w]
-file4
-% $y write $file
-% close $file
-% set file [open y.tmp]
-file4
-% [nap_get binary $file f64] all
-::NAP::248-248  f64  MissingValue: NaN  References: 0  Unit: (NULL)
-Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
-Value:
-0 0.25 1 2.25 4
-% close $file
-</pre>
+<P>
+Method <code>swap</code> is like method <code>binary</code>, except that bytes are swapped.
+This enables writing of data to be read on a machine with opposite byte-order within words.
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -978,7 +1050,7 @@ Value:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: ooc.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: ooc.html,v 1.3 2003/03/14 08:22:34 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

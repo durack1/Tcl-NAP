@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.45 2002/10/10 09:00:22 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.50 2003/03/13 03:39:28 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -221,7 +221,7 @@ Nap_NetcdfVarGetInfo(
  *	Get (uncalibrated) internal_number_type, scale_factor, offset & valid_range.
  *	If unscaled, then set:
  *	    internal_number_type = external_number_type,
- *	    off = 0, cal = 1,
+ *	    offset = 0, scale_factor = 1,
  *	    valid_range to (min, max) for internal data type.
  */
 
@@ -243,6 +243,7 @@ Nap_NetcdfGetScalingInfo(
     NapClientData       *nap_cd,
     int			ncid,			/* file handle */
     int			varid,			/* var handle */
+    int                 raw,            	/* 1 to request raw data */
     nc_type		*internal_number_type,
     double		*scale_factor,
     double		*offset,
@@ -261,31 +262,36 @@ Nap_NetcdfGetScalingInfo(
     *internal_number_type = external_number_type;
     externalDataType = Nap_Netcdf2NapDataType(external_number_type);
     CHECK2(Nap_ValidDataType(externalDataType), "m4NAME: Illegal datatype");
-    status = nc_get_att_double(ncid, varid, "scale_factor", scale_factor);
-    if (status == NC_NOERR) {
-	status = nc_inq_atttype(ncid, varid, "scale_factor", &type);
-	CHECK2NC(status, "m4NAME: Error calling nc_inq_atttype");
-	*internal_number_type = Max(*internal_number_type, type);
-    } else {
-	*scale_factor = 1.0;
-    }
-    status = nc_get_att_double(ncid, varid, "add_offset", offset);
-    if (status == NC_NOERR) {
-	status = nc_inq_atttype(ncid, varid, "add_offset", &type);
-	CHECK2NC(status, "m4NAME: Error calling nc_inq_atttype");
-	*internal_number_type = Max(*internal_number_type, type);
-    } else {
-	*offset = 0.0;
-    }
+    *scale_factor = 1.0;
+    *offset = 0.0;
     switch (externalDataType) {
 	m4ForAllNcDataType(`m4range(', `)')
 	default:		/* error */
 	    CHECK2(0, "m4NAME: Illegal datatype for netCDF");
     }
-    status = nc_get_att_double(ncid, varid, "valid_range", valid_range);
-    if (status != NC_NOERR) {
-	status = nc_get_att_double(ncid, varid, "valid_min", valid_range);
-	status = nc_get_att_double(ncid, varid, "valid_max", valid_range+1);
+    if (!raw) {
+	status = nc_get_att_double(ncid, varid, "scale_factor", scale_factor);
+	if (status == NC_NOERR) {
+	    status = nc_inq_atttype(ncid, varid, "scale_factor", &type);
+	    CHECK2NC(status, "m4NAME: Error calling nc_inq_atttype");
+	    *internal_number_type = Max(*internal_number_type, type);
+	}
+	status = nc_get_att_double(ncid, varid, "add_offset", offset);
+	if (status == NC_NOERR) {
+	    status = nc_inq_atttype(ncid, varid, "add_offset", &type);
+	    CHECK2NC(status, "m4NAME: Error calling nc_inq_atttype");
+	    *internal_number_type = Max(*internal_number_type, type);
+	}
+	status = nc_get_att_double(ncid, varid, "valid_range", valid_range);
+	if (status != NC_NOERR) {
+	    status = nc_get_att_double(ncid, varid, "valid_min", valid_range);
+	    status = nc_get_att_double(ncid, varid, "valid_max", valid_range+1);
+	}
+	if (valid_range[0] > valid_range[1]) {
+	    double old0 = valid_range[0];
+	    valid_range[0] = valid_range[1];
+	    valid_range[1] = old0;
+	}
     }
     return TCL_OK;
 }
@@ -677,6 +683,7 @@ Nap_NetcdfGetVar(
     NapClientData       *nap_cd,
     int			ncid,			/* file handle */
     int			varid,			/* Var handle */
+    int                 raw,            	/* 1 to request raw data */
     char		*data,
     Nap_NAO		*mv_nao,		/* missing value of destination nao */
     size_t		*start,
@@ -707,11 +714,11 @@ Nap_NetcdfGetVar(
 	count_t[i] = edge[i];
 	nels *= edge[i];
     }
-    status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, &internal_number_type, &sf,
+    status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, raw, &internal_number_type, &sf,
 	    &off, valid_range);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfGetScalingInfo");
-    zmin = Min(valid_range[0], valid_range[1]);
-    zmax = Max(valid_range[0], valid_range[1]);
+    zmin = valid_range[0];
+    zmax = valid_range[1];
     internalDataType = Nap_Netcdf2NapDataType(internal_number_type);
     CHECK2(Nap_ValidDataType(internalDataType), "m4NAME: Illegal datatype");
     status = nc_enddef(ncid);
@@ -800,11 +807,12 @@ Nap_NetcdfScaleBeforePut(
     double		zmax;			/* from valid_range */
     double		zmin;			/* from valid_range */
 
-    status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, &number_type, &cal, &off, valid_range);
+    status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, 0,
+	    &number_type, &cal, &off, valid_range);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfGetScalingInfo");
     rcal = 1.0 / cal;
-    zmin = Min(valid_range[0], valid_range[1]);
-    zmax = Max(valid_range[0], valid_range[1]);
+    zmin = valid_range[0];
+    zmax = valid_range[1];
     status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t, &number_type, NULL);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
     CHECK2(rank32 >= old_NAO->rank, "m4NAME: Main NAO has rank > that of Var");
@@ -1065,7 +1073,7 @@ Nap_NetcdfGetDim(
 	    CHECK2(*cv_nc_NAO, "m4NAME: Error calling Nap_NewNAO");
 	    start[0] = 0;
 	    edge[0] = shape[0];
-	    status = Nap_NetcdfGetVar(nap_cd, ncid, cv_varid, (*cv_nc_NAO)->data.c,
+	    status = Nap_NetcdfGetVar(nap_cd, ncid, cv_varid, 0, (*cv_nc_NAO)->data.c,
 		    NULL, start, edge);
 	    CHECK(status == TCL_OK);
 	    status = Nap_NetcdfGetStdAtts(nap_cd, ncid, cv_varid, *cv_nc_NAO);
@@ -1101,6 +1109,7 @@ Nap_NetcdfDefineSubscript(
     size_t		shape1[NAP_MAX_RANK],	/* shape of main_NAO (with leading 1s) (out) */
     char		**buffer)	/* Malloced by Nap_NetcdfDefineSubscript */
 {
+    Nap_NAO		*boxed_subscript_NAO;	/* local (boxed) subscript nao */
     Nap_NAO		*cv_nc_NAO;		/* cv from nc file */
     Nap_dataType	dataType;
     Nap_NAO		*el_NAO;		/* element of subscript */
@@ -1123,20 +1132,21 @@ Nap_NetcdfDefineSubscript(
     Nap_NAO		*tmp_NAO2;
 
     assert(subscript_NAO);
-    ++ subscript_NAO->count;
     status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t, &number_type, &isRecord);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
     if (rank32 > 0) {
-	if (subscript_NAO->dataType != NAP_BOXED) {
-	    tmp_NAO = subscript_NAO;
+	if (subscript_NAO->dataType == NAP_BOXED) {
+	    boxed_subscript_NAO = subscript_NAO;
+	} else {
 	    shape1[0] = 1;
-	    subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape1);
-	    CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
-	    subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
-	    ++ tmp_NAO->count;
+	    boxed_subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape1);
+	    CHECK2(boxed_subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
+	    boxed_subscript_NAO->data.Boxed[0] = subscript_NAO->slot;
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	}
-	CHECK2(subscript_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
-	CHECK2(subscript_NAO->nels <= rank32,
+	Nap_IncrRefCount(nap_cd, boxed_subscript_NAO);
+	CHECK2(boxed_subscript_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
+	CHECK2(boxed_subscript_NAO->nels <= rank32,
 		"m4NAME: # elements in subscript > nc rank");
 	for (i = 0; i < rank32; i++) {
 	    shape1[i] = 1;
@@ -1151,8 +1161,8 @@ Nap_NetcdfDefineSubscript(
 	    CHECK(status == TCL_OK);
 	    subscript_ptr[i] = (int *) MALLOC(shape1[i] * sizeof(int));
 	    CHECK(subscript_ptr[i]);
-	    if (i < subscript_NAO->nels	 &&  subscript_NAO->data.Boxed[i]) {
-		el_NAO = Nap_GetNaoFromSlot(subscript_NAO->data.Boxed[i]);
+	    if (i < boxed_subscript_NAO->nels	 &&  boxed_subscript_NAO->data.Boxed[i]) {
+		el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
 		CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript element rank > 1");
 		linkNao = Nap_GetNaoFromSlot(el_NAO->linkSlot);
 		if (linkNao) {
@@ -1197,7 +1207,7 @@ Nap_NetcdfDefineSubscript(
 	    }
 	    assert(sub_NAO);
 	    for (j = 0; j < shape1[i]; j++) {
-		if (j == 0  &&  isRecord  &&  sub_NAO->data.I32[j] > 0) {
+		if (i == 0  &&  isRecord  &&  sub_NAO->data.I32[j] >= 0) {
 		    subscript_ptr[i][j] = sub_NAO->data.I32[j];
 		} else {
 		    subscript_ptr[i][j] = Nap_mod(sub_NAO->data.I32[j], shape_t[i]);
@@ -1265,13 +1275,9 @@ Nap_NetcdfDefineSubscript(
 	    count_t[i] = shape1[i];
 	    *buffer = NULL;
 	}
+	Nap_DecrRefCount(nap_cd, boxed_subscript_NAO);
     } else {
 	*buffer = NULL;
-    }
-    if (subscript_NAO->count > 0) {
-	-- subscript_NAO->count;
-    } else {
-	Nap_FreeNAO(nap_cd, subscript_NAO);
     }
     return TCL_OK;
 }
@@ -1595,11 +1601,12 @@ Nap_NetcdfPut(
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
 	    tmp_NAO = NULL;
 	    if (subscript_NAO) {
-		++ subscript_NAO->count;
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 	    } else {
 		shape[0] = rank;
 		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
 		CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 		for (i = 0; i < rank; i++) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
 		    if (tmp_NAO) {
@@ -1639,11 +1646,7 @@ Nap_NetcdfPut(
 	    for (i = 0; i < rank32; i++) {
 		FREE(subscript_ptr[i]);
 	    }
-	    if (subscript_NAO->count > 0) {
-		-- subscript_NAO->count;
-	    } else {
-		Nap_FreeNAO(nap_cd, subscript_NAO);
-	    }
+	    Nap_DecrRefCount(nap_cd, subscript_NAO);
 	}
 	status = Nap_NetcdfCloseFile(nap_cd, ncid);
 	CHECK(status == TCL_OK);
@@ -1664,11 +1667,12 @@ Nap_NetcdfGetSubscripting(
     NapClientData       *nap_cd,
     int			ncid,			/* file handle */
     int			varid,			/* netCDF var ID */
+    int                 raw,            	/* 1 to request raw data */
     Nap_NAO		*main_NAO,		/* pointer to main nao */
     int			dim_num,		/* current dimension number */
     size_t		start_t[],		/* netCDF subscript */
-    size_t		count_t[],	     /* netCDF edge (all 1 except final) */
-    int			*subscript_ptr[],      /* specified subscript vectors */
+    size_t		count_t[],		/* netCDF edge (all 1 except final) */
+    int			*subscript_ptr[],	/* specified subscript vectors */
     char		**data_ptr,		/* points to next NAO element */
     char		*buffer)		/* For actual read */
 {
@@ -1686,7 +1690,7 @@ Nap_NetcdfGetSubscripting(
     assert(rank32 == 0	||  dim_num < rank32);
     if (rank32 == 0  ||	 dim_num == rank32-1) {
 	if (buffer) {
-	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, buffer, main_NAO->missingValuePtr,
+	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, raw, buffer, main_NAO->missingValuePtr,
 		start_t, count_t);
 	    CHECK(status == TCL_OK);
 	    for (i = 0; i < main_NAO->shape[dim_num]; i++) {
@@ -1695,8 +1699,8 @@ Nap_NetcdfGetSubscripting(
 		*data_ptr += size;
 	    }
 	} else {
-	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, *data_ptr, main_NAO->missingValuePtr,
-		start_t, count_t);
+	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, raw, *data_ptr,
+		    main_NAO->missingValuePtr, start_t, count_t);
 	    CHECK(status == TCL_OK);
 	    if (rank32 > 0) {
 		*data_ptr += count_t[rank32-1] * size;
@@ -1705,7 +1709,7 @@ Nap_NetcdfGetSubscripting(
     } else {
 	for (i = 0; i < main_NAO->shape[dim_num]; i++) {
 	    start_t[dim_num] = subscript_ptr[dim_num][i];
-	    status = Nap_NetcdfGetSubscripting(nap_cd, ncid, varid, main_NAO, dim_num+1,
+	    status = Nap_NetcdfGetSubscripting(nap_cd, ncid, varid, raw, main_NAO, dim_num+1,
 		    start_t, count_t, subscript_ptr, data_ptr, buffer);
 	    CHECK(status == TCL_OK);
 	}
@@ -1739,6 +1743,7 @@ Nap_NetcdfGet(
     char		*fileName,	/* netCDF file name */
     char		*var_name,	/* netCDF var (var) name */
     Nap_NAO		*subscript_NAO, /* pointer to subscript nao */
+    int                 raw,            /* 1 to request raw data */
     Nap_NAO		*main_NAO)	/* pointer to main nao (out) */
 {
     char		*buffer;		/* For actual read */
@@ -1783,13 +1788,13 @@ Nap_NetcdfGet(
 	CHECK2(rank32 == main_NAO->rank, "m4NAME: netCDF rank != NAO rank");
 	externalDataType = Nap_Netcdf2NapDataType(number_type);
 	assert(Nap_ValidDataType(externalDataType));
-	status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, &number_type, &cal,
+	status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, raw, &number_type, &cal,
 		&off, valid_range);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfGetScalingInfo");
 	internalDataType = Nap_Netcdf2NapDataType(number_type);
 	assert(Nap_ValidDataType(internalDataType));
 	CHECK2(internalDataType == main_NAO->dataType, "m4NAME: netCDF dataType != NAO dataType");
-	if (internalDataType == externalDataType  &&  cal == 1.0  &&  off == 0.0) {
+	if (internalDataType == externalDataType  &&  cal == 1.0  &&  off == 0.0  &&  !raw) {
 	    mv = Nap_NewNAO(nap_cd, internalDataType, 0, main_NAO->shape);
 	    CHECK2(mv, "m4NAME: Error calling Nap_NewNAO");
 	    switch (internalDataType) {
@@ -1810,7 +1815,7 @@ Nap_NetcdfGet(
 			subscript_NAO, subscript_ptr, start_t, count_t, shape1, &buffer);
 	    CHECK(status == TCL_OK);
 	    data_ptr = main_NAO->data.c;
-	    status = Nap_NetcdfGetSubscripting(nap_cd, ncid, varid, main_NAO, 0,
+	    status = Nap_NetcdfGetSubscripting(nap_cd, ncid, varid, raw, main_NAO, 0,
 		    start_t, count_t, subscript_ptr, &data_ptr, buffer);
 	    FREE(buffer);
 	    CHECK(status == TCL_OK);
@@ -1822,7 +1827,7 @@ Nap_NetcdfGet(
 		start_t[i] = 0;
 		count_t[i]  = shape_t[i];
 	    }
-	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, main_NAO->data.c,
+	    status = Nap_NetcdfGetVar(nap_cd, ncid, varid, raw, main_NAO->data.c,
 		    main_NAO->missingValuePtr, start_t, count_t);
 	    CHECK(status == TCL_OK);
 	    for (i = 0; i < rank32; i++) {
@@ -1854,6 +1859,7 @@ Nap_NetcdfInfo(
     NapClientData       *nap_cd,
     char		*fileName,		/* netCDF file name */
     char		*var_name,		/* netCDF var (var) name */
+    int                 raw,            	/* 1 to request raw data */
     int			*rank,			/* rank of var (out) */
     size_t		shape[NAP_MAX_RANK],	/* shape of var (out) */
     Nap_dataType	*externalDataType,	/* datatype of var (out) */
@@ -1901,7 +1907,7 @@ Nap_NetcdfInfo(
 	status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t, &number_type, NULL);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
 	*externalDataType = Nap_Netcdf2NapDataType(number_type);
-	status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, &number_type, &cal,
+	status = Nap_NetcdfGetScalingInfo(nap_cd, ncid, varid, raw, &number_type, &cal,
 		&off, valid_range);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfGetScalingInfo");
 	*internalDataType = Nap_Netcdf2NapDataType(number_type);
@@ -2174,7 +2180,7 @@ Nap_OOC_netcdf(
     Nap_NAO		*subscript_NAO = NULL;	/* pointers to subscripts */
     Nap_NAO		*valid_range_NAO = NULL;	/* For new netcdf var */
 
-    static char		*switches[] = {
+    CONST char		*switches[] = {
 				"-coordinateVariable",
 				"-datatype",
 				"-index",
@@ -2193,25 +2199,31 @@ Nap_OOC_netcdf(
 	    switch (index) {
 		case 0:			/* -coordinateVariable */
 		    boxed_cv_netcdf = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, boxed_cv_netcdf);
 		    break;
 		case 1:			/* -datatype */
 		    str = Tcl_GetStringFromObj(objv[++i], NULL);
 		    dataType = Nap_TextToDataType(str);
 		    break;
-		case 2:			/* -subscript */
+		case 2:			/* -index */
 		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, subscript_NAO);
 		    break;
 		case 3:			/* -offset */
 		    add_offset_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, add_offset_NAO);
 		    break;
 		case 4:			/* -range */
 		    valid_range_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, valid_range_NAO);
 		    break;
 		case 5:			/* -scale */
 		    scale_factor_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, scale_factor_NAO);
 		    break;
 		case 6:			/* -subscript (old name for -index) */
 		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, subscript_NAO);
 		    break;
 		case 7:                 /* -unlimited */
 		    isRecord = 1;
@@ -2224,7 +2236,7 @@ Nap_OOC_netcdf(
 	} else if (!var_name) {
 	    var_name  = Tcl_GetStringFromObj(objv[i], NULL);
 	} else {
-		str = Tcl_GetStringResult(nap_cd->interp);
+		str = (char *) Tcl_GetStringResult(nap_cd->interp);
 		CHECK3(FALSE, "m4NAME: %s", str);
 	}
     }
@@ -2235,10 +2247,10 @@ Nap_OOC_netcdf(
 	    add_offset_NAO, valid_range_NAO, naoPtr, boxed_cv_netcdf,
 	    subscript_NAO, isRecord);
     CHECK(status == TCL_OK);
-    Nap_FreeNAO(nap_cd, scale_factor_NAO);
-    Nap_FreeNAO(nap_cd, add_offset_NAO);
-    Nap_FreeNAO(nap_cd, valid_range_NAO);
-    Nap_FreeNAO(nap_cd, boxed_cv_netcdf);
-    Nap_FreeNAO(nap_cd, subscript_NAO);
+    Nap_DecrRefCount(nap_cd, scale_factor_NAO);
+    Nap_DecrRefCount(nap_cd, add_offset_NAO);
+    Nap_DecrRefCount(nap_cd, valid_range_NAO);
+    Nap_DecrRefCount(nap_cd, boxed_cv_netcdf);
+    Nap_DecrRefCount(nap_cd, subscript_NAO);
     return TCL_OK;
 }

@@ -622,7 +622,7 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SHLIB_LD_LIBS='${LIBS}'
 	    SHLIB_SUFFIX=".so"
 	    DL_OBJS="tclLoadDl.o"
-	    LIBOBJS="$LIBOBJS tclLoadAix.o"
+	    AC_LIBOBJ([tclLoadAix])
 	    DL_LIBS="-lld"
 	    LDFLAGS=""
 	    LD_SEARCH_FLAGS='-L${LIB_RUNTIME_DIR}'

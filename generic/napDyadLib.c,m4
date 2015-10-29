@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.68 2002/10/10 09:00:20 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.70 2002/12/13 03:24:53 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -1308,6 +1308,8 @@ Nap_Cat(
     size_t		nbytes1;		/* # bytes in naoPtr1 */
     size_t		nbytes2;		/* # bytes in naoPtr2 */
     int                 rank;
+    int                 reshape1;		/* Need to reshape *naoPtr1? */
+    int                 reshape2;		/* Need to reshape *naoPtr2? */
     size_t              shape[NAP_MAX_RANK];
     int                 status;
 
@@ -1319,10 +1321,15 @@ Nap_Cat(
     Nap_IncrRefCount(nap_cd, naoPtr2);
     dataType = Max(naoPtr1->dataType, naoPtr2->dataType);
     rank = Max(1, Max(naoPtr1->rank, naoPtr2->rank));
+    reshape1 = naoPtr1->dataType < dataType  ||  naoPtr1->rank < rank;
+    reshape2 = naoPtr2->dataType < dataType  ||  naoPtr2->rank < rank;
     for (i = 1; i < rank; i++) {
-	shape[i] = naoPtr1->rank < rank ? naoPtr2->shape[i] : naoPtr1->shape[i];
+	shape[i] = Max(	naoPtr1->rank < rank ? 0 : naoPtr1->shape[i],
+			naoPtr2->rank < rank ? 0 : naoPtr2->shape[i]);
+	reshape1 = reshape1  ||  naoPtr1->shape[i] < shape[i];
+	reshape2 = reshape2  ||  naoPtr2->shape[i] < shape[i];
     }
-    if (naoPtr1->dataType < dataType  ||  naoPtr1->rank < rank) {
+    if (reshape1) {
 	shape[0] = naoPtr1->rank < rank ? 1 : naoPtr1->shape[0];
 	naoTmp = naoPtr1;
 	naoPtr1 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
@@ -1330,7 +1337,7 @@ Nap_Cat(
 	Nap_IncrRefCount(nap_cd, naoPtr1);
 	Nap_DecrRefCount(nap_cd, naoTmp);
     }
-    if (naoPtr2->dataType < dataType  ||  naoPtr2->rank < rank) {
+    if (reshape2) {
 	shape[0] = naoPtr2->rank < rank ? 1 : naoPtr2->shape[0];
 	naoTmp = naoPtr2;
 	naoPtr2 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
@@ -1390,74 +1397,71 @@ Nap_Laminate(
     Nap_dataType        dataType;
     int                 i;
     char		*id;
-    int                 sameShape;
     Nap_NAO		*result;
     Nap_NAO		*naoPtr1;
     Nap_NAO		*naoPtr2;
     Nap_NAO		*naoTmp;
-    size_t		nbytes1;		/* # bytes in naoPtr1 */
-    size_t		nbytes2;		/* # bytes in naoPtr2 */
+    size_t		nb;			/* # bytes in naoPtr1 & naoPtr2 */
     int                 rank;
+    int                 reshape1;		/* Need to reshape *naoPtr1? */
+    int                 reshape2;		/* Need to reshape *naoPtr2? */
     size_t              shape[NAP_MAX_RANK];
     int                 status;
 
     naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
     CHECK2NULL(naoPtr1, "m4NAME: Undefined left-hand operand");
+    Nap_IncrRefCount(nap_cd, naoPtr1);
     naoPtr2 = Nap_GetNumericNaoFromId(nap_cd, str2);
     CHECK2NULL(naoPtr2, "m4NAME: Undefined right-hand operand");
-    sameShape = naoPtr1->rank == naoPtr2->rank;
-    if (sameShape){
-	rank = naoPtr1->rank;
-	for (i = 0; i < rank; i++) {
-	    sameShape = sameShape  &&  naoPtr1->shape[i] == naoPtr2->shape[i];
-	}
+    Nap_IncrRefCount(nap_cd, naoPtr2);
+    dataType = Max(naoPtr1->dataType, naoPtr2->dataType);
+    rank = Max(naoPtr1->rank, naoPtr2->rank);
+    reshape1 = naoPtr1->dataType < dataType  ||  naoPtr1->rank < rank;
+    reshape2 = naoPtr2->dataType < dataType  ||  naoPtr2->rank < rank;
+    for (i = 0; i < rank; i++) {
+	shape[i] = Max(	naoPtr1->rank < rank ? 0 : naoPtr1->shape[i],
+			naoPtr2->rank < rank ? 0 : naoPtr2->shape[i]);
+	reshape1 = reshape1  ||  naoPtr1->shape[i] < shape[i];
+	reshape2 = reshape2  ||  naoPtr2->shape[i] < shape[i];
     }
-    if (sameShape){
-	dataType = Max(naoPtr1->dataType, naoPtr2->dataType);
-	if (naoPtr1->dataType < dataType) {
-	    naoTmp = naoPtr1;
-	    naoPtr1 = Nap_CastNAO(nap_cd, naoTmp, dataType);
-	    CHECK2NULL(naoPtr1, "m4NAME: Error calling Nap_CastNAO");
-	    Nap_FreeNAO(nap_cd, naoTmp);
-	}
-	if (naoPtr2->dataType < dataType) {
-	    naoTmp = naoPtr2;
-	    naoPtr2 = Nap_CastNAO(nap_cd, naoTmp, dataType);
-	    CHECK2NULL(naoPtr2, "m4NAME: Error calling Nap_CastNAO");
-	    Nap_FreeNAO(nap_cd, naoTmp);
-	}
-	shape[0] = 2;
-	for (i = 0; i < rank; i++) {
-	    shape[i+1] = naoPtr1->shape[i];
-	}
-	result = Nap_NewNAO(nap_cd, dataType, rank+1, shape);
-	CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
-	for (i = 0; i < rank; i++) {
-	    naoTmp = Nap_GetCoordVar(nap_cd, naoPtr1, i);
-	    status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr1->dimName[i],
-		    i+1);
-	    CHECK2NULL(status == TCL_OK,
-		    "m4NAME: Error calling Nap_AttachCoordVar");
-	    naoTmp = Nap_GetCoordVar(nap_cd, naoPtr2, i);
-	    status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr2->dimName[i],
-		    i+1);
-	    CHECK2NULL(status == TCL_OK,
-		    "m4NAME: Error calling Nap_AttachCoordVar");
-	}
-	result->dimName[0] = NULL;
-	result->coordVarSlot[0] = 0;
-	nbytes1 = Nap_SizeOf(dataType) * naoPtr1->nels;
-	nbytes2 = Nap_SizeOf(dataType) * naoPtr2->nels;
-	memcpy(result->data.c, naoPtr1->data.c, nbytes1);
-	memcpy(result->data.c + nbytes1, naoPtr2->data.c,
-		nbytes2);
-	Nap_FreeNAO(nap_cd, naoPtr1);
-	Nap_FreeNAO(nap_cd, naoPtr2);
-	id = result->id;
-	Tcl_SetResult(nap_cd->interp, id, TCL_VOLATILE);
-    } else {
-	id = Nap_Cat(nap_cd, str1, str2);
+    if (reshape1) {
+	naoTmp = naoPtr1;
+	naoPtr1 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
+	CHECK2NULL(naoPtr1, "m4NAME: Error calling Nap_ReshapeNAO_trailing");
+	Nap_IncrRefCount(nap_cd, naoPtr1);
+	Nap_DecrRefCount(nap_cd, naoTmp);
     }
+    if (reshape2) {
+	naoTmp = naoPtr2;
+	naoPtr2 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
+	CHECK2NULL(naoPtr2, "m4NAME: Error calling Nap_ReshapeNAO_trailing");
+	Nap_IncrRefCount(nap_cd, naoPtr2);
+	Nap_DecrRefCount(nap_cd, naoTmp);
+    }
+    for (i = rank; i > 0; i--) {
+	shape[i] = shape[i-1];
+    }
+    shape[0] = 2;
+    result = Nap_NewNAO(nap_cd, dataType, rank+1, shape);
+    CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
+    for (i = 0; i < rank; i++) {
+	naoTmp = Nap_GetCoordVar(nap_cd, naoPtr1, i);
+	status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr1->dimName[i], i+1);
+	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+	naoTmp = Nap_GetCoordVar(nap_cd, naoPtr2, i);
+	status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr2->dimName[i], i+1);
+	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+    }
+    result->dimName[0] = NULL;
+    result->coordVarSlot[0] = 0;
+    nb = Nap_SizeOf(dataType) * naoPtr1->nels;
+    assert(nb == Nap_SizeOf(dataType) * naoPtr2->nels);
+    memcpy(result->data.c, naoPtr1->data.c, nb);
+    memcpy(result->data.c + nb, naoPtr2->data.c, nb);
+    id = result->id;
+    Tcl_SetResult(nap_cd->interp, id, TCL_VOLATILE);
+    Nap_DecrRefCount(nap_cd, naoPtr1);
+    Nap_DecrRefCount(nap_cd, naoPtr2);
     return id;
 }
 

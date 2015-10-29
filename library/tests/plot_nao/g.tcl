@@ -1,6 +1,3 @@
-source ../../plot_nao.tcl
-source ../../plot_nao_procs.tcl
-
 nap "m = {100#{100#0}100#{100#255}}"
 nap "x = 101 .. 200"
 nap "y = 501 .. 700"

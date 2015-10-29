@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.182 2002/08/07 08:16:54 dav480 Exp $
+ * $Id: nap.h,m4,v 1.185 2002/12/10 02:09:01 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -219,6 +219,8 @@ m4ForAllDataType(`m4tmp(', `)')
 #define Nap_IsInteger(nao) Nap_TypeIsInteger(nao->dataType)
 
 #define Nap_IsNumeric(nao) Nap_TypeIsNumeric(nao->dataType)
+
+#define Nap_IsBoxed(nao) Nap_TypeIsBoxed(nao->dataType)
 
 #define Nap_IsUnboxed(nao) Nap_TypeIsUnboxed(nao->dataType)
 
@@ -566,7 +568,7 @@ EXTERN char		*Nap_ShiftRight(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_SizeOf(Nap_dataType dataType);
 EXTERN Nap_NAO		*Nap_StandardMissingValueNAO(NapClientData *nap_cd, Nap_dataType dataType);
 EXTERN char		*Nap_StrCat(char *str1, ...);
-EXTERN char		*Nap_StrDup(char *str);
+EXTERN char		*Nap_StrDup(CONST char *str);
 EXTERN char		Nap_StrTail(char *string);
 EXTERN int		Nap_StrTailMatch(char *string, char *tail);
 EXTERN int		Nap_StrToDimNum(NapClientData *nap_cd, Nap_NAO *naoPtr, char *str);
@@ -574,6 +576,7 @@ EXTERN char		*Nap_StringConstant(NapClientData *nap_cd, char *str);
 EXTERN int		Nap_StringToNumber(NapClientData *nap_cd, char *str, Nap_Number *result);
 EXTERN char		*Nap_Sub(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Subscript(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN int		Nap_swap_bytes(NapClientData *nap_cd, char *a, int n, int size); 
 EXTERN char		*Nap_Tally(NapClientData *nap_cd, char *str);
 EXTERN char		*Nap_TclGetVar(NapClientData *nap_cd, char *name);
 EXTERN Nap_dataType	Nap_TextToDataType(char *str);

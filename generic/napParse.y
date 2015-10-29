@@ -13,7 +13,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParse.y,v 1.57 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParse.y,v 1.59 2002/12/20 01:42:42 dav480 Exp $";
 #endif /* not lint */
 
 #ifdef WIN32
@@ -93,12 +93,13 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.57 2002/08/07 08:16:54 dav480 Exp $
 %type <pnode>	encList			/* enclosed list i.e. {list} */
 %type <pnode>	list			/* what is inside braces */
 %type <pnode>	element			/* of list (number or encList) */
-%type <number>	ssnv			/*   signed scalar numeric value */
+%type <number>	ssnv			/* signed scalar numeric value */
 %type <number>	usnv			/* unsigned scalar numeric value */
 
 %%
 
 result	: expr				{$$ = Nap_SetParseResult(Nap_param, $1);}
+	;
 
 expr	: naoID
 	| arrayConst
@@ -195,6 +196,7 @@ element : ssnv				{$$ = Nap_NewValuePNode(Nap_param, "1", $1);}
 
 ssnv	: usnv
 	| '-' usnv			{$$ = Nap_NegateNumber(Nap_param, $2);}
+	| '+' usnv			{$$ = $2;}
 	;
 
 usnv	: UNUMBER			{(void) Nap_StringToNumber(Nap_param, $1, &($$));}

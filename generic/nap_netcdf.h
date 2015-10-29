@@ -7,7 +7,7 @@
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap_netcdf.h,v 1.8 2002/05/14 00:32:03 dav480 Exp $
+ * $Id: nap_netcdf.h,v 1.9 2003/03/13 03:39:28 dav480 Exp $
  */
 
 #ifndef _NAP_NETCDF
@@ -39,6 +39,7 @@ Nap_NetcdfGet(
     char		*fileName,	/* netCDF file name */
     char		*var_name,	/* netCDF var (var) name */
     Nap_NAO		*subscript_NAO, /* pointer to subscript nao */
+    int			raw,		/* 1 to request raw data */
     Nap_NAO		*main_NAO)	/* pointer to main nao (out) */
 ;
 
@@ -47,6 +48,7 @@ Nap_NetcdfInfo(
     NapClientData       *nap_cd,
     char		*fileName,		/* netCDF file name */
     char		*var_name,		/* netCDF var (var) name */
+    int                 raw,            	/* 1 to request raw data */
     int			*rank,			/* rank of var (out) */
     size_t		shape[NAP_MAX_RANK],	/* shape of var (out) */
     Nap_dataType	*externalDataType,	/* datatype of var (out) */

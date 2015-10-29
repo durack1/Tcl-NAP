@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.13 2002/10/10 07:32:27 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.20 2003/03/13 03:39:28 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -21,11 +21,13 @@ static char *rcsid="@(#) $Id: nap_get.c,v 1.13 2002/10/10 07:32:27 dav480 Exp $"
  *  "nap_get binary" command.
  *
  *  Usage:
- *	nap_get binary <CHANNEL> ?<DATATYPE>? ?<SHAPE>?
+ *	nap_get binary|swap <CHANNEL> ?<DATATYPE>? ?<SHAPE>?
  *	    Get data from binary file & create nao.
  *	    <DATATYPE> is NAP datatype which can be: character, i8, i16, i32, u8,
  *		    u16, u32, f32 or f64 (Default: u8)
  *	    <SHAPE> is shape of result (Default: number of elements until end)
+ *
+ *  If premature end of file encountered then result is empty u8 vector.
  */
 
 #undef TEXT0
@@ -53,21 +55,21 @@ Nap_GetBinary(
     size_t		size;
     int			start;		/* initial disk address */
     int			status;
+    char		*subCommand; 	/* "binary" or "swap" */
     char		*str;
     int			toRead;		/* # bytes to read */
 
     CHECK_NUM_ARGS(objc >= 3  &&  objc <= 5, 2, "<CHANNEL> ?<DATATYPE>? ?<SHAPE>?");
+    subCommand = Tcl_GetStringFromObj(objv[1], NULL);
     channelName = Tcl_GetStringFromObj(objv[2], NULL);
     str = objc < 4 ? "u8" : Tcl_GetStringFromObj(objv[3], NULL);
     dataType = Nap_TextToDataType(str);
     CHECK3(Nap_ValidDataType(dataType), TEXT0 "Invalid data-type %s", str);
     size = Nap_SizeOf(dataType);
-
     channel = Tcl_GetChannel(nap_cd->interp, channelName, &mode);
     CHECK4(channel, io_error, "Tcl_GetChannel", channelName);
     status = Tcl_SetChannelOption(nap_cd->interp, channel, "-translation", "binary");
     CHECK(status == TCL_OK);
-
     if (objc < 5) {
 	rank = 1;
 	start = Tcl_Tell(channel);
@@ -91,13 +93,18 @@ Nap_GetBinary(
 	}
 	Nap_DecrRefCount(nap_cd, shape_NAO);
     }
-
     naoPtr = Nap_NewNAO(nap_cd, dataType, rank, shape);
     CHECK2(naoPtr, TEXT0 "Error calling Nap_NewNAO");
     toRead = naoPtr->nels * size;
     n = Tcl_Read(channel, naoPtr->data.c, toRead);
-    CHECK5(n == toRead, TEXT0 "Only %d bytes read from %s but expecting %d",
-	    n, channelName, toRead);
+    if (n != toRead) {
+	Nap_DecrRefCount(nap_cd, naoPtr);
+	shape[0] = 0;
+	naoPtr = Nap_NewNAO(nap_cd, NAP_U8, 1, shape);
+    }
+    if (subCommand[0] == 's'  &&  size > 1) {		/* swap bytes */
+	status = Nap_swap_bytes(nap_cd, naoPtr->data.c, naoPtr->nels, size);
+    }
     Tcl_SetResult(nap_cd->interp, naoPtr->id, TCL_VOLATILE);
     return TCL_OK;
 }
@@ -138,7 +145,7 @@ Nap_GetHDF_metaVar(
     fileName = Tcl_GetStringFromObj(objv[3], NULL);
     CHECK_NUM_ARGS(objc == 5, 4, "<NAME>");
     name = Tcl_GetStringFromObj(objv[4], NULL);
-    status = Nap_HdfInfo(nap_cd, fileName, name, &rank, shape,
+    status = Nap_HdfInfo(nap_cd, fileName, name, 0, &rank, shape,
 	    &externalDataType, &internalDataType);
     CHECK(status == TCL_OK);
     switch (index) {
@@ -200,7 +207,7 @@ Nap_GetHDF_meta(
     char		*fileName;
     int			index;
     char		*name_sds;
-    static char		*option[] = {
+    CONST char		*option[] = {
 				"-coordinate",
 				"-datatype",
 				"-dimension",
@@ -210,7 +217,7 @@ Nap_GetHDF_meta(
 				(char *) NULL};
     char		*reg_exp;		/* regular expression */
     int			status;
-    char		*str;
+    CONST char		*str;
 
     CHECK_NUM_ARGS(objc > 3, 2, "-<OPTION> <FILENAME> ...");
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], option, "option", 0, &index);
@@ -251,7 +258,7 @@ Nap_GetHDF_meta(
  *  "nap_get hdf" command.
  *
  *  Called by Nap_GetCmd for following options:
- *	nap_get hdf <FILENAME> <NAME> ?<SUBSCRIPT>?
+ *	nap_get hdf <FILENAME> <NAME> ?<INDEX>? ?<RAW>?
  *	nap_get hdf -coordinate <FILENAME> <SDS_NAME> <DIM_NAME>|<DIM_NUMBER>
  *	nap_get hdf -datatype <FILENAME> <NAME>
  *	nap_get hdf -dimension <FILENAME> <SDS_NAME>
@@ -280,8 +287,8 @@ Nap_GetHDF(
     Nap_NAO		*new_nao;
     size_t		new_shape[NAP_MAX_RANK];
     int			new_rank;
-    Tcl_Obj		*objArgs;
     int			rank;
+    int			raw = 0;		/* 1 to request raw data */
     char		*sds_name;
     size_t		shape[NAP_MAX_RANK];
     int			status;
@@ -295,27 +302,29 @@ Nap_GetHDF(
     if (str[0] == '-') {
 	status = Nap_GetHDF_meta(nap_cd, objc, objv);
     } else {
-	CHECK_NUM_ARGS(objc > 3, 2, "<FILENAME> <SDS_NAME> ...");
+	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <SDS_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
 	sds_name = Tcl_GetStringFromObj(objv[3], NULL);
-	if (objc > 4) {
-            objArgs = Tcl_ConcatObj(objc-4, objv+4);
-	    CHECK2(objArgs, TEXT0 "Error calling Tcl_ConcatObj");
-            Tcl_IncrRefCount(objArgs);
-	    if (Tcl_GetCharLength(objArgs) > 0) {
-		subscript_NAO = Nap_GetNaoFromObj(nap_cd, objArgs);
-		CHECK(subscript_NAO);
-	    }
-	    Tcl_DecrRefCount(objArgs);
+	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
+	    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[4]);
+	    CHECK2(subscript_NAO, TEXT0 "Error evaluating subscript");
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	}
-	status = Nap_HdfInfo(nap_cd, fileName, sds_name, &rank,
+	if (objc > 5  &&  Tcl_GetCharLength(objv[5]) > 0) {
+	    status = Tcl_GetBooleanFromObj(interp, objv[5], &raw);
+	    CHECK2(status == TCL_OK  &&  (raw == 0  ||  raw == 1),
+		    TEXT0 "Argument <RAW> is not 0 or 1");
+	}
+	status = Nap_HdfInfo(nap_cd, fileName, sds_name, raw, &rank,
 		hdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
+	Nap_IncrRefCount(nap_cd, subscript_NAO);
 	if (subscript_NAO) {
 	    if (subscript_NAO->dataType != NAP_BOXED) {
 		tmp_NAO = subscript_NAO;
 		shape[0] = 1;
 		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 		subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
 	    }
 	    CHECK2(subscript_NAO->rank <= 1, TEXT0 "Subscript rank > 1");
@@ -339,7 +348,7 @@ Nap_GetHDF(
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
-	status = Nap_HdfGet(nap_cd, fileName, sds_name, subscript_NAO, naoPtr);
+	status = Nap_HdfGet(nap_cd, fileName, sds_name, subscript_NAO, raw, naoPtr);
 	CHECK2(status == 0, TEXT0 "Error calling Nap_HdfGet");
 	new_rank = 0;
 	for (i = 0; i < rank; i++) {
@@ -362,7 +371,7 @@ Nap_GetHDF(
 	    Nap_FreeNAO(nap_cd, naoPtr);
 	    Tcl_SetResult(nap_cd->interp, new_nao->id, TCL_VOLATILE);
 	}
-	Nap_FreeNAO(nap_cd, subscript_NAO);
+	Nap_DecrRefCount(nap_cd, subscript_NAO);
     }
     return TCL_OK;
 }
@@ -403,7 +412,7 @@ Nap_GetNetcdf_metaVar(
     fileName = Tcl_GetStringFromObj(objv[3], NULL);
     CHECK_NUM_ARGS(objc == 5, 4, "<NAME>");
     name = Tcl_GetStringFromObj(objv[4], NULL);
-    status = Nap_NetcdfInfo(nap_cd, fileName, name, &rank, shape,
+    status = Nap_NetcdfInfo(nap_cd, fileName, name, 0, &rank, shape,
 	    &externalDataType, &internalDataType);
     CHECK(status == TCL_OK);
     switch (index) {
@@ -465,7 +474,7 @@ Nap_GetNetcdf_meta(
     char		*fileName;
     int			index;
     char		*name_var;
-    static char		*option[] = {
+    CONST char		*option[] = {
 				"-coordinate",
 				"-datatype",
 				"-dimension",
@@ -475,7 +484,7 @@ Nap_GetNetcdf_meta(
 				(char *) NULL};
     char		*reg_exp;		/* regular expression */
     int			status;
-    char		*str;
+    CONST char		*str;
 
     CHECK_NUM_ARGS(objc > 3, 2, "-<OPTION> <FILENAME> ...");
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], option, "option", 0, &index);
@@ -516,7 +525,7 @@ Nap_GetNetcdf_meta(
  *  "nap_get netcdf" command.
  *
  *  Called by Nap_GetCmd for following options:
- *	nap_get netcdf <FILENAME> <NAME> ?<SUBSCRIPT>?
+ *	nap_get netcdf <FILENAME> <NAME> ?<INDEX>? ?<RAW>?
  *	nap_get netcdf -coordinate <FILENAME> <VAR_NAME> <DIM_NAME>|<DIM_NUMBER>
  *	nap_get netcdf -datatype <FILENAME> <NAME>
  *	nap_get netcdf -dimension <FILENAME> <VAR_NAME>
@@ -545,8 +554,8 @@ Nap_GetNetcdf(
     Nap_NAO		*new_nao;
     int			new_rank;
     size_t		new_shape[NAP_MAX_RANK];
-    Tcl_Obj             *objArgs;
     int			rank;
+    int			raw = 0;		/* 1 to request raw data */
     char		*var_name;
     size_t		shape[NAP_MAX_RANK];
     int			status;
@@ -560,27 +569,29 @@ Nap_GetNetcdf(
     if (str[0] == '-') {
 	status = Nap_GetNetcdf_meta(nap_cd, objc, objv);
     } else {
-	CHECK_NUM_ARGS(objc > 3, 2, "<FILENAME> <VAR_NAME> ...");
+	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <VAR_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
 	var_name = Tcl_GetStringFromObj(objv[3], NULL);
-	if (objc > 4) {
-            objArgs = Tcl_ConcatObj(objc-4, objv+4);
-	    CHECK2(objArgs, TEXT0 "Error calling Tcl_ConcatObj");
-            Tcl_IncrRefCount(objArgs);
-	    if (Tcl_GetCharLength(objArgs) > 0) {
-		subscript_NAO = Nap_GetNaoFromObj(nap_cd, objArgs);
-		CHECK(subscript_NAO);
-	    }
-	    Tcl_DecrRefCount(objArgs);
+	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
+	    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[4]);
+	    CHECK2(subscript_NAO, TEXT0 "Error evaluating subscript");
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	}
-	status = Nap_NetcdfInfo(nap_cd, fileName, var_name,
+	if (objc > 5  &&  Tcl_GetCharLength(objv[5]) > 0) {
+	    status = Tcl_GetBooleanFromObj(interp, objv[5], &raw);
+	    CHECK2(status == TCL_OK  &&  (raw == 0  ||  raw == 1),
+		    TEXT0 "Argument <RAW> is not 0 or 1");
+	}
+	status = Nap_NetcdfInfo(nap_cd, fileName, var_name, raw,
 		&rank, netcdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
+	Nap_IncrRefCount(nap_cd, subscript_NAO);
 	if (subscript_NAO) {
 	    if (subscript_NAO->dataType != NAP_BOXED) {
 		tmp_NAO = subscript_NAO;
 		shape[0] = 1;
 		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 		subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
 	    }
 	    CHECK2(subscript_NAO->rank <= 1, TEXT0 "Subscript rank > 1");
@@ -604,7 +615,7 @@ Nap_GetNetcdf(
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
-	status = Nap_NetcdfGet(nap_cd, fileName, var_name, subscript_NAO, naoPtr);
+	status = Nap_NetcdfGet(nap_cd, fileName, var_name, subscript_NAO, raw, naoPtr);
 	CHECK2(status == TCL_OK, TEXT0 "Error calling Nap_NetcdfGet");
 	new_rank = 0;
 	for (i = 0; i < rank; i++) {
@@ -627,7 +638,7 @@ Nap_GetNetcdf(
 	    Nap_FreeNAO(nap_cd, naoPtr);
 	    Tcl_SetResult(nap_cd->interp, new_nao->id, TCL_VOLATILE);
 	}
-	Nap_FreeNAO(nap_cd, subscript_NAO);
+	Nap_DecrRefCount(nap_cd, subscript_NAO);
     }
     return TCL_OK;
 }
@@ -646,9 +657,16 @@ Nap_GetNetcdf(
  *		    u16, u32, f32 or f64 (Default: u8)
  *	    <SHAPE> is shape of result (Default: number of elements until end)
  *
- *	nap_get <FORMAT> <FILENAME> <NAME> ?<SUBSCRIPT>?
+ *	nap_get swap <CHANNEL> ?<DATATYPE>? ?<SHAPE>?
+ *	    Same as sub-command "binary" except that that reverse order of bytes within elements
+ *
+ *	nap_get <FORMAT> <FILENAME> <NAME> ?<INDEX>? ?<RAW>?
  *		where <FORMAT> is hdf or netcdf
  *		      <NAME> is <VAR_NAME>, <VAR_NAME>:<ATT_NAME> or :<ATT_NAME>
+ *		      <INDEX> selects using cross-product indexing. Unary @@ is allowed.
+ *			    Default: whole array
+ *		      <RAW> 1: Ignore attributes (scale_factor, add_offset, valid_range, etc.)
+ *			    0 (default): Use these attributes.
  *	    Result is nao-id of new nao containing data read from hdf or netCDF file.
  *
  *	nap_get <FORMAT> -coordinate <FILENAME> <VAR_NAME> <DIM_NAME>|<DIM_NUMBER>
@@ -699,10 +717,11 @@ Nap_GetCmd(
     int			index;
     NapClientData	*nap_cd = (NapClientData *) clientData;
     int			status;
-    char		*str;
+    CONST char		*str;
 
-    static char		*subCommands[] = {
+    CONST char		*subCommands[] = {
 				"binary",
+				"swap",
 				"hdf",
 				"netcdf",
 				(char *) NULL};
@@ -716,14 +735,15 @@ Nap_GetCmd(
     }
     switch (index) {
     case 0: /* binary */
+    case 1: /* swap */
 	status = Nap_GetBinary((NapClientData  *) clientData, interp, objc, objv);
 	CHECK(status == TCL_OK);
 	break;
-    case 1: /* hdf */
+    case 2: /* hdf */
 	status = Nap_GetHDF(   (NapClientData  *) clientData, interp, objc, objv);
 	CHECK(status == TCL_OK);
 	break;
-    case 2: /* netcdf */
+    case 3: /* netcdf */
 	status = Nap_GetNetcdf((NapClientData  *) clientData, interp, objc, objv);
 	CHECK(status == TCL_OK);
 	break;

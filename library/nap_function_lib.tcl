@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.16 2002/08/26 06:49:00 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.22 2003/03/14 01:08:57 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -99,6 +99,24 @@ namespace eval ::NAP {
     }
 
 
+    # area_on_globe --
+    #
+    # Each element of matrix result is fraction of Earth's surface area
+
+    proc area_on_globe {
+	latitude
+	longitude
+    } {
+	nap "latitude = +latitude"
+	$latitude set unit degrees_north
+	nap "longitude = fix_longitude(longitude)"
+	nap "zw = transpose(reshape(zone_wt(latitude), nels(longitude) // nels(latitude)))"
+	nap "result = zw * merid_wt(longitude)"
+	$result set coo latitude longitude
+	nap "result"
+    }
+
+
     # color_wheel --
     #
     # nap function giving square containing color wheel.
@@ -127,7 +145,7 @@ namespace eval ::NAP {
 	nap "h = 180p-1 * atan2(y, x)"
 	nap "s = sqrt(x * x + y * y)"
 	nap "v = reshape(f32(value), shape(h))"
-	nap "hsv = h /// s /// v"
+	nap "hsv = h /// s // v"
 	nap "s < 1f32 ? u8(hsv2rgb(hsv)) : transpose(reshape(u8(background_rgb), shape(h) // 3))"
     }
 
@@ -192,7 +210,7 @@ namespace eval ::NAP {
 
     # gets_matrix --
     #
-    # Read text file and return NAO matrix whose rows correspond to the lines in the file.
+    # Read text file and return NAO f64 matrix whose rows correspond to the lines in the file.
     # Ignore blank lines and lines whose first non-whitespace character is '#'
 
     proc gets_matrix {
@@ -201,15 +219,26 @@ namespace eval ::NAP {
 	if [catch {set f [open [$file_name_nao value] r]} message] {
 	    error $message
 	}
-	set list ""
 	while {[gets $f line] >= 0} {
 	    set line "[string trim $line] "
-	    if {[llength $line] > 0  &&  ![regexp {^#} $line]} {
-		lappend list $line
+	    if {[string length $line] > 0  &&  ![string equal [string index $line 0] #]} {
+		if {[info exists ncols]} {
+		    if {[llength $line] != $ncols} {
+			error "Following line has wrong number of fields\n$line"
+		    }
+		} else {
+		    set ncols [llength $line]
+		}
+		lappend lines $line
 	    }
 	}
 	close $f
-	nap "{$list}"
+	set nrows [llength $lines]
+	nap "result = reshape(0.0, nrows // ncols)"
+	for {set i 0} {$i < $nrows} {incr i} {
+	    $result set value "{[lindex $lines $i]}" i,
+	}
+	nap "result"
     }
 
 
@@ -266,12 +295,12 @@ namespace eval ::NAP {
 	nap "p = v * (1f32 - s)"
 	nap "q = v * (1f32 - (s * f))"
 	nap "t = v * (1f32 - (s * (1f32 - f)))"
-	nap "i == 0 ? (v /// t /// p) :
-	     i == 1 ? (q /// v /// p) :
-	     i == 2 ? (p /// v /// t) :
-	     i == 3 ? (p /// q /// v) :
-	     i == 4 ? (t /// p /// v) :
-		      (v /// p /// q)"
+	nap "i == 0 ? (v /// t // p) :
+	     i == 1 ? (q /// v // p) :
+	     i == 2 ? (p /// v // t) :
+	     i == 3 ? (p /// q // v) :
+	     i == 4 ? (t /// p // v) :
+		      (v /// p // q)"
     }
 
 
@@ -290,6 +319,76 @@ namespace eval ::NAP {
 
     proc isPresent nao {
 	nap "count(nao,0)"
+    }
+
+
+    # magnify_generic --
+    #
+    # Called by magnify_nearest & magnify_interp
+
+    proc magnify_generic {
+	x
+	mag_factor
+	want_nearest
+    } {
+	set want_nearest [$want_nearest]
+	set rank [$x rank]
+	switch [$mag_factor rank] {
+	    0 {nap "mag_factor = rank # mag_factor"}
+	    1 {}
+	    default {error "magnify_generic: mag_factor is not scalar or vector"}
+	}
+	if {[$mag_factor nels] != $rank} {
+	    error "magnify_generic: nels(mag_factor) != rank"
+	}
+	nap "old_shape = shape(x)"
+	nap "i = (,){}"
+	for {set d 0} {$d < $rank} {incr d} {
+	    nap "n0 = old_shape(d)"
+	    nap "n1 = nint(1 + mag_factor(d) * (n0 - 1))"
+	    nap "s = n1 ... 0 .. (n0-1)"
+	    nap "new_cv$d = (coordinate_variable(x, d))(s)"
+	    lappend cv_list [set new_cv$d]
+	    if {$want_nearest} {
+		nap "s = nint(s)"
+	    }
+	    nap "i = i , s"
+	}
+	nap "result = x(i)"
+	eval $result set coo $cv_list
+	nap "result"
+    }
+
+
+    # magnify_interp --
+    #
+    # Magnify array by specified factor mag_factor.
+    # Contract if mag_factor < 1.0.
+    # Border elements magnify only inwards not outwards.
+    # mag_factor is either scalar or vector with element for each dimension.
+    # Use interpolation to define new values.
+
+    proc magnify_interp {
+	x
+	mag_factor
+    } {
+	nap "magnify_generic(x, mag_factor, 0)"
+    }
+
+
+    # magnify_nearest --
+    #
+    # Magnify array by specified factor mag_factor.
+    # Contract if mag_factor < 1.0.
+    # Border elements magnify only inwards not outwards.
+    # mag_factor is either scalar or vector with element for each dimension.
+    # Use nearest neigbours to define new values.
+
+    proc magnify_nearest {
+	x
+	mag_factor
+    } {
+	nap "magnify_generic(x, mag_factor, 1)"
     }
 
 

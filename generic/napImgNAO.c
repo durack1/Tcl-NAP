@@ -14,7 +14,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napImgNAO.c,v 1.26 2002/10/18 06:04:01 dav480 Exp $";
+static char *rcsid="@(#) $Id: napImgNAO.c,v 1.27 2002/10/27 07:00:20 dav480 Exp $";
 #endif /* not lint */
 
 #include <tk.h>
@@ -178,7 +178,8 @@ StringReadNAO(
     /* Pointer to the first part of the first pixel */
     block.pixelPtr = (unsigned char *) naoPtr->data.U8;
 
-    Tk_PhotoPutBlock(imageHandle, &block, destX, destY, naoWidth, naoHeight);
+    Tk_PhotoPutBlock(imageHandle, &block, destX, destY, naoWidth, naoHeight,
+	    TK_PHOTO_COMPOSITE_OVERLAY);
     Nap_DecrRefCount(nap_cd, naoPtr);
     return TCL_OK;
 }

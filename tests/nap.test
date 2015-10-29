@@ -4,12 +4,12 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: nap.test,v 1.148 2002/09/25 03:39:01 dav480 Exp $
+# $Id: nap.test,v 1.157 2003/03/13 07:45:28 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
 proc put_info text {
-    # puts $text
+    # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
 }
 
 proc rm_nao_id text {
@@ -30,12 +30,12 @@ Test nap-1.3 {assign scalar real constant} {
     set r [[nap 1.2e-1] value]
 } {0.12}
 
-Test nap-1.4 {octal constant} { [nap 027] value } {23}
+Test nap-1.4 {int constant with leading 0 (was octal)} { [nap 027] value } {27}
 Test nap-1.5 {hex constant} {
 [nap "{0xf3 0XF3A09 0x80000000 0x80000001 0xffffFFFF 0xffffFFFe 0x7fffFFFF}"] v -f %0.10g
 } {243 997897 2147483648 2147483649 _ 4294967294 2147483647}
 Test nap-1.6 {ratio constant} { [nap "{3r4 -3r2}"] v } {0.75 -1.5}
-Test nap-1.7 {pi constant} { [nap "{1p1 2p1 1r2p1 180p-1}"] value -f %.4f
+Test nap-1.7 {pi constant} { [nap "{1p1+2p1 1r2p1 180p-1}"] value -f %.4f
 } {3.1416 6.2832 1.5708 57.2958}
 Test nap-1.8 {inf constant} { [nap "{1i -0I 9if 1I -1I}"] v
 } {Inf -Inf Inf Inf -Inf}
@@ -128,7 +128,7 @@ Test nap-3.2 {unary -vector} { [nap "-({5 0 -1})"] v } {-5 0 1}
 Test nap-3.3 {unary +scalar} { [nap +1.8] v } {1.8}
 Test nap-3.4 {unary +vector} { [nap "+({5 0 -1})"] v } {5 0 -1}
 Test nap-3.5 {unary ~scalar} { [nap ~3b] v } 252
-Test nap-3.6 {unary ~vector} { [nap "~i16({3 0 077})"] v } {-4 -1 -64}
+Test nap-3.6 {unary ~vector} { [nap "~i16({3 0 0x3f})"] v } {-4 -1 -64}
 Test nap-3.7 {unary !vector} { [nap "!{1 0}"] v } {0 1}
 
 Test nap-4.1 {+} {aeq [expr $i+$r] [[nap $i+$r] v] } 1
@@ -143,9 +143,9 @@ Test nap-4.9 {>>>} { [nap $r >>> 0.5] v } 0.5
 Test nap-4.10 {<<<} { [nap $r<<<0.5] v } $r
 Test nap-4.11 {<<} { [nap 1 << 3] v } 8
 Test nap-4.12 {>>} { [nap 16 >> 3] v } 2
-Test nap-4.13 {&} { [nap 014 & 5] v } 4
-Test nap-4.14 {|} { [nap 014 | 5] v } 13
-Test nap-4.15 {^} { [nap 014 ^ 5] v } 9
+Test nap-4.13 {&} { [nap 0xc & 5] v } 4
+Test nap-4.14 {|} { [nap 0xc | 5] v } 13
+Test nap-4.15 {^} { [nap 0xc ^ 5] v } 9
 Test nap-4.16 {<} { [nap  "3.1 < {3.6 3 1nf64}"] v } {1 0 0}
 Test nap-4.17 {<=} { [nap "3.1 <= {3.6 3 3.1 1nf64}"] v } {1 0 1 0}
 Test nap-4.18 {>} { [nap  "{3.1 999 1nf64} > 3.6"] v } {0 1 0}
@@ -250,7 +250,7 @@ Value:
 
 unset A x angle t tmp
 # keep a
-put_info "nap-8.6 13 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-8.6 13"
 
 Test nap-9.1 {matrix constant: value} {
     nap "b = {
@@ -340,12 +340,13 @@ Test nap-11.8 {function u32} {$x v -f %g} 2
 Test nap-11.9 {function f32} { [nap x=f32(2.0)] datatype} f32
 Test nap-11.10 {function f32} {$x v -f %g} 2
 
-Test nap-11.11 {function f64} { [nap x=f64(2.0)] datatype} f64
+Test nap-11.11 {function f64} { [nap x=f64(b=2.0)] datatype} f64
 Test nap-11.12 {function f64} {$x v -f %g} 2
+Test nap-11.13 {check that same nao} {string compare $x $b} 0
 
 unset x b
 # keep a c
-put_info "nap-11.12 14 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-11.12 14"
 
 Test nap-12.1 {set coordinate variables} {
     nap "m = {{2s 4s 0s}{-3s 8s 9s}}"
@@ -387,7 +388,7 @@ Test nap-12.13 {rm dimension names} {
 } {(NULL) (NULL)}
 
 # keep a, c, i, j, m
-put_info "nap-12.13 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-12.13 17"
 
 Test nap-14.1 {display vector defined above} { $j v } {8 9 9.3}
 Test nap-14.2 {subscript: extract element of vector} { [nap j(1)] v } 9
@@ -648,7 +649,7 @@ Test nap-14.92 {subscript is missing value} {[nap "{{1 4}{8 2}}(f32{1 _},0)"]} {
 
 unset closest in02 in_closest lat lon mat tmp v
 # keep c in(+2) a i j m
-put_info "nap-14.92 19 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-14.92 19"
 
 Test nap-15.1 {ap using ..} { [nap 3 .. 5] v } {3 4 5}
 Test nap-15.2 {f64 ap using ..} { [nap -2.7 .. 1] v} {-2.7 -1.7 -0.7 0.3 1}
@@ -748,7 +749,7 @@ Test nap-17.6 {max with units} {[nap "max vu"] unit} mm
 
 unset c vu
 # keep in(+2), a, i, j, m
-put_info "nap-17.6  19 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-17.6  19"
 
 Test nap-18.1 {define 3D array} { [nap "a3d = {
     {
@@ -834,7 +835,7 @@ $m value -f %4.0f} {   2    4    0
   -3    8    9}
 
 # keep a3d in(+2) a i j m
-put_info "nap-19.4  20 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-19.4  20"
 
 Test nap-20.1 {display ooc} {$m ooc} $m
 Test nap-20.2 {display count} {$m count} 1
@@ -866,7 +867,7 @@ concat $status $msg
 
 unset i m
 # keep a3d in(+2), a (j has been unset)
-put_info "nap-20.10 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-20.10 17"
 
 Test nap-21.1 {use $VAR}   {[nap {$a   ** 0.5}] v} 3
 Test nap-21.2 {use ${VAR}} {[nap {${a} ** 0.5}] v} 3
@@ -951,9 +952,29 @@ Test nap-22.17 {cat: matrix//scalar} {[nap "{{0 2}{-1 1}} // 9"]} \
 
 Test nap-22.18 {cat: vector//scalar} {[nap "{4 -9} // 5.0"] v} {4 -9 5}
 
+Test nap-22.19 {cat: vector///scalar} {[nap "{4 -9} /// 5.0"] v} { 4 -9
+ 5  5}
+
+Test nap-22.20 {cat: matrix///scalar} {[nap "{{0 2}{-1 1}} /// 9"]} \
+{ 0  2
+-1  1
+
+ 9  9
+ 9  9}
+
+Test nap-22.21 {cat: vector//matrix} {[nap "{1 3} // {{4 2 9}{7 2 0}}"] v} {1 3 1
+4 2 9
+7 2 0}
+
+Test nap-22.22 {laminate: vector///matrix} {[nap "{1 3} /// {{4 2 9}{7 2 0}}"] v} {1 3 1
+3 1 3
+
+4 2 9
+7 2 0}
+
 unset i m mm
 # keep a3d in(+2), a
-put_info "nap-22.18 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-22.18 17"
 
 Test nap-23.1 {closest: vector@@scalar} {[nap "{3.6 1 9 0}@@2"] v} 1
 
@@ -1002,7 +1023,7 @@ Test nap-23.10 {closest: vector@@vector} {
 
 unset m v z
 # keep a3d in(+2), a
-put_info "nap-23.10 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-23.10 17"
 
 Test nap-24.1 {indexOf: vector@scalar} {[nap "{3 5 8 9 13}@4"] v} 0.5
 
@@ -1080,7 +1101,7 @@ Test nap-24.19 {closest: longitude} {
 
 unset v z
 # keep a3d lon in(+2), a
-put_info "nap-24.19 18 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-24.19 18"
 
 Test nap-25.1 {copy: vector#vector} {[nap "{1 2 0}#{7 8 9}"] v} {7 8 8}
 Test nap-25.2 {copy: vector#vector} {[nap "{0 3}#{7 8 9}"] v} {8 8 8 9 9 9}
@@ -1111,7 +1132,7 @@ Test nap-25.10 {copy: boxed#matrix} {
 9.0 9.0 9.0 9.5 9.5 0.0 0.0}
 
 # keep a3d lon in(+2), a
-put_info "nap-25.10 18 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-25.10 18"
 
 Test nap-26.1 {transpose(matrix)} {[nap "transpose({{2 4 3}{6 8 1}})"] v} \
 {2 6
@@ -1164,7 +1185,7 @@ Test nap-26.7 {transpose(3D array,scalar)} {[nap "transpose(a3d, 1)"] v} \
 9 3 5 8
 6 5 9 8}
 
-put_info "nap-26.7  18 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-26.7  18"
 
 Test nap-26.8 {transpose(matrix)} {
     nap "tin=transpose(in, '-1 lat')"
@@ -1179,7 +1200,7 @@ Test nap-26.11 {check dim names} {$tin dim} {lon lat}
 
 unset a3d tin in lon
 # keep a
-put_info "nap-26.11 13 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-26.11 13"
 
 Test nap-27.1  {set unit} {$a set unit metres} {}
 
@@ -1202,7 +1223,7 @@ $slot $slot"
 
 unset b
 # keep a
-put_info "nap-27.4 13 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-27.4 13"
 
 Test nap-28.1 {invert_grid for vector} {
     nap "y={3 9 10}"
@@ -1251,6 +1272,7 @@ Test nap-28.7 {invert_grid for matrices with CVs} {
     $lat set coo line pixel
     nap "latc = {-60 -45 -40 -35 -25}"
     nap "lon = {{200 180 160}{180 160 140}{160 140 120}}"
+    $lon set coo line pixel
     $lon set unit degrees_east
     nap "lonc = {200 190 180 170 160 130}"
     nap "yi = invert_grid(lat, latc, lon, lonc)"
@@ -1306,10 +1328,108 @@ Test nap-28.8 {mapping using inverted grid} {
       _   0.000  21.875  50.000  84.375 200.000
       _       _       _   0.000  34.375       _}
 
+Test nap-28.9 {invert_grid for matrices with CVs & bowtie effect} {
+    nap "lat = {{3#0}{50 30 10}{10 30 50}{3#60}}"
+    nap "line = {30 40 50 60}"
+    nap "pixel = {1 11 21}"
+    $lat set coo line pixel
+    $lat set unit degrees_north
+    nap "latc = 0 .. 60 ... 10"
+    nap "lon = {4#{100 120 140}}"
+    $lon set coo line pixel
+    $lon set unit degrees_east
+    nap "lonc = 100 .. 140 ... 10"
+    nap "yi = invert_grid(lat, latc, lon, lonc)"
+    $yi v
+} \
+{30.0000  1.0000
+30.0000  6.0000
+30.0000 11.0000
+30.0000 16.0000
+30.0000 21.0000
+
+50.0000  1.0000
+32.5000  6.0000
+33.3333 11.0000
+35.0000 16.0000
+40.0000 21.0000
+
+47.5000  1.0000
+50.0000  6.0000
+36.6667 11.0000
+40.0000 16.0000
+42.5000 21.0000
+
+45.0000  1.0000
+45.0000  6.0000
+40.0000 11.0000
+45.0000 16.0000
+45.0000 21.0000
+
+42.5000  1.0000
+40.0000  6.0000
+53.3333 11.0000
+50.0000 16.0000
+47.5000 21.0000
+
+40.0000  1.0000
+57.5000  6.0000
+56.6667 11.0000
+55.0000 16.0000
+50.0000 21.0000
+
+60.0000  1.0000
+60.0000  6.0000
+60.0000 11.0000
+60.0000 16.0000
+60.0000 21.0000}
+
+Test nap-28.10 {invert_grid with missing values} {
+    nap "lat = {{-40 -50 -60}{-30 -40 -50}{-20 -30 -40}}"
+    nap "line = {40 50 60}"
+    nap "pixel = {1 11 21}"
+    $lat set coo line pixel
+    $lat set miss -60
+    nap "latc = {-60 -45 -40 -35 -25}"
+    nap "lon = {{200 180 160}{180 160 140}{160 140 120}}"
+    $lon set coo line pixel
+    $lon set unit degrees_east
+    nap "lonc = {200 190 180 170 160 130}"
+    nap "yi = invert_grid(lat, latc, lon, lonc)"
+    $yi v
+} \
+{   _    _
+40.0  6.0
+42.5  8.5
+45.0 11.0
+   _    _
+55.0 21.0
+
+40.0  1.0
+42.5  3.5
+45.0  6.0
+47.5  8.5
+50.0 11.0
+57.5 18.5
+
+   _    _
+45.0  1.0
+47.5  3.5
+50.0  6.0
+52.5  8.5
+60.0 16.0
+
+   _    _
+   _    _
+   _    _
+55.0  1.0
+57.5  3.5
+   _    _}
+
 unset slot x y yc yi line pixel line_fine pixel_fine zmap lat latc lon lonc
 
 # keep a z(+2)
-put_info "nap-28.8 16 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-28.8 16"
 
 Test nap-31.1 {test function "mean" defined using proc} {
     proc mean x {nap sum(x) / count(x)}
@@ -1338,7 +1458,7 @@ Test nap-31.4 {rm function defined using proc with same name as built-in} {
 } 3.7
 
 # keep a z(+2)
-put_info "nap-31.4 16 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-31.4 16"
 
 Test nap-31.5 {attempt to use non-existent function} {
     rename f ""
@@ -1346,14 +1466,14 @@ Test nap-31.5 {attempt to use non-existent function} {
     concat $status [regexp {Nap_Func: Undefined function f()} $msg]
 } {1 1} 0
 
-put_info "nap-31.5 16 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-31.5 16"
 
 Test nap-32.1 {tcl var containing expr} {
     set a "1 + {3 6}"
     [nap "2 * a"]
 } {8 14}
 
-put_info "nap-32.1 15 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-32.1 15"
 
 Test nap-33.1 {OOC write} {
     set file [open float.dat w]
@@ -1482,7 +1602,7 @@ Test nap-35.7 {OOC overlay sub-array} {
 unset channel; # not nao
 unset f m y
 # keep z(+2) (a unset above)
-put_info "nap-35.7 15 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-35.7 15"
 
 Test nap-36.1 {OOC display missing value of u8} {
     nap "b = {3b 0b 255b}"
@@ -1552,7 +1672,7 @@ Test nap-37.1 {matrix + vector} {
 
 unset b d f i l s
 # keep z(+2)
-put_info "nap-37.1  15 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-37.1  15"
 
 Test nap-38.1 {function prune(a)} {
     nap "r = prune{{0 1.5 2 -1}{1n 1 4 1n}{4#1n}{1n 1n 9 -9}}"
@@ -1576,7 +1696,7 @@ Test nap-38.3 {function pad(a,p)} {
 -99.0 -99.0 -99.0 -99.0
 -99.0 -99.0   9.0  -9.0}
 
-put_info "nap-38.3  [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-38.3"
 
 Test nap-38.4 {functions prune(a,p)} {
     nap "a = {{0b 15b 2b -1s}{-99s 1s 4s -99s}{-99s -99s 9b -9s}{4#-99s}}"
@@ -1587,7 +1707,7 @@ Test nap-38.4 {functions prune(a,p)} {
 2   start-index: 2
 3   start-index: 4}
 
-put_info "nap-38.4  [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-38.4"
 
 Test nap-38.5 {check mising value has been restored} {
     $a miss
@@ -1630,7 +1750,7 @@ Test nap-38.10 {ragged + ragged} { [nap "sum(sum(sum(r+r)))"] } 14
 
 unset r
 # keep a z(+2)
-put_info "nap-38.10 16 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-38.10 16"
 
 Test nap-39.1 {OOC default method} {
     nap "a = {0 1p1 1n 1i 2r3e-20 1e9 0}"
@@ -1699,7 +1819,7 @@ Test nap-40.9 {function missing_value()} {
 
 unset a
 # keep b z(+2)
-put_info "nap-40.9 16 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-40.9 16"
 
 Test nap-41.1 {OOC "step"} {
     $b step
@@ -1926,7 +2046,7 @@ Test nap-51.2 {OOC blt_vector} {
 
 unset v
 # keep z(+2)
-put_info "nap-51.2 15 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-51.2 15"
 
 Test nap-52.1 {test function 'correlation' with single arg} {
     # From Schaum's 'Statistics' p 274
@@ -2020,5 +2140,22 @@ Test nap-53.3 {# 3D} {
 1 1
 1 1}
 
+Test nap-53.4 {# 2 boxed vectors} {
+    [nap "# ({0 _ 1},{1 0 2})"]
+} {0 1 0
+0 0 1}
+
+Test nap-53.5 {# 1 boxed vector} {
+    [nap "#,{2 4 2 0 2}"]
+} {1 0 3 0 1}
+
+Test nap-53.5 {# 3 boxed vectors} {
+    [nap "# ({0 -1 0 1 1 1},{1 0 1 0 1 0},{1 1 1 0 0 0})"]
+} {0 0
+0 2
+
+2 0
+1 0}
+
 unset x y z
-put_info "nap-52.10 12 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-52.10 12"

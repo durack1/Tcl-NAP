@@ -7,7 +7,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napInit.c,v 1.14 2002/05/15 05:27:36 dav480 Exp $";
+static char *rcsid="@(#) $Id: napInit.c,v 1.15 2002/10/27 07:00:21 dav480 Exp $";
 #endif /* not lint */
 
 #include <signal.h>
@@ -50,7 +50,7 @@ Nap_Init(
     Tcl_CmdDeleteProc   *d = NULL;
     NapClientData	*nap_cd;
     int			status;
-    char		*str;
+    CONST char		*str;
 
     if (Tcl_InitStubs(interp, "8.0", 0) == NULL) {
 	return TCL_ERROR;

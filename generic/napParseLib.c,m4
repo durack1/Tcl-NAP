@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.46 2002/10/10 09:00:21 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.48 2003/03/13 07:37:10 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -269,20 +269,23 @@ Nap_StringToNumber(
 	if (result->dataType == NAP_NULL_TYPE ) {
 	    result->dataType = NAP_F64;
 	}
-	assert(Nap_TypeIsReal(result->dataType));
+	CHECK2(Nap_TypeIsReal(result->dataType), "m4NAME: Invalid constant");
     } else if (Nap_NaN(str) > 0) {
 	result->F32 = NAP_F32_NULL;
 	result->F64 = NAP_F64_NULL;
 	if (result->dataType == NAP_NULL_TYPE ) {
 	    result->dataType = NAP_F64;
 	}
-	assert(Nap_TypeIsReal(result->dataType));
+	CHECK2(Nap_TypeIsReal(result->dataType), "m4NAME: Invalid constant");
     } else if (is_integer) {
+	if (str[0] == '0'  &&  isdigit(str[1])) {
+	    i = atoi(str);
+	}
 	m4ForAllNumericDataType(`M4Nap_StringToNumber(', `)')
 	if (result->dataType == NAP_NULL_TYPE ) {
-	    result->dataType = str[0] == '0'  &&  strlen(str) > 1 ? NAP_U32 : NAP_I32; /* octal */
+	    result->dataType = NAP_I32;
 	}
-	assert(Nap_TypeIsNumeric(result->dataType));
+	CHECK2(Nap_TypeIsNumeric(result->dataType), "m4NAME: Invalid constant");
 	if (result->dataType == NAP_U32) {
 	    result->F64 = result->U32;
 	}
@@ -297,7 +300,9 @@ Nap_StringToNumber(
 	    }
 	    *letterPtr = '\0';
 	    status = sscanf(letterPtr+1, "%d", &exponent);
-	    CHECK2(status == 1, "m4NAME: Invalid constant");
+	    if (status != 1) {
+		exponent = 1;
+	    }
 	}
 	letterPtr = strpbrk(str, "r");
 	if (!letterPtr) {
@@ -315,7 +320,7 @@ Nap_StringToNumber(
 	if (result->dataType == NAP_NULL_TYPE ) {
 	    result->dataType = NAP_F64;
 	}
-	assert(Nap_TypeIsReal(result->dataType));
+	CHECK2(Nap_TypeIsReal(result->dataType), "m4NAME: Invalid constant");
 	result->F32 = result->F64 = d;
     }
     FREE(str);
@@ -834,13 +839,14 @@ Nap_ExpFloat(
     s = str;
     n = Nap_mantissa(s);
     s += n;
-    if (n > 0  &&  strchr("eEp", *s)) {
-	n = Nap_Int(s+1);
-	s += n + (n > 0);
-    } else {
-	s = str;
+    if (n > 0  &&  *s  &&  strchr("eEp", *s)) {
+	++s;
+	n = Nap_Int(s);
+	if (n == 0) {
+	    n = Nap_DataTypeSuffix(s);
+	}
+	n += s - str;
     }
-    n = s - str;
     n = isalnum(str[n]) ? 0 : n;
     return n;
 }

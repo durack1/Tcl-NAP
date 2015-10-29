@@ -5,11 +5,15 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: hdf_netcdf.tcl,v 1.10 2002/06/11 00:09:29 dav480 Exp $
+# $Id: hdf_netcdf.tcl,v 1.15 2003/03/13 03:08:25 dav480 Exp $
 
 switch $hdf_nc {
     hdf		{set ext hdf; set ishdf 1}
     netcdf	{set ext nc;  set ishdf 0}
+}
+
+proc put_info text {
+    # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
 }
 
 file delete test.$ext
@@ -59,6 +63,7 @@ Test $hdf_nc-1.8 "$hdf_nc: write & read var with non-std missing value" {
 
 unset a tmp
 file delete test.$ext
+put_info "after $hdf_nc-1.8 12"
 
 file delete geog.$ext
 
@@ -151,9 +156,14 @@ Test $hdf_nc-2.17 "get cv 1 of $hdf_nc variable" {
     [nap_get $hdf_nc -coo geog.$ext mat lon]
 } {8 9 9.3}
 
+Test $hdf_nc-2.18 "get raw $hdf_nc data" {
+    [nap_get $hdf_nc geog.$ext scaled_mat {} 1]
+} [expr $ishdf ? {"1005 1105\n1010 1095" : " 950 1050\n 955 1040"}]
+
 unset cv i in j m
 file delete geog.$ext
 file delete tmp.$ext
+put_info "after $hdf_nc-2.17 12"
 
 Test $hdf_nc-3.1 "text var" {
     nap "s = `line 1
@@ -182,6 +192,7 @@ Test $hdf_nc-3.4 "normal char att" {
 file delete tmp.$ext
 
 file delete ooc.$ext ragged.$ext
+put_info "after $hdf_nc-3.4 13"
 
 Test $hdf_nc-4.1 "OOC $hdf_nc write" {
     nap "m = {8 # {-1 9 0}}"
@@ -227,6 +238,7 @@ Test $hdf_nc-4.4 "check cv" {
 } {1 2 3 4 5 6 7 8 9 10}
 
 unset m in s
+put_info "after $hdf_nc-4.4 12"
 
 Test $hdf_nc-5.1 "ragged array" {
     file del ragged.$ext
@@ -254,6 +266,7 @@ Test $hdf_nc-5.3 {check cv 0} {[$in coo i]} {2 4 6 7 9}
 Test $hdf_nc-5.4 {check cv 1} {[$in coo j]} {1 3 4 8 9}
 
 unset in
+put_info "after $hdf_nc-5.4 18"
 
 Test $hdf_nc-6.1 "OOC $hdf_nc -datatype" {
     nap "v = 3 .. 6"
@@ -271,6 +284,7 @@ Value:
 3 4 5 6"
 
 unset v in
+put_info "after $hdf_nc-6.2 18"
 
 Test $hdf_nc-7.1 "OOC $hdf_nc -datatype -scale" {
     nap "m = f32 {{3.66e9 1.04e9}{-1.04e9 -8.96e9}}"
@@ -290,6 +304,7 @@ Value:
  -1e+09  -9e+09"
 
 unset in
+put_info "after $hdf_nc-7.2 19"
 
 Test $hdf_nc-8.1 "OOC $hdf_nc -datatype -offset" {
     nap "v = 903s .. 906s"
@@ -307,6 +322,7 @@ Value:
 903 904 905 906"
 
 unset in v
+put_info "after $hdf_nc-8.2 19"
 
 Test $hdf_nc-9.1 "OOC $hdf_nc -coord" {
     $m set di Row Col
@@ -336,6 +352,7 @@ Value:
         _         _         _         _"
 
 unset in
+put_info "after $hdf_nc-9.4 19"
 
 Test $hdf_nc-11.1 "OOC $hdf_nc use cv" {
     $m set coo "{9 1}" "{0 -2}"
@@ -354,6 +371,9 @@ Value:
 -1.04e+09 -8.96e+09         _         _
         _         _         _         _
  3.66e+09         _         _  1.04e+09"
+
+unset in
+put_info "after $hdf_nc-11.2 21"
 
 Test $hdf_nc-12.1 "OOC $hdf_nc -subscript" {
     [nap "{{0 1i}}"] $hdf_nc -subscript "@@4, 1 .. 2" ooc.$ext f32_matrix
@@ -389,6 +409,9 @@ Value:
         _         0       Inf      -3.8
  3.66e+09         _         _  1.04e+09"
 
+unset in
+put_info "after $hdf_nc-13.2 21"
+
 Test $hdf_nc-14.1 "OOC $hdf_nc -subscript. put scalar" {
     [nap "{1.23e9 -0.9e9 2.5e9}"] $hdf_nc -subscript "6,1..3" ooc.$ext f32_matrix
     nap "in = [nap_get $hdf_nc ooc.$ext f32_matrix]"
@@ -406,6 +429,9 @@ Value:
         _  1.23e+09    -9e+08   2.5e+09
  3.66e+09         _         _  1.04e+09"
 
+unset in
+put_info "after $hdf_nc-14.2 21"
+
 Test $hdf_nc-15.1 "nap_get $hdf_nc with subscript" {
     nap "in = [nap_get $hdf_nc ooc.$ext f32_matrix "1,{1 0}"]"
     $in datatype
@@ -421,6 +447,9 @@ Value:
 Test $hdf_nc-15.3 "check cv" {
     [$in coo]
 } {-0.1 0}
+
+unset in
+put_info "after $hdf_nc-15.3 21"
 
 Test $hdf_nc-16.1 "nap_get $hdf_nc with subscript" {
     nap "in = [nap_get $hdf_nc ooc.$ext f32_matrix ",@@{-9 -0.4 9}"]"
@@ -445,6 +474,9 @@ Test $hdf_nc-16.3 "check cv0" {
 Test $hdf_nc-16.4 "check cv1" {
     [$in coo 1]
 } {-2 -0.5 0}
+
+unset in
+put_info "after $hdf_nc-16.4 21"
 
 Test $hdf_nc-17.1 "scaled ragged array" {
     file delete ragged.$ext
@@ -476,3 +508,79 @@ Test $hdf_nc-17.5 "check range" {
 
 unset in m r
 file delete ooc.$ext ragged.$ext
+put_info "after $hdf_nc-17.5 12"
+
+Test $hdf_nc-18.1 "create empty unlimited dimension" {
+    file delete unlimited.$ext
+    nap "time = f32 {}"
+    $time set dim time
+    $time $hdf_nc -unlimited unlimited.$ext time
+    nap "in = [nap_get $hdf_nc unlimited.$ext time]"
+    $in da
+} f32
+
+Test $hdf_nc-18.2 "write unlimited dimension cv" {
+    nap "time = f32{2}"
+    $time set dim time
+    $time $hdf_nc unlimited.$ext time
+    nap "in = [nap_get $hdf_nc unlimited.$ext time]"
+    $in
+} {2}
+
+unset in time 
+put_info "after $hdf_nc-18.2 12"
+
+Test $hdf_nc-18.3 "write another var with unlimited dimension" {
+    nap "mat = {{3 9 5}{0 3 1}}"
+    nap "time = f32{2 4}"
+    nap "col = 1 .. 3"
+    $mat set coo time col
+    $mat $hdf_nc unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {3 9 5
+0 3 1}
+
+Test $hdf_nc-18.4 {check cv 0} {[$in coo 0]} {2 4}
+
+Test $hdf_nc-18.5 {check cv 1} {[$in coo 1]} {1 2 3}
+
+# keep col
+unset in time mat
+put_info "after $hdf_nc-18.5 13"
+
+Test $hdf_nc-18.6 "write more to var with unlimited dimension" {
+    nap "time = f32{5}"
+    nap "i = [nap_get $hdf_nc -shape unlimited.$ext time]"
+    $time $hdf_nc -index i unlimited.$ext time
+    nap "mat = {{9 7 7}}"
+    $mat set coo time col
+    $mat $hdf_nc unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {3 9 5
+0 3 1
+9 7 7}
+
+Test $hdf_nc-18.7 {check cv 0} {[$in coo 0]} {2 4 5}
+
+Test $hdf_nc-18.8 {check cv 1} {[$in coo 1]} {1 2 3}
+
+unset col i in time mat
+put_info "after $hdf_nc-18.8 12"
+
+Test $hdf_nc-18.9 "overwrite var with unlimited dimension" {
+    nap "mat = {{-1 4 2}}"
+    $mat $hdf_nc -index "@@4," unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} { 3  9  5
+-1  4  2
+ 9  7  7}
+
+Test $hdf_nc-18.10 {check cv 0} {[$in coo 0]} {2 4 5}
+
+Test $hdf_nc-18.11 {check cv 1} {[$in coo 1]} {1 2 3}
+
+unset in mat
+file delete unlimited.$ext

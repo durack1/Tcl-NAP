@@ -1,4 +1,4 @@
-<!-- $Id: nap_cmd.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: nap_cmd.html,v 1.2 2003/03/14 08:22:34 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -10,6 +10,19 @@ The nap command
 <h2> <center>
 The <code>nap</code> command
 </center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Substitution">Substitution</a>
+    <li><a href="#Namespaces">Namespaces</a>
+    <li><a href="#Functions">Functions</a>
+    <li><a href="#Indexing">Indexing</a>
+    <li><a href="#Parenthesising">Parenthesising Function Arguments and Indexes</a>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
 
 <p>
 The standard Tcl command&nbsp; &quot;<code>expr</code>&quot; is based on C 
@@ -50,7 +63,7 @@ characters, but this practice is recommended because it
     <li>allows multi-line expressions.
 </ul>
 
-<h3>Substitution</h3>
+<h3><a name=Substitution>Substitution</h3>
 
 <p>
 Like
@@ -99,7 +112,7 @@ After substitution,
 the expression consists of OOC-names, operators, function names and
 parentheses.
 
-<h3>Namespaces</h3>
+<h3><a name=Namespaces>Namespaces</h3>
 
 <p>
 NAP allows names which include namespaces, as in:
@@ -112,7 +125,7 @@ NAP allows names which include namespaces, as in:
 11
 </PRE>
 
-<h3>Functions</h3>
+<h3><a name=Functions>Functions</h3>
 
 <p>
 Function arguments can be enclosed by parentheses (as required
@@ -128,7 +141,7 @@ Thus the following two commands are equivalent:
 0.00159265
 </PRE>
 
-<h3>Indexing</h3>
+<h3><a name=Indexing>Indexing</h3>
 
 <p>
 Tcl array indices are enclosed by parentheses 
@@ -148,7 +161,7 @@ are equivalent:
 7 5 6 5
 </PRE>
 
-<h3>Parenthesising Function Arguments and Indexes</h3>
+<h3><a name=Parenthesising>Parenthesising Function Arguments and Indexes</h3>
 
 <p>
 As explained above, there is no syntactic need for parentheses around single function
@@ -167,7 +180,7 @@ it may aid human readability to include them.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_cmd.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_cmd.html,v 1.2 2003/03/14 08:22:34 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

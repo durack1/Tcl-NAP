@@ -7,7 +7,7 @@
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap_hdf.h,v 1.11 2002/05/14 00:32:03 dav480 Exp $
+ * $Id: nap_hdf.h,v 1.12 2003/03/13 03:39:28 dav480 Exp $
  */
 
 #ifndef _NAP_HDF
@@ -50,21 +50,25 @@ Nap_HdfDimNames(
 
 EXTERN int
 Nap_HdfGet(
-    NapClientData *nap_cd,
-    char *fileName,
-    char *sds_name,
-    Nap_NAO *subscript_NAO,
-    Nap_NAO *main_NAO);
+    NapClientData       *nap_cd,
+    char                *fileName,      /* HDF file name */
+    char                *sds_name,      /* HDF sds (var) name */
+    Nap_NAO             *subscript_NAO, /* pointer to subscript nao */
+    int                 raw,            /* 1 to request raw data */
+    Nap_NAO             *main_NAO)      /* pointer to main nao (out) */
+;
 
 EXTERN int
 Nap_HdfInfo(
-    NapClientData *nap_cd,
-    char *fileName,
-    char *sds_name,
-    int *rank,
-    size_t shape[NAP_MAX_RANK],
-    Nap_dataType *externalDataType,
-    Nap_dataType *internalDataType);
+    NapClientData	*nap_cd,
+    char		*fileName,		/* HDF file name */
+    char		*sds_name,		/* HDF sds (var) name */
+    int                 raw,			/* 1 to request raw data */
+    int			*rank,			/* rank of sds (out) */
+    size_t		shape[NAP_MAX_RANK],	/* shape of sds (out) */
+    Nap_dataType	*externalDataType,	/* datatype of sds (out) */
+    Nap_dataType	*internalDataType)	/* datatype of NAO (out) */
+;
 
 EXTERN int
 Nap_HdfList(

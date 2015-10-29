@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap.c,m4,v 1.210 2002/05/15 05:27:36 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap.c,m4,v 1.211 2002/10/27 07:00:12 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -147,10 +147,10 @@ Nap_InfoCmd(
     int			index;
     NapClientData	*nap_cd = (NapClientData *) clientData;
     int			status;
-    char		*str;
+    CONST char		*str;
     char		tmp_str[32];		/* temp. string */
 
-    static char		*subCommands[] = {
+    CONST char		*subCommands[] = {
 				"bytes",
 				"sequence",
 				(char *) NULL};

@@ -21,7 +21,7 @@
 #   drh@acm.org
 #   http://www.hwaci.com/drh/
 #
-# $Revision: 1.1 $
+# $Revision: 1.2 $
 #
 #
 # Modified Peter Turner CSIRO Atmospheric Research November 2000
@@ -356,6 +356,12 @@ proc Tree:buildlayer {w v in} {
     set vx {}
   } else {
     set vx $v
+  }
+  #
+  # Stop expr $y + 1 error if nothing to build
+  #
+  if {[string length $Tree($w:$v:children)] == 0} {
+    return
   }
   set start [expr $Tree($w:y)-10]
   foreach c $Tree($w:$v:children) {

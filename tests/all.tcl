@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: all.tcl,v 1.14 2002/08/26 06:49:00 dav480 Exp $
+# $Id: all.tcl,v 1.16 2002/11/27 06:07:21 dav480 Exp $
 
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
@@ -16,8 +16,10 @@ set ::tcltest::testConstraints(have_shared_lib) 0
 set ::tcltest::testConstraints(tk) [info exists tk_version]
 set ::tcltest::testsDirectory [file dir [info script]]
 
-set ::tcltest::verbose bp;	# p = Print line for each  passed test
-set ::tcltest::verbose b;	# b = Print line for each  failed test
+::tcltest::configure -verbose bp;	# p = Print line for each  passed test
+::tcltest::configure -verbose b;	# b = Print line for each  failed test
+
+set data_dir [file join $::tcltest::testsDirectory data]
 
 # if no nap then load nap shared lib from current working directory
 if {![info exists nap_version]} {

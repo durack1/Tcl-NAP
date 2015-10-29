@@ -1,4 +1,4 @@
-<!-- $Id: op.html,v 1.3 2002/10/16 08:59:45 dav480 Exp $ -->
+<!-- $Id: op.html,v 1.5 2003/03/17 01:07:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,7 +11,30 @@ NAP Operators
 NAP Operators
 </center> </h2>
 
-<h3>Operators and Precedence</h3>
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Precedence">Operators and Precedence</a>
+    <li><a href="#Assignment">Assignment Operator &quot;<code>=</code>&quot;</a>
+    <li><a href="#Link">
+	Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</a>
+    <li><a href="#AP">Arithmetic Progression Operator &quot;<code>..</code>&quot;</a>
+    <li><a href="#Concatenation">
+	Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</a>
+    <li><a href="#Inverse_Indexing">
+	Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quot;
+	and &quot;<code>@@@</code>&quot;</a3>
+    <ol>
+	<li><a href="#Interpolated_Subscript">Interpolated Subscript &quot;<code>@</code>&quot;</a>
+	<li><a href="#Subscript_of_Closest">Subscript of Closest &quot;<code>@@</code>&quot;</a>
+	<li><a href="#Subscript_of_Match">Subscript of Match &quot;<code>@@@</code>&quot;</a>
+    </ol>
+    <li><a href="#Tally">Tally Unary Operator &quot;<code>#</code>&quot;</a>
+    <li><a href="#Replicate">Replicate Binary Operator &quot;<code>#</code>&quot;</a>
+    <li><a href="#Remainder">Remainder Operator &quot;<code>%</code>&quot;</a>
+</ol>
+
+<h3><a name=Precedence>Operators and Precedence</h3>
 
 <p>
 The following table is essentially a superset of <b>Table 5.2</b> in Ousterhout's 
@@ -28,7 +51,7 @@ For example, <code>**</code> is right-associative, as shown by:
 </pre>
 
 <p>
-The nature of arguments is indicated as follows:
+The nature of operands is indicated as follows:
 <br>
 <var>a</var> and <var>b</var> represent general arrays.
 <br>
@@ -343,7 +366,7 @@ The nature of arguments is indicated as follows:
 
 </table>
 
-<h3>Assignment Operator &quot;<code>=</code>&quot;</h3>
+<h3><a name=Assignment>Assignment Operator &quot;<code>=</code>&quot;</h3>
 
 <p>
 The &quot;<code>nap</code>&quot; command
@@ -377,7 +400,7 @@ expressions such as:
 4.5 3
 </PRE>
 
-<h3> Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</h3>
+<h3><a name=Link>Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</h3>
 
 <P>
 The link operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;
@@ -505,10 +528,12 @@ Value:
 1 3 5 7
 </PRE>
 
-<h3> Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</h3>
+<h3><a name=Concatenation>
+Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</h3>
 
+<P>
 The following example illustrates the difference between 
-&quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;:
+&quot;<code>//</code>&quot; and &quot;<code>///</code>&quot; with vector operands:
 
 <PRE>
 % [nap "{5 2} // {9 8}"]
@@ -519,41 +544,98 @@ The following example illustrates the difference between
 </PRE>
 
 <P>
-However if the arguments differ in rank (by 1) then both operators are equivalent, as shown by:
+The following example illustrates the difference between 
+&quot;<code>//</code>&quot; and &quot;<code>///</code>&quot; with matrix operands:
 
 <PRE>
-% [nap "{{1 3 5}{2 4 6}} // {-1 -9 -2}"]
- 1  3  5
- 2  4  6
--1 -9 -2
-% [nap "{{1 3 5}{2 4 6}} /// {-1 -9 -2}"]
- 1  3  5
- 2  4  6
--1 -9 -2
+% [nap "{{6 2 1}{0 9 4}} // {{7 2 7}{3 3 8}}"] all
+::NAP::29-29  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+6 2 1
+0 9 4
+7 2 7
+3 3 8
+% [nap "{{6 2 1}{0 9 4}} /// {{7 2 7}{3 3 8}}"] all
+::NAP::35-35  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 2   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+6 2 1
+0 9 4
+
+7 2 7
+3 3 8
 </PRE>
 
 <P>
-This is convenient for expressions such as:
+Note that &quot;<code>//</code>&quot; concatenates along the most significant existing
+dimension, whereas &quot;<code>///</code>&quot; concatenates along a new dimension.
+This new dimension is of size 2 and is more significant that the existing dimensions.
+
+<P>
+The above examples had operands with identical shapes and data-types.
+It is obviously desirable to allow the operands of &quot;<code>//</code>&quot; 
+to have different sized leading (most significant) dimensions.
+NAP does allow this, as shown by:
 
 <PRE>
-% [nap "{5 2} /// {9 8} /// {0 1}"]
-5 2
-9 8
-0 1
+% [nap "'Hello' // ' world.'"]
+Hello world.
+% [nap "{{6 2 1}{0 9 4}} // {{7 2 7}}"]
+6 2 1
+0 9 4
+7 2 7
 </PRE>
 
-<h3>Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quot;
+<P>
+In fact, both operators allow any combination of shapes.
+Operands of &quot;<code>///</code>&quot; are reshaped to the same shape.
+Operands of &quot;<code>//</code>&quot; are reshaped so all dimensions except
+the leading one have the same size.
+The following examples illustrate this reshaping process (with data-type conversion when required):
+
+<PRE>
+% [nap "{{6 2 1}{0 9 4}} // {7 2 7}"]
+6 2 1
+0 9 4
+7 2 7
+% [nap "{{6 2 1}{0 9 4}} // 3.0"] all
+::NAP::142-142  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+6 2 1
+0 9 4
+3 3 3
+% [nap "{{6 2 1}{0 9 4}} /// 3.0"] all
+::NAP::148-148  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 2   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+6 2 1
+0 9 4
+
+3 3 3
+3 3 3
+</PRE>
+
+<h3><a name=Inverse_Indexing>
+Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quot;
 and &quot;<code>@@@</code>&quot;</h3>
 
 <P>
-These three operators all take an optional vector left argument.
+These three operators all take an optional vector left operand.
 The result is a subscript of this vector.
-The left argument defaults to the coordinate-variable of the dimension (only relevant to 
+The left operand defaults to the coordinate-variable of the dimension (only relevant to 
 <a href="indexing.html#indirect_indexing">indirect indexing</a>).
 
-<h3>Interpolated Subscript &quot;<code>@</code>&quot;</h3>
+<h4><a name=Interpolated_Subscript>Interpolated Subscript &quot;<code>@</code>&quot;</h4>
 
-The &quot;<code>@</code>&quot; operator requires a sorted left argument.
+The &quot;<code>@</code>&quot; operator requires a sorted left operand.
 The result of
 <var>v</var><code>@</code><var>b</var>
 is the 
@@ -590,7 +672,7 @@ We can check this result by using it as an index:
 3.5 3.7
 </PRE>
 
-<h3>Subscript of Closest &quot;<code>@@</code>&quot;</h3>
+<h4><a name=Subscript_of_Closest>Subscript of Closest &quot;<code>@@</code>&quot;</h4>
 
 <P>
 The result of
@@ -608,7 +690,7 @@ For example:
 Element 3 has the value 2.4, which is the closest to 2.
 Element 4 has the value -1, which is the closest to -99.
 
-<h3>Subscript of Match &quot;<code>@@@</code>&quot;</h3>
+<h4><a name=Subscript_of_Match>Subscript of Match &quot;<code>@@@</code>&quot;</h4>
 
 <P>
 The result of
@@ -635,7 +717,7 @@ The following example shows that this operator can be used with character data:
 6 4 2
 </PRE>
 
-<h3>Tally Unary Operator &quot;<code>#</code>&quot;</h3>
+<h3><a name=Tally>Tally Unary Operator &quot;<code>#</code>&quot;</h3>
 
 <P>
 Unary &quot;<code>#</code>&quot; produces a frequency table.
@@ -652,7 +734,7 @@ There is one zero, no ones, three twos, no threes, one four and two fives.
 Note that the negative value (<code>-3</code>) is ignored.
 
 <p>
-If the argument has more than 1 dimension then the result has the same shape, except
+If the operand has more than 1 dimension then the result has the same shape, except
 that the size of the first dimension is changed to
 <var>m</var>+1,
 where 
@@ -673,7 +755,24 @@ For example:
 0 1 0 1
 </PRE>
 
-<h3>Replicate Binary Operator &quot;<code>#</code>&quot;</h3>
+<p>
+If the operand is boxed and points to <var>n</var> arrays (which each have the same
+number of elements) then the result is the
+<var>n</var>-dimensional array of joint frequencies.
+For example:
+
+<PRE>
+% [nap "#({2 1 1 0 1},{1 1 3 2 1})"]
+0 0 1 0
+0 2 0 1
+0 1 0 0
+</PRE>
+
+<p>
+The boxed operand defines the five pairs (2,1), (1,1), (1,3), (0,2) and (1,1).
+The above result gives the frequencies of these pairs.
+
+<h3><a name=Replicate>Replicate Binary Operator &quot;<code>#</code>&quot;</h3>
 
 <P>
 <code>#</code> can appear within array constants, as in:
@@ -694,9 +793,9 @@ The <code>#</code> operator has a related meaning, as shown by:
 </PRE>
 
 <P>
-Each element of the left argument defines the number of replications of the corresponding
-element of the right argument.
-The arguments can be vectors or scalars.
+Each element of the left operand defines the number of replications of the corresponding
+element of the right operand.
+The operands can be vectors or scalars.
 The result is a vector.
 
 <p>
@@ -712,7 +811,7 @@ The following example selects the even elements:
 </PRE>
 
 <p>
-This works because the left-hand argument is:
+This works because the left-hand operand is:
 
 <PRE>
 % [nap "(x % 2 == 0)"] value
@@ -720,8 +819,8 @@ This works because the left-hand argument is:
 </PRE>
 
 <P>
-If the right-hand argument <var>b</var> is multidimensional then the left-hand
-argument must be a boxed vector pointing to a vector corresponding to each dimension of 
+If the right-hand operand <var>b</var> is multidimensional then the left-hand
+operand must be a boxed vector pointing to a vector corresponding to each dimension of 
 <var>b</var>.
 For example:
 
@@ -748,7 +847,7 @@ This is equivalent to using the following cross-product index:
  9  9  9 10 10 12
 </PRE>
 
-<h3>Remainder Operator &quot;<code>%</code>&quot;</h3>
+<h3><a name=Remainder>Remainder Operator &quot;<code>%</code>&quot;</h3>
 
 The value of the remainder 
 <var>r</var> = <var>a</var> <code>%</code> <var>b</var>
@@ -786,7 +885,7 @@ Thus:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: op.html,v 1.3 2002/10/16 08:59:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: op.html,v 1.5 2003/03/17 01:07:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

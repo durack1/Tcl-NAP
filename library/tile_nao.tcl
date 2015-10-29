@@ -2,7 +2,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: tile_nao.tcl,v 1.3 2002/02/20 01:09:26 dav480 Exp $
+# $Id: tile_nao.tcl,v 1.4 2002/11/29 00:09:40 dav480 Exp $
 
 proc tile_nao {
     args
@@ -57,7 +57,7 @@ namespace eval Tile_nao {
 	nap "n = 255"
 	nap "h = ap_n(f32(from), f32(to), n)"
 	nap "s = v = n # 1f32"
-	nap "mat = transpose(hsv2rgb(h /// s /// v))"
+	nap "mat = transpose(hsv2rgb(h /// s // v))"
 	nap "white = 3 # 1f32"
 	nap "black = 3 # 0f32"
 	nap "u8(255.999f32 * (mat // white // black))"
@@ -83,7 +83,7 @@ namespace eval Tile_nao {
 	nap "r = palette(,0)"
 	nap "g = palette(,1)"
 	nap "b = palette(,2)"
-	nap "u = r(i) /// g(i) /// b(i)"
+	nap "u = r(i) /// g(i) // b(i)"
 	set imageName [image create photo -format NAO -data $u]
 	return $imageName
     }

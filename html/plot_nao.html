@@ -1,4 +1,4 @@
-<!-- $Id: plot_nao.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $ -->
+<!-- $Id: plot_nao.html,v 1.5 2003/03/17 05:12:27 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,6 +11,19 @@ NAP <code>plot_nao</code>
 NAP Visualisation using procedure <code>plot_nao</code>
 </center> </h2>
 
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Usage">Usage</a>
+    <ol>
+	<li><a href="#Options">Options</a>
+    </ol>
+    <li><a href="#Examples">Examples</a>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
+ 
 A NAO can be visualised using procedure <code>plot_nao</code>, which can represent it by:
 <ul>
 <li> xy graphs (produced using BLT <code>graph</code> command)
@@ -24,15 +37,11 @@ It is possible to animate color-coded images and xy graphs.
 <p>
 The Tcl code is in the files <code>plot_nao.tcl</code> and <code>plot_nao_procs.tcl</code>.
 
-<h3>
-Usage
-</h3>
+<h3><a name=Usage>Usage</h3>
 
 <code>plot_nao</code> <i>expression ?options?</i>
 
-<h4>
-Options
-</h4>
+<h4><a name=Options>Options</h4>
 
 <P><CODE>
 -barwidth </CODE> <I>float</I>: (bar chart only) width of bars in x-coordinate units. (Default: 1.0)
@@ -127,9 +136,7 @@ Options
 The height and width used are limited by the screen dimensions.
 </p>
 
-<h3>
-Examples
-</h3>
+<h3><a name=Examples>Examples</h3>
 
 <pre>
   plot_nao "reshape(0 .. 199, {200 200})" -geometry +0+0
@@ -154,7 +161,7 @@ Examples
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.5 2003/03/17 05:12:27 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

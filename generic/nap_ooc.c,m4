@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.25 2002/10/10 09:00:22 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.28 2002/11/28 03:35:33 dav480 Exp $";
 #endif /* not lint */
 
 #include <blt.h>
@@ -205,7 +205,7 @@ Nap_AppendNAOValue(
     int			w = 1;			/* field width */
     double		value;			/* Value to print */
 
-    static char         *switches[] = {
+    CONST char         *switches[] = {
 			    "-list",
 			    "-columns",
 			    "-format",
@@ -219,7 +219,7 @@ Nap_AppendNAOValue(
 	for (i = 0; i < objc; ++i) {
 	    status = Tcl_GetIndexFromObj(nap_cd->interp, objv[i], switches, "switch", 0, &index);
 	    if (status != TCL_OK) {
-		str = Tcl_GetStringResult(nap_cd->interp);
+		str = (char *) Tcl_GetStringResult(nap_cd->interp);
 		CHECK3(FALSE, "m4NAME: %s", str);
 	    }
 	    switch (index) {
@@ -846,7 +846,7 @@ Nap_OOC_set(
     char		*str;
     Nap_NAO		*tmpNao;
 
-    static char		*switches[] = {
+    CONST char		*switches[] = {
 				    "coordinate",
 				    "count",
 				    "dimension",
@@ -859,7 +859,7 @@ Nap_OOC_set(
 
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], switches, "option", 0, &index);
     if (status != TCL_OK) {
-	str = Tcl_GetStringResult(nap_cd->interp);
+	str = (char *) Tcl_GetStringResult(nap_cd->interp);
 	CHECK3(FALSE, "m4NAME: %s", str);
     }
     switch (index) {
@@ -994,13 +994,16 @@ m4define(`m4NAME', `Nap_PutRaw')
 static int 
 Nap_PutRaw(
     NapClientData       *nap_cd,
+    int			swap_bytes,	/* TRUE to request byte swapping */
     Nap_NAO		*naoPtr,
     char                *channelName)   /* Treat NULL as "stdout" */
 {
+    char		*buffer;
     Tcl_Channel         channel;        /* tcl I/O channel */
     int                 mode = TCL_WRITABLE;
+    int                 nbytes;		/* number of bytes to write */
+    int			size;		/* number of bytes per word */
     int                 status;
-    int                 toWrite;	/* # bytes to write */
 
     assert(naoPtr);
     channelName = channelName ? channelName : "stdout";
@@ -1008,9 +1011,21 @@ Nap_PutRaw(
     CHECK2(channel, "m4NAME: error calling Tcl_GetChannel");
     status = Tcl_SetChannelOption(nap_cd->interp, channel, "-translation", "binary");
     CHECK(status == TCL_OK);
-    toWrite = naoPtr->nels * Nap_SizeOf(naoPtr->dataType);
-    status = Tcl_Write(channel, naoPtr->data.c, toWrite);
-    CHECK2(status == toWrite, "m4NAME: error calling Tcl_Write");
+    size = Nap_SizeOf(naoPtr->dataType);
+    nbytes = naoPtr->nels * size;
+    if (swap_bytes) {
+	buffer = MALLOC(nbytes);
+	(void) memcpy(buffer, naoPtr->data.c, nbytes);
+	status = Nap_swap_bytes(nap_cd, buffer, naoPtr->nels, size);
+	CHECK2(status == TCL_OK, "m4NAME: error calling Nap_swap_bytes");
+	status = Tcl_Write(channel, buffer, nbytes);
+	CHECK2(status == nbytes, "m4NAME: error calling Tcl_Write");
+	FREE(buffer);
+    } else {
+	buffer = naoPtr->data.c;
+	status = Tcl_Write(channel, buffer, nbytes);
+	CHECK2(status == nbytes, "m4NAME: error calling Tcl_Write");
+    }
     return TCL_OK;
 }
 
@@ -1050,6 +1065,9 @@ m4end
  *	    The "all" sub-command provides same information as two commands:
  *		<ID> header
  *		<ID> value -format <F> -columns <I> -lines <I> -missing <T>
+ *	<ID> binary ?<TCL_CHANNEL>?
+ *	    Write raw (binary) data (same as 'write').
+ *	    <TCL_CHANNEL> defaults to stdout.
  *	<ID> blt_vector <NAME>
  *	    Set BLT vector named <NAME> (which may or may not aleady exist) to value of data
  *	<ID> coordinate ?<DIM_NAME>|<DIM_NUMBER>? ?<DIM_NAME>|<DIM_NUMBER>? ...
@@ -1183,6 +1201,9 @@ m4end
  *		">= 0": all steps >= 0
  *		"<= 0": all steps <= 0
  *		"AP": equal steps (except final one which may be shorter)
+ *	<ID> swap ?<TCL_CHANNEL>?
+ *	    Write raw (binary) data with swapped bytes.
+ *	    <TCL_CHANNEL> defaults to stdout.
  *	<ID> unit
  *	    Unit of measure.
  *	<ID> value -format <FORMAT> -columns <INT> -lines <INT> -missing <TEXT> -keep
@@ -1194,7 +1215,7 @@ m4end
  *	    	-missing <TEXT>: text printed for missing value (default: "_")
  *	    	-keep: Do not delete NAO (with count = 0)
  *	<ID> write ?<TCL_CHANNEL>?
- *	    Write raw (binary) data.
+ *	    Write raw (binary) data (same as 'binary').
  *	    <TCL_CHANNEL> defaults to stdout.
  */
 
@@ -1220,8 +1241,9 @@ Nap_ObjectCommand(
     char		*str = NULL;
     Nap_NAO		*tmpNao;
 
-    static char		*switches[] = {
+    CONST char		*switches[] = {
 				"all",
+				"binary",
 				"blt_vector",
 				"coordinate",
 				"count",
@@ -1244,6 +1266,7 @@ Nap_ObjectCommand(
 				"shape",
 				"slot",
 				"step",
+				"swap",
 				"unit",
 				"value",
 				"write",
@@ -1267,7 +1290,7 @@ Nap_ObjectCommand(
 	status = Tcl_GetIndexFromObj(interp, objv[1], switches, "method", 0,
 		&index);
 	if (status != TCL_OK) {
-	    str = Tcl_GetStringResult(interp);
+	    str = (char *) Tcl_GetStringResult(interp);
 	    CHECK3(FALSE, "m4NAME: %s", str);
 	}
 	switch (index) {
@@ -1286,30 +1309,36 @@ Nap_ObjectCommand(
 		CHECK(FALSE);
 	    }
 	    break;
-	case 1:	/* blt_vector */
+	case 1:		/* binary (same as write) */
+	    str = Tcl_GetStringFromObj(objv[2], NULL);
+	    status = Nap_PutRaw(nap_cd, FALSE, naoPtr, str);
+	    CHECK(status == 0);
+	    Tcl_ResetResult(nap_cd->interp);
+	    break;
+	case 2:	/* blt_vector */
 	    CHECK2(objc == 3, "m4NAME: wrong # arguments");
 	    status = Nap_OOC_blt_vector(nap_cd, objc, objv, naoPtr);
 	    CHECK(status == 0);
 	    break;
-	case 2:	/* coord. vars */
+	case 3:	/* coord. vars */
 	    status = Nap_OOC_coord(nap_cd, objc, objv, naoPtr);
 	    CHECK(status == 0);
 	    break;
-	case 3:	/* count */
+	case 4:	/* count */
 	    keep = objc > 2;
 	    status = sprintf(s, "%d", naoPtr->count - 1);
 	    CHECK2(status > 0, "m4NAME: error calling sprintf");
 	    status = Nap_AppendLines(nap_cd, s);
 	    CHECK(status == 0);
 	    break;
-	case 4:	/* datatype */
+	case 5:	/* datatype */
 	    str = Nap_DataTypeToText(naoPtr->dataType);
 	    CHECK2(str, "m4NAME: error calling Nap_DataTypeToText");
 	    status = Nap_AppendLines(nap_cd, str);
 	    CHECK(status == 0);
 	    FREE(str);
 	    break;
-	case 5:	/* dimension names */
+	case 6:	/* dimension names */
 	    status = Nap_AppendLines(nap_cd, "");
 	    if (objc > 2) {
 		for (i = 2; i < objc; i++) {
@@ -1334,34 +1363,34 @@ Nap_ObjectCommand(
 		}
 	    }
 	    break;
-	case 6:  		/* draw */
+	case 7:  		/* draw */
 	    status = Nap_Poly(nap_cd, naoPtr, objc, objv); 
 	    CHECK(status == TCL_OK);
 	    break;
-	case 7:  		/* fill */
+	case 8:  		/* fill */
 	    status = Nap_Poly(nap_cd, naoPtr, objc, objv); 
 	    CHECK(status == TCL_OK);
 	    break;
-	case 8:		/* hdf */
+	case 9:		/* hdf */
 	    status = Nap_OOC_hdf(nap_cd, objc, objv, naoPtr);
 	    CHECK(status == 0);
 	    break;
-	case 9:		/* header */
+	case 10:		/* header */
 	    keep = objc > 2;
 	    status = Nap_AppendNAOHeader(nap_cd, naoPtr, s);
 	    CHECK(status == TCL_OK);
 	    break;
-	case 10:		/* id */
+	case 11:		/* id */
 	    keep = objc > 2;
 	    status = Nap_AppendLines(nap_cd, naoPtr->id);
 	    CHECK(status == 0);
 	    break;
-	case 11:		/* label */
+	case 12:		/* label */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
 	    status = Nap_AppendLines(nap_cd, naoPtr->label);
 	    CHECK(status == 0);
 	    break;
-	case 12:		/* link */
+	case 13:		/* link */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
 	    if (naoPtr->linkSlot > 0) {
 		tmpNao = Nap_GetNaoFromSlot(naoPtr->linkSlot);
@@ -1370,7 +1399,7 @@ Nap_ObjectCommand(
 		Nap_FreeNAO(nap_cd, tmpNao);
 	    }
 	    break;
-	case 13:		/* missing value */
+	case 14:		/* missing value */
 	    if (naoPtr->missingValueSlot) {
 		status = Nap_F64ToText(nap_cd, Nap_GetF64MissingValue(nap_cd, naoPtr->slot),
 			"%0.10g", 0, s);
@@ -1382,41 +1411,41 @@ Nap_ObjectCommand(
 		CHECK(status == 0);
 	    }
 	    break;
-	case 14:		/* nels */
+	case 15:		/* nels */
 	    status = sprintf(s, "%d", (int) naoPtr->nels);
 	    CHECK2(status > 0, "m4NAME: Error calling sprintf");
 	    status = Nap_AppendLines(nap_cd, s);
 	    CHECK(status == 0);
 	    break;
-	case 15:		/* netcdf */
+	case 16:		/* netcdf */
 	    status = Nap_OOC_netcdf(nap_cd, objc, objv, naoPtr);
 	    CHECK(status == 0);
 	    break;
-	case 16:		/* ooc */
+	case 17:		/* ooc */
 	    keep = objc > 2;
 	    status = Nap_AppendLines(nap_cd, naoPtr->id);
 	    CHECK(status == 0);
 	    break;
-	case 17:		/* rank */
+	case 18:		/* rank */
 	    status = sprintf(s, "%d", naoPtr->rank);
 	    CHECK2(status > 0, "m4NAME: Error calling sprintf");
 	    status = Nap_AppendLines(nap_cd, s);
 	    CHECK(status == 0);
 	    break;
-	case 18:		/* sequence */
+	case 19:		/* sequence */
 	    keep = objc > 2;
 	    status = sprintf(s, "%d", naoPtr->seqNum);
 	    CHECK2(status > 0, "m4NAME: Error calling sprintf");
 	    status = Nap_AppendLines(nap_cd, s);
 	    CHECK(status == 0);
 	    break;
-	case 19:		/* set */
+	case 20:		/* set */
 	    keep = objc > 4;
 	    CHECK2(objc > 2, "m4NAME: wrong # arguments");
 	    status = Nap_OOC_set(nap_cd, objc, objv, naoPtr);
 	    CHECK(status == 0);
 	    break;
-	case 20:		/* shape */
+	case 21:		/* shape */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
 	    status = Nap_AppendLines(nap_cd, "");
 	    CHECK(status == 0);
@@ -1427,14 +1456,14 @@ Nap_ObjectCommand(
 		CHECK(status == 0);
 	    }
 	    break;
-	case 21:		/* slot */
+	case 22:		/* slot */
 	    keep = objc > 2;
 	    status = sprintf(s, "%d", naoPtr->slot);
 	    CHECK2(status > 0, "m4NAME: Error calling sprintf");
 	    status = Nap_AppendLines(nap_cd, s);
 	    CHECK(status == 0);
 	    break;
-	case 22:		/* step */
+	case 23:		/* step */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
 	    status = Nap_OilNao(naoPtr);
 	    CHECK(status == TCL_OK);
@@ -1447,19 +1476,25 @@ Nap_ObjectCommand(
 	    }
 	    CHECK(status == 0);
 	    break;
-	case 23:		/* unit */
+	case 24:		/* swap */
+	    str = Tcl_GetStringFromObj(objv[2], NULL);
+	    status = Nap_PutRaw(nap_cd, TRUE, naoPtr, str);
+	    CHECK(status == 0);
+	    Tcl_ResetResult(nap_cd->interp);
+	    break;
+	case 25:		/* unit */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
 	    status = Nap_AppendLines(nap_cd, naoPtr->unit ? naoPtr->unit : "(NULL)");
 	    CHECK(status == 0);
 	    break;
-	case 24:		/* value */
+	case 26:		/* value */
 	    Nap_AppendLines(nap_cd, "");
 	    status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, -1, -1, &keep);
 	    CHECK(status == TCL_OK);
 	    break;
-	case 25:		/* write */
+	case 27:		/* write */
 	    str = Tcl_GetStringFromObj(objv[2], NULL);
-	    status = Nap_PutRaw(nap_cd, naoPtr, str);
+	    status = Nap_PutRaw(nap_cd, FALSE, naoPtr, str);
 	    CHECK(status == 0);
 	    Tcl_ResetResult(nap_cd->interp);
 	    break;

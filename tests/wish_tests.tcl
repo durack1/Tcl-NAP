@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.14 2002/06/06 05:36:43 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.15 2002/11/29 06:28:46 dav480 Exp $
 
 puts "\n******* At end click on 'cancel' button in window .win6 *******\n"
 
@@ -113,7 +113,7 @@ set window [plot_nao F10 -palette ""]
 
 # z 3D
 
-set window [plot_nao "F10 /// X /// Y"]
+set window [plot_nao "F10 /// X // Y"]
 
 tkwait window $window
 

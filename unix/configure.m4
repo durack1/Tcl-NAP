@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.8 2002/09/25 03:41:14 dav480 Exp $
+dnl	$Id: configure.m4,v 1.9 2002/10/27 06:56:46 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -373,7 +373,7 @@ case "$HOST_OS" in
 	TMP="$TCL_LIB_DIR/nap$NAP_USE_VERSION\${DBGX}.lib"
 	NAP_LIBRARY_DIR="'`cygpath -w $TCL_LIB_DIR/nap$NAP_VERSION`'"
 	NAP_LIB_SPEC="'`cygpath -w $TMP`'"
-	PLATFORM_MANIFEST="bin/h*m.dll bin/netcdf.dll"
+	PLATFORM_MANIFEST="bin/h*m.dll bin/netcdf.dll lib/\$(PACKAGE_IMPORT_LIB)"
     ;;
     *)
 	TK_LIB_FLAG="-ltk$TK_VERSION\$(DBGX)"

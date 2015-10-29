@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.173 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.182 2003/02/26 04:39:52 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -494,7 +494,7 @@ Nap_GetFileName(
             return NULL;
         }
         oldName = name;
-        name = Tcl_GetVar(nap_cd->interp, oldName, 0);
+        name = (char *) Tcl_GetVar(nap_cd->interp, oldName, 0);
     }
     if (oldName[0] == '\''  &&  Nap_StrTail(oldName) == '\'') {
         name = Nap_StrDup(oldName+1);
@@ -706,7 +706,7 @@ Nap_Hdf2NapDataType(
 
 EXTERN char *
 Nap_StrDup(
-    char *src)
+    CONST char *src)
 {
     char        *dest;
 
@@ -787,7 +787,7 @@ Nap_AppendWords(
     char		*str)
 {
     int			n = Tcl_GetCharLength(Tcl_GetObjResult(nap_cd->interp));
-    char		*str_result;
+    CONST char		*str_result;
 
     if (str) {
 	if (n > 0) {
@@ -845,7 +845,7 @@ Nap_GetNaoFromId(
     const int		maxLevel = 8;	/* max. # levels of indirection */
     size_t		n;		/* previous length of error message */
     Nap_NAO             *result;
-    char		*str;
+    CONST char		*str;
     int                 status;
 
     name = Nap_StrDup(name);
@@ -1117,7 +1117,7 @@ Nap_TclGetVar(
 {
     char		*result;
 
-    result = Tcl_GetVar(nap_cd->interp, name, 0);
+    result = (char *) Tcl_GetVar(nap_cd->interp, name, 0);
     if (! result) {
 	result = name;
     }
@@ -1154,17 +1154,19 @@ static char *
 Nap_TraceUnsets(
     ClientData		clientData,
     Tcl_Interp		*interp,
-    char		*name1,			/* name of variable */
-    char		*name2,			/* NULL here */
+    CONST char		*name1,			/* name of variable */
+    CONST char		*name2,			/* NULL here */
     int			flags)
 {
     Nap_NAO             *list_nao;
     Nap_NAO             *naoPtr;
+    Nap_NAO		**naoPtrPtr;
     NapClientData       *nap_cd;
     Nap_NAO             *tail_nao;
 
     assert(!name2);
-    naoPtr = (Nap_NAO *) clientData;
+    naoPtrPtr = (Nap_NAO **) clientData;
+    naoPtr = *naoPtrPtr;
     nap_cd = Nap_GetClientData(interp);
     assert(nap_cd->interp == interp);
     if (Nap_IsNAO(nap_cd, naoPtr)) {
@@ -1179,6 +1181,7 @@ Nap_TraceUnsets(
 	}
     }
     Tcl_UntraceVar(interp, name1, TCL_TRACE_UNSETS | TCL_TRACE_WRITES, Nap_TraceUnsets, clientData);
+    FREE(naoPtrPtr);
     return NULL;
 }
 
@@ -1192,6 +1195,10 @@ Nap_TraceUnsets(
  * Side effect: Reset tcl result.
  * Return string ID of NAO.
  * If error return NULL.
+ *
+ * It is important that each clientData value be unique. Had bug caused by two identical names
+ * within different procedures pointing to same NAO. So now use address of malloc area containing
+ * unique pointer (to pointer to nao).
  */
 
 m4define(`m4NAME', `Nap_Assign')
@@ -1203,6 +1210,8 @@ Nap_Assign(
     char		*id)		/* ID of nao (could be name) */
 {
     ClientData          clientData;
+    CONST char		*cstr;
+    Nap_NAO		**naoPtrPtr;
     Nap_NAO		*newNaoPtr;
     Nap_NAO		*oldNaoPtr;
     int			status;
@@ -1219,8 +1228,8 @@ Nap_Assign(
 	 * set x [nap 9]
 	 */
 
-    str = Tcl_GetVar(nap_cd->interp, name, 0);
-    str = Nap_StrDup(str);
+    cstr = Tcl_GetVar(nap_cd->interp, name, 0);
+    str = Nap_StrDup(cstr);
     if (str && Nap_lexID(str) == strlen(str)) {
 	oldNaoPtr = Nap_GetNaoFromId(nap_cd, str);
 	if (Nap_IsNAO(nap_cd, oldNaoPtr)) {
@@ -1230,9 +1239,11 @@ Nap_Assign(
 	}
     }
     FREE(str);
-    str = Tcl_SetVar(nap_cd->interp, name, newNaoPtr->id, 0);
-    CHECK3NULL(str, "m4NAME: Illegal name '%s' on left of '='", name)
-    clientData = (ClientData) newNaoPtr;
+    cstr = Tcl_SetVar(nap_cd->interp, name, newNaoPtr->id, 0);
+    CHECK3NULL(cstr, "m4NAME: Illegal name '%s' on left of '='", name)
+    naoPtrPtr = (Nap_NAO **) MALLOC(sizeof(Nap_NAO *));
+    *naoPtrPtr = newNaoPtr;
+    clientData = (ClientData) naoPtrPtr;
     status = Tcl_TraceVar(nap_cd->interp, name, TCL_TRACE_UNSETS | TCL_TRACE_WRITES,
 	    Nap_TraceUnsets, clientData);
     assert(status == TCL_OK);
@@ -1309,7 +1320,7 @@ Nap_NAOsSimilar(
 
 /*
  * Nap_FreeNAO --
- * If mortal & ref. count is 0 then delete nao command.
+ * If mortal & ref. count is 0 (or 1 if NAO is coord var. of itself) then delete nao command.
  * Note that this results in function Nap_Delete being called.
  */
 
@@ -1319,11 +1330,15 @@ Nap_FreeNAO(
     Nap_NAO             *naoPtr)
 {
     char                id[64];
+    int			isOwnCV;	/* Is NAO coord. var of itself? */
 
-    if (naoPtr  &&  naoPtr->mortal  &&  naoPtr->count <= 0) {
+    if (naoPtr  &&  naoPtr->mortal) {
         assert(Nap_IsNAO(nap_cd, naoPtr));
-        (void) strncpy(id, naoPtr->id, 64);
-        (void) Tcl_DeleteCommand(nap_cd->interp, id);
+	isOwnCV = naoPtr->rank == 1  &&  naoPtr->slot == naoPtr->coordVarSlot[0];
+	if (naoPtr->count <= isOwnCV) {
+	    (void) strncpy(id, naoPtr->id, 64);
+	    (void) Tcl_DeleteCommand(nap_cd->interp, id);
+	}
     }
 }
 
@@ -1375,7 +1390,9 @@ Nap_Delete(
             if (tmpPtr) {
                 assert(Nap_IsNAO(nap_cd, tmpPtr));
                 -- tmpPtr->count;
-                Nap_FreeNAO(nap_cd, tmpPtr);
+		if (tmpPtr != naoPtr) {
+		    Nap_FreeNAO(nap_cd, tmpPtr);
+		}
             }
         }
         if (naoPtr->dataType == NAP_BOXED  ||  naoPtr->dataType == NAP_RAGGED) {
@@ -1384,7 +1401,9 @@ Nap_Delete(
                 if (tmpPtr) {
                     assert(Nap_IsNAO(nap_cd, tmpPtr));
                     -- tmpPtr->count;
-                    Nap_FreeNAO(nap_cd, tmpPtr);
+		    if (tmpPtr != naoPtr) {
+			Nap_FreeNAO(nap_cd, tmpPtr);
+		    }
                 }
             }
         }
@@ -2305,9 +2324,8 @@ Nap_Find`$1'(
     m4DataTypeName(`$1')	v[],	/* vector of values (in) */
     size_t			n,	/* number of elements in vector (in) */
     m4DataTypeName(`$1')	x,	/* value to search for in v (in) */
-    size_t			g)	/* guess (ignored if g > n) (in) */
+    size_t			g)	/* guess (ignored if g >= n) (in) */
 {
-    size_t			delta;		/* step size */
     size_t			low;		/* low index value, 0 minimum */
     size_t			high;		/* high index value */
     size_t			index;		/* working index */
@@ -2315,7 +2333,11 @@ Nap_Find`$1'(
     if (n == 0) {
 	return 0;
     }
-    if (g == n) {
+    low = 0;
+    high = n-1;
+    if (g < 1) {
+	g = 1;
+    } else if (g == high) {
 	--g;
     }
 
@@ -2323,68 +2345,42 @@ Nap_Find`$1'(
      * For efficiency, have separate code for ascending & descending cases.
      */
 
-    if (v[0] <= v[n-1]) {
+    if (v[0] <= v[high]) {
 	if (x <= v[0]) {
 	    return 0;
-	} else if (x > v[n-1]) {
+	} else if (v[high] < x) {
 	    return n;
-	}
-	if (g < n) {
-	    high = low = g;
-	    delta = 1;
-	    if (x > v[g]) {
-		while (high < n && v[high] < x) {
-		    high = high+delta < n ? high+delta : n-1;
-		    delta *= 2;
-		}
-	    } else {
-		while (low > 0 && v[low] > x ) {
-		    low = low > delta ? low-delta : 0;
-		    delta *= 2;
-		}
-	    }
-	} else {
-	    low = 0;
-	    high = n-1;
+	} else if (g > high) {
+	} else if (v[g-1] < x  &&  x <= v[g]) {
+	    return g;
+	} else if (v[g] < x  &&  x < v[g+1]) {
+	    return g+1;
 	}
 	while (high - low > 1) {
 	    index = (high + low) / 2;
-	    if(x > v[index]) {
-		low = index;
-	    } else {
+	    if(x < v[index]) {
 		high = index;
+	    } else {
+		low = index;
 	    }
 	}
     } else {
 	if (x >= v[0]) {
 	    return 0;
-	} else if (x < v[n-1]) {
+	} else if (v[high] > x) {
 	    return n;
-	}
-	if (g < n) {
-	    high = low = g;
-	    delta = 1;
-	    if (x < v[g]) {
-		while (high < n && v[high] > x) {
-		    high = high+delta < n ? high+delta : n-1;
-		    delta *= 2;
-		}
-	    } else {
-		while (low > 0 && v[low] < x) {
-		    low = low > delta ? low-delta : 0;
-		    delta *= 2;
-		}
-	    }
-	} else {
-	    low = 0;
-	    high = n-1;
+	} else if (g > high) {
+	} else if (v[g-1] > x  &&  x >= v[g]) {
+	    return g;
+	} else if (v[g] > x  &&  x > v[g+1]) {
+	    return g+1;
 	}
 	while (high - low > 1) {
 	    index = (high + low) / 2;
-	    if(x < v[index]) {
-		low = index;
-	    } else {
+	    if(x > v[index]) {
 		high = index;
+	    } else {
+		low = index;
 	    }
 	}
     }
@@ -2814,10 +2810,9 @@ Nap_AttachCV(
 	assert(Nap_IsNAO(nap_cd, coordNaoPtr));
 	CHECK2(coordNaoPtr->rank == 1,
 		"m4NAME: Coordinate variable has rank other than 1");
-	CHECK2(coordNaoPtr->nels >= mainNaoPtr->shape[dimNum],
-		"m4NAME: Coordinate variable has wrong # elements");
-	CHECK2(coordNaoPtr != mainNaoPtr,
-		"m4NAME: Attempt to define NAO as Coordinate variable of itself");
+	CHECK5(coordNaoPtr->nels >= mainNaoPtr->shape[dimNum],
+		"m4NAME: Coordinate variable of dimension %d has %d elements which should be >= %d",
+		dimNum, coordNaoPtr->nels, mainNaoPtr->shape[dimNum]);
 	if (coordNaoPtr->coordVarSlot[0]) {	/* cv has cv, so create copy */
 	    tmpNaoPtr = coordNaoPtr;
 	    Nap_IncrRefCount(nap_cd, tmpNaoPtr);
@@ -3044,4 +3039,45 @@ Nap_CreateClientData(
     m4ForAllDataType(`nap_cd->', `MissingValueNao = NULL;')
     Tcl_CallWhenDeleted(interp, Nap_InterpDeleteProc, 0);
     return nap_cd;
+}
+
+/*
+ *  Nap_swap_bytes --
+ *      Reverse order of bytes in each word of specified size
+ */
+
+m4define(`m4NAME', `Nap_swap_bytes')
+
+EXTERN int
+Nap_swap_bytes(
+    NapClientData       *nap_cd,
+    char		*a,	/* array to be adjusted */
+    int			n,	/* number of words */
+    int			size)	/* number of bytes per word */
+{
+    int			i;
+    int			j;
+    int			k0;
+    int			k1;
+    int			k2;
+    int			size2;		/* size/2 */
+    char		tmp;
+
+    assert(a);
+    CHECK2(size > 0, "m4NAME: size <= 0");
+    if (size > 1) {
+	CHECK2(size % 2 == 0, "m4NAME: size is odd");
+	size2 = size / 2;
+	for (i = 0; i < n; i++) {
+	    k0 = size * i;
+	    for (j = 0; j < size2; j++) {
+		k1 = k0 + j;
+		k2 = k0 + size - 1 - j;
+		tmp = a[k1];
+		a[k1] = a[k2];
+		a[k2] = tmp;
+	    }
+	}
+    }
+    return TCL_OK;
 }

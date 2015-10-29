@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.178 2002/10/10 09:00:20 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.185 2003/03/06 06:03:44 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -895,7 +895,12 @@ m4define(`m4psum', `
 			s *= (1 - bit - bit) * (index[d] >= bit);
 			k -= bit * w[d];
 		    }
-		    result->data.$1[i] += s * result->data.$1[k];
+		    switch (s) {
+			case -1: result->data.$1[i] -= result->data.$1[k]; break;
+			case  0: break;
+			case  1: result->data.$1[i] += result->data.$1[k]; break;
+			default: assert(0);	/* error */
+		    }
 		}
 	    }
 	    break;')
@@ -918,7 +923,7 @@ Nap_psum(
     long		nrows;			/* for rank 2 */
     long		rank = naoPtr->rank;
     Nap_NAO		*result;
-    long		s;			/* sign (-1, 0 or +1) */
+    int			s;			/* sign (-1, 0 or +1) */
     long		shape[NAP_MAX_RANK];
     int			status;
     long		w[NAP_MAX_RANK];	/* weights for indexing */
@@ -1054,9 +1059,14 @@ Nap_invert_grid(
     Nap_NAO		*box_nao;		/* points to user's arguments */
     float		c;			/* coeff of quadratic */
     float		cc;			/* const in formula for c */
+    float		d2;			/* squared length of diagonal */
+    float		*d2save;		/* saved squared length of diagonal */
     float		delta;			/* tolerance in CV */
     const float		eps = 1E-4;		/* delta = eps * range_of_CV */
     const float		epsilon = 0.02;		/* tolerance in line/pixel */
+    float		fmin[MAX_GRID_RANK];	/* lower value of index0/1 */
+    float		fmax[MAX_GRID_RANK];	/* upper value of index0/1 */
+    float		frange[MAX_GRID_RANK];	/* frange[k] = fmax[k] - fmin[k] */
     float		h[2][4];		/* coeff's of hyperboloids */
     const float		highest = 1.0+epsilon;	/* max line/pixel */
     int			i;			/* subscript 0 of input nao */
@@ -1066,7 +1076,11 @@ Nap_invert_grid(
     int			index0;			/* subscript 0 of output nao */
     int			index1;			/* subscript 1 of output nao */
     int			j;			/* subscript 1 of input nao */
-    float		jj[2];	/* solution for fractional extension of j */
+    int			j00;			/* index of left bottom corner */
+    int			j01;			/* index of right bottom corner */
+    int			j10;			/* index of left top corner */
+    int			j11;			/* index of right top corner */
+    float		jj[2];			/* solution for fractional extension of j */
     int			k;			/* subscript */
     int			kk;			/* subscript */
     const float		lowest = -epsilon;	/* min line/pixel */
@@ -1114,8 +1128,8 @@ Nap_invert_grid(
 	maxValue = -FLT_MAX;
 	minValue =  FLT_MAX;
 	for (j = 0; j < main_nao[i]->nels; j++) {
-	    value = main_nao[i]->data.F32[j];
-	    if (!IsNaN32(value)) {
+	    if (!IsMissing(main_nao[i], j)) {
+		value = main_nao[i]->data.F32[j];
 		maxValue = Max(maxValue, value);
 		minValue = Min(minValue, value);
 	    }
@@ -1241,38 +1255,52 @@ Nap_invert_grid(
 	if (result->nels == 0) {
 	    break;
 	}
+	d2save = (float *) MALLOC(result->nels * sizeof(float));
 	for (i = 0; i < result->nels; i++) {
 	    result->data.F32[i] = NAP_F32_NULL;
+	    d2save[i] = napF32Inf;
 	}
 	for (i = 0; i < shape_main[0]-1; i++) {
-	    tmp = -1.0;
+	    fmin[0] = fmin[1] = fmax[0] = fmax[1] = -1.0;
 	    for (j = 0; j < shape_main[1]-1; j++) {
 		imin[0] = imax[0] = 0;
 		for (k = 0; k < 2 && imin[0] <= imax[0]; k++) {
-		    z00 = main_nao[k]->data.F32[shape_main[1]*i+j];
-		    z01 = main_nao[k]->data.F32[shape_main[1]*i+j+1];
-		    z10 = main_nao[k]->data.F32[shape_main[1]*(i+1)+j];
-		    z11 = main_nao[k]->data.F32[shape_main[1]*(i+1)+j+1];
-		    h[k][0] = z00;
-		    h[k][1] = z10 - z00;
-		    h[k][2] = z01 - z00;
-		    h[k][3] = z00 - z01 - z10 + z11;
-		    maxValue = Max(Max(z00, z01), Max(z10, z11));
-		    minValue = Min(Min(z00, z01), Min(z10, z11));
-		    tmp = Nap_IndexOfNao(
-			    nap_cd,
-			    new_cv_nao[k],
-			    new_cv[k][0] < new_cv[k][1] ? &minValue : &maxValue,
-			    tmp);
-		    imin[k] = ceil(Max(Min(tmp, new_cv_nao[k]->nels-1), 0.0));
-		    tmp = Nap_IndexOfNao(
-			    nap_cd,
-			    new_cv_nao[k],
-			    new_cv[k][0] < new_cv[k][1] ? &maxValue : &minValue,
-			    tmp);
-		    imax[k] = floor(Max(Min(tmp, new_cv_nao[k]->nels-1), 0.0));
+		    j00 = shape_main[1]*i+j;
+		    j01 = shape_main[1]*i+j+1;
+		    j10 = shape_main[1]*(i+1)+j;
+		    j11 = shape_main[1]*(i+1)+j+1;
+		    if (IsMissing(main_nao[k], j00)  ||  IsMissing(main_nao[k], j01) ||
+		        IsMissing(main_nao[k], j10)  ||  IsMissing(main_nao[k], j11)) {
+			imin[k] = 1;
+			imax[k] = 0;
+		    } else {
+			z00 = main_nao[k]->data.F32[j00];
+			z01 = main_nao[k]->data.F32[j01];
+			z10 = main_nao[k]->data.F32[j10];
+			z11 = main_nao[k]->data.F32[j11];
+			h[k][0] = z00;
+			h[k][1] = z10 - z00;
+			h[k][2] = z01 - z00;
+			h[k][3] = z00 - z01 - z10 + z11;
+			maxValue = Max(Max(z00, z01), Max(z10, z11));
+			minValue = Min(Min(z00, z01), Min(z10, z11));
+			fmin[k] = Nap_IndexOfNao(
+				nap_cd,
+				new_cv_nao[k],
+				new_cv[k][0] < new_cv[k][1] ? &minValue : &maxValue,
+				fmin[k]);
+			imin[k] = ceil(Max(Min(fmin[k], new_cv_nao[k]->nels-1), 0.0));
+			fmax[k] = Nap_IndexOfNao(
+				nap_cd,
+				new_cv_nao[k],
+				new_cv[k][0] < new_cv[k][1] ? &maxValue : &minValue,
+				fmax[k]);
+			imax[k] = floor(Max(Min(fmax[k], new_cv_nao[k]->nels-1), 0.0));
+			frange[k] = fmax[k] - fmin[k];
+		    }
 		}
 		if (imin[0] <= imax[0]  &&  imin[1] <= imax[1]) {
+		    d2 = frange[0] * frange[0] + frange[1] * frange[1];
 		    a = h[0][3] * h[1][2] - h[0][2] * h[1][3];
 		    bc = h[0][1] * h[1][2] - h[0][2] * h[1][1]
 		       + h[0][3] * h[1][0] - h[0][0] * h[1][3];
@@ -1288,10 +1316,10 @@ Nap_invert_grid(
 				if (jj[k] >= lowest  &&  jj[k] <= highest) {
 				    ii = (x0 - h[0][0] - h[0][2] * jj[k])
 					    / (h[0][1] + h[0][3] * jj[k]);
-				    if (ii >= lowest  &&  ii <= highest) {
+				    kk = 2 * (shape[1] * index0 + index1);
+				    if (ii >= lowest  &&  ii <= highest  &&  d2 < d2save[kk]) {
 					w1 = ii;
 					w0 = 1.0f - w1;
-					kk = 2 * (shape[1] * index0 + index1);
 					result->data.F32[kk] = old_cv_nao[0] ?
 					    w0*old_cv[0][i] + w1*old_cv[0][i+1]
 					    : i + ii;
@@ -1301,6 +1329,7 @@ Nap_invert_grid(
 					    old_cv_nao[1] ?
 					    w0*old_cv[1][j] + w1*old_cv[1][j+1]
 					    : j + jj[k];
+					d2save[kk] = d2;
 				    }
 				}
 			    }
@@ -1309,6 +1338,7 @@ Nap_invert_grid(
 		}
 	    }
 	}
+	FREE(d2save);
 	break;
     default:
 	assert(FALSE);
@@ -1522,6 +1552,28 @@ Nap_missing_value(
 
 m4begin
 
+#	m4boxTallyMax(type)
+m4define(`m4boxTallyMax', `
+	case m4DataTypeEnum($1):
+	    for (j = 0; j < n; j++) {
+		if (! IsMissing(naoArray[ia], j)) {
+		    if (naoArray[ia]->data.$1[j] > dataMax) {
+			dataMax = naoArray[ia]->data.$1[j];
+		    }
+		}
+	    }
+	    break;')
+
+#	m4boxTally(type)
+m4define(`m4boxTally', `
+	case m4DataTypeEnum($1):
+	    if (IsMissing(naoArray[ia], j)) {
+		k = -1;
+	    } else {
+		k = naoArray[ia]->data.$1[j];
+	    }
+	    break;')
+
 #	m4tallyMax(type)
 m4define(`m4tallyMax', `
 	case m4DataTypeEnum($1):
@@ -1568,52 +1620,124 @@ Nap_Tally(
     int			c;			/* Product of all dims except 1st */
     int			dataMax;		/* max. value in input */
     int			i;			/* subscript */
+    int			ia;			/* subscript of array = 0 .. na-1 */
     int			j;			/* subscript */
+    int			k;			/* subscript */
+    int			m;			/* subscript */
+    int			n;			/* # elements in each array */
+    int			na;			/* # arrays */
+    Nap_NAO		*naoArray[NAP_MAX_RANK]; /* pointers to arrays */
     Nap_NAO		*naoPtr;
     Nap_NAO		*naoResult;
     Nap_NAO		*naoTmp;
+    int			p[NAP_MAX_RANK];	/* partial products of shape */
     size_t		shape[NAP_MAX_RANK];	/* shape of result */
-    int			status;
 
     assert(str);
-    naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
-    CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
+    naoPtr = Nap_GetNaoFromId(nap_cd, str);
+    CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_GetNaoFromId");
     Nap_IncrRefCount(nap_cd, naoPtr);
-    if (Nap_IsReal(naoPtr)) {
-	naoTmp = naoPtr;
-	naoPtr = Nap_CastNAO(nap_cd, naoTmp, NAP_I32);
-	CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_CastNAO");
-	Nap_IncrRefCount(nap_cd, naoPtr);
-	Nap_DecrRefCount(nap_cd, naoTmp);
-    }
-    dataMax = 0;
-    switch (naoPtr->dataType) {
-    m4ForAllIntegerDataType(`m4tallyMax(', `)')
-    default:            /* error */
-	assert(FALSE);
-    }
-    shape[0] = dataMax + 1;
-    c = 1;
-    for (i = 1; i < naoPtr->rank; i++) {
-	shape[i] = naoPtr->shape[i];
-	c *= naoPtr->shape[i];
-    }
-    naoResult = Nap_NewNAO(nap_cd, NAP_I32, naoPtr->rank, shape);
-    CHECK2NULL(naoResult, "m4NAME: Error calling Nap_NewNAO");
-    for (j = 0; j < naoResult->nels; j++) {
-	naoResult->data.I32[j] = 0;
-    }
-    if (Nap_IsSignedInteger(naoPtr)) {
+    if (Nap_IsBoxed(naoPtr)) {
+	n = ia = -1;
+	for (i = 0; i < naoPtr->nels; i++) {
+	    naoTmp = Nap_GetNaoFromSlot(naoPtr->data.Boxed[i]);
+	    if (naoTmp) {
+		CHECK2NULL(ia < NAP_MAX_RANK, "m4NAME: Too many arrays");
+		++ia;
+		Nap_IncrRefCount(nap_cd, naoTmp);
+		if (n < 0) {
+		    n = naoTmp->nels;
+		}
+		CHECK3NULL(naoTmp->nels == n,
+			"m4NAME: Array %d has different number of elements from array 0", ia);
+		if (Nap_IsReal(naoTmp)) {
+		    naoArray[ia] = Nap_CastNAO(nap_cd, naoTmp, NAP_I32);
+		    CHECK2NULL(naoArray[ia], "m4NAME: Error calling Nap_CastNAO");
+		    Nap_IncrRefCount(nap_cd, naoArray[ia]);
+		    Nap_DecrRefCount(nap_cd, naoTmp);
+		} else {
+		    naoArray[ia] = naoTmp;
+		}
+		dataMax = -1;
+		switch (naoArray[ia]->dataType) {
+		m4ForAllIntegerDataType(`m4boxTallyMax(', `)')
+		default:            /* error */
+		    assert(FALSE);
+		}
+		shape[ia] = dataMax + 1;
+	    }
+	}
+	na = ia + 1;
+	CHECK2NULL(na > 0, "m4NAME: No arrays");
+	p[ia] = 1;
+	while (ia > 0) {
+	    p[ia-1] = p[ia] * shape[ia];
+	    ia--;
+	}
+	naoResult = Nap_NewNAO(nap_cd, NAP_I32, na, shape);
+	CHECK2NULL(naoResult, "m4NAME: Error calling Nap_NewNAO");
+	for (j = 0; j < naoResult->nels; j++) {
+	    naoResult->data.I32[j] = 0;
+	}
+	for (j = 0; j < n; j++) {
+	    m = 0;
+	    for (ia = 0; ia < na; ia++) {
+		switch (naoArray[ia]->dataType) {
+		m4ForAllIntegerDataType(`m4boxTally(', `)')
+		default:            /* error */
+		    assert(FALSE);
+		}
+		if (k < 0) {
+		    m = -1;
+		    break;
+		} else {
+		    m += p[ia] * k;
+		}
+	    }
+	    if (m >= 0) {
+		++ naoResult->data.I32[m];
+	    }
+	}
+	for (ia = 0; ia < na; ia++) {
+	    Nap_DecrRefCount(nap_cd, naoArray[ia]);
+	}
+    } else {
+	if (Nap_IsReal(naoPtr)) {
+	    naoTmp = naoPtr;
+	    naoPtr = Nap_CastNAO(nap_cd, naoTmp, NAP_I32);
+	    CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_CastNAO");
+	    Nap_IncrRefCount(nap_cd, naoPtr);
+	    Nap_DecrRefCount(nap_cd, naoTmp);
+	}
+	dataMax = -1;
 	switch (naoPtr->dataType) {
-	m4ForAllSignedIntegerDataType(`m4tallySigned(', `)')
+	m4ForAllIntegerDataType(`m4tallyMax(', `)')
 	default:            /* error */
 	    assert(FALSE);
 	}
-    } else {
-	switch (naoPtr->dataType) {
-	m4ForAllUnsignedIntegerDataType(`m4tallyUnsigned(', `)')
-	default:            /* error */
-	    assert(FALSE);
+	shape[0] = dataMax + 1;
+	c = 1;
+	for (i = 1; i < naoPtr->rank; i++) {
+	    shape[i] = naoPtr->shape[i];
+	    c *= naoPtr->shape[i];
+	}
+	naoResult = Nap_NewNAO(nap_cd, NAP_I32, naoPtr->rank, shape);
+	CHECK2NULL(naoResult, "m4NAME: Error calling Nap_NewNAO");
+	for (j = 0; j < naoResult->nels; j++) {
+	    naoResult->data.I32[j] = 0;
+	}
+	if (Nap_IsSignedInteger(naoPtr)) {
+	    switch (naoPtr->dataType) {
+	    m4ForAllSignedIntegerDataType(`m4tallySigned(', `)')
+	    default:            /* error */
+		assert(FALSE);
+	    }
+	} else {
+	    switch (naoPtr->dataType) {
+	    m4ForAllUnsignedIntegerDataType(`m4tallyUnsigned(', `)')
+	    default:            /* error */
+		assert(FALSE);
+	    }
 	}
     }
     Nap_DecrRefCount(nap_cd, naoPtr);
@@ -1908,8 +2032,7 @@ m4define(`m4cast', `
     if (strcmp(name, "m4LowerCase(`$1')") == 0) {
         dataType = m4DataTypeEnum($1);
 	if (dataType == naoPtr->dataType) {
-	    new = Nap_CopyNAO(nap_cd, naoPtr);
-	    CHECK2NULL(new, "m4NAME: Error calling Nap_CopyNAO");
+	    new = naoPtr;
 	} else {
 	    new = Nap_CastNAO(nap_cd, naoPtr, dataType);
 	    CHECK2NULL(new, "m4NAME: Error calling Nap_CastNAO");
@@ -2256,7 +2379,7 @@ Nap_Func(
     i = 0;
     while (str1new) {
 	CHECK3NULL(++i < maxLevel, "m4NAME: More than %d levels of indirection", maxLevel);
-	str1 = Tcl_GetVar(nap_cd->interp, str1new, 0);
+	str1 = (char *) Tcl_GetVar(nap_cd->interp, str1new, 0);
 	if (str1) {
 	    FREE(str1new);
 	    str1new = Nap_StrDup(str1);

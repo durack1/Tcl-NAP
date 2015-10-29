@@ -7,7 +7,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: vif.tcl,v 1.6 2002/02/19 01:49:32 dav480 Exp $
+# $Id: vif.tcl,v 1.7 2002/11/04 00:12:52 dav480 Exp $
 
 
 # vif --
@@ -52,7 +52,10 @@ namespace eval View_image_file {
     } {
 	switch -glob -- $infile {
 	    "" {
-		eval ::View_image_file::view_image_file [open_input_file] $args
+		set infile [open_input_file]
+		if {$infile ne ""} {
+		    eval ::View_image_file::view_image_file $infile $args
+		}
 	    }
 	    -* {
 		puts $::View_image_file::help_usage

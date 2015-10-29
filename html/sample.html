@@ -1,4 +1,4 @@
-<!-- $Id: sample.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $ -->
+<!-- $Id: sample.html,v 1.5 2002/10/24 07:30:01 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -205,16 +205,16 @@ Value:
 The following three commands respectively illustrate:
 <ol>
 <li> function <code>sum</code>, which has the functionality of mathematical &quot;&Sigma;&quot;
-<li> function <code>nels</code>, which gives the <em>number of elements</em>
+<li> function <code>count</code>, which gives the <em>number of non-missing elements</em>
 <li> the use of these functions to calculate an <em>arithmetic-mean</em>
 </ol>
 
 <PRE>
 % [nap "sum(score)"]
 326
-% [nap "nels(score)"]
+% [nap "count(score)"]
 5
-% [nap "sum(score) / nels(score)"]
+% [nap "sum(score) / count(score)"]
 65.2
 </PRE>
 
@@ -226,7 +226,7 @@ The following two commands respectively illustrate:
 </ol>
 
 <PRE>
-% proc mean x {nap "sum(x)/nels(x)"}
+% proc mean x {nap "sum(x)/count(x)"}
 % [nap "mean(score)"]
 65.2
 </PRE>
@@ -267,7 +267,7 @@ or
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: sample.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: sample.html,v 1.5 2002/10/24 07:30:01 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

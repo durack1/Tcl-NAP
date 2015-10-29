@@ -1,4 +1,4 @@
-<!-- $Id: const.html,v 1.5 2002/08/07 08:07:55 dav480 Exp $ -->
+<!-- $Id: const.html,v 1.8 2003/03/17 01:07:44 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,6 +11,23 @@ NAP Constants
 NAP Constants
 </center> </h2>
 
+<h3>
+Table of Contents
+</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Integer_Scalar_Constants">Integer Scalar Constants</a>
+    <li><a href="#Floating_point_Scalar_Constants">Floating-point Scalar Constants</a>
+    <li><a href="#Numeric_Array_Constants">Numeric Array Constants</a>
+    <li><a href="#String_Constants">String Constants</a>
+</ol>
+
+<h3>
+<a name=Introduction>
+Introduction
+</h3>
+
 <p>
 Nap provides a rich variety of constants.
 Nap is oriented to numeric data but does provide string constants.
@@ -19,22 +36,21 @@ Numeric constants can be scalars (simple numbers) or higher-rank arrays.
 </p>
 
 <h3>
+<a name=Integer_Scalar_Constants>
 Integer Scalar Constants
 </h3>
 
 <p>
-An integer scalar constant can be specified in decimal, octal or hexadecimal
-form.
-Octal and hexadecimal integer constants begin with a zero.
+An integer scalar constant can be specified in decimal or hexadecimal form.
+The default data-type is <code>i32</code> (32-bit signed integer) for decimal integer constants.
+Octal constants are not allowed from version 3, although they were in earlier versions
+(causing problems with decimal data containing leading 0s).
 </p>
 
 <p>
-The default data-type is 
-<code>i32</code> (32-bit signed integer) for decimal integer constants and
-<code>u32</code> (32-bit unsigned integer) for octal integer constants.
+Hexadecimal integer constants begin with "0x" and are 32-bit unsigned integers.
 A data-type suffix is not allowed for hexadecimal 
 constants because some cases would be ambiguous.
-Hexadecimal constants are 32-bit unsigned integers.
 </p>
 
 <p>
@@ -50,14 +66,6 @@ Value:
 ::NAP::74-74  u8  MissingValue: (NULL)  References: 0  Unit: (NULL)
 Value:
 14
-% [nap 014] all
-::NAP::76-76  u32  MissingValue: 4294967295  References: 0  Unit: (NULL)
-Value:
-12
-% [nap 014i8] all
-::NAP::78-78  i8  MissingValue: -128  References: 0  Unit: (NULL)
-Value:
-12
 % [nap 0x14] all
 ::NAP::80-80  u32  MissingValue: 4294967295  References: 0  Unit: (NULL)
 Value:
@@ -73,11 +81,12 @@ further in that section.
 </p>
 
 <h3>
+<a name=Floating_point_Scalar_Constants>
 Floating-point Scalar Constants
 </h3>
 
 <p>
-A floating-point scalar constant can represent &infin;, NaN or a normal
+A floating-point scalar constant can represent infinity, NaN or a normal
 finite value.
 A finite value is represented by a mantissa, optionally followed by an exponent.
 There can be a data-type suffix on any floating-point scalar constant.
@@ -118,7 +127,11 @@ Examples of constants with exponents are:
 ::NAP::89-89  f64  MissingValue: NaN  References: 0  Unit: (NULL)
 Value:
 10000
+% [nap 1e]; # Default exponent is 1
+10
 % [nap 1p1]
+3.14159
+% [nap 1p]; # Default exponent is 1
 3.14159
 % [nap 180p-1]; # degrees in a radian
 57.2958
@@ -154,6 +167,7 @@ _
 </PRE>
 
 <h3>
+<a name=Numeric_Array_Constants>
 Numeric Array Constants
 </h3>
 
@@ -220,7 +234,7 @@ Value:
 </PRE>
 
 <p>
-Negative elements are preceded by &quot;<code>-</code>&quot;.
+Elements can be preceded by a &quot;<code>+</code>&quot; or &quot;<code>-</code>&quot; sign.
 Repeated elements and sub-arrays can be specified using
 &quot;<code>#</code>&quot; which also has a related meaning as an operator.
 The following illustrates such repetition counts:
@@ -266,6 +280,7 @@ Value:
 </PRE>
 
 <h3>
+<a name=String_Constants>
 String Constants
 </h3>
 
@@ -308,7 +323,7 @@ can't go
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-	<b>CVS Version Details:</b> $Id: const.html,v 1.5 2002/08/07 08:07:55 dav480 Exp $
+	<b>CVS Version Details:</b> $Id: const.html,v 1.8 2003/03/17 01:07:44 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

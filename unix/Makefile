@@ -1,4 +1,3 @@
-# Generated automatically from Makefile.in by configure.
 # Makefile.in --
 #
 #       If this file has the name "Makefile.in" then it is a template for a
@@ -10,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.123 2002/10/10 05:11:29 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.124 2002/10/18 05:37:44 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -117,19 +116,19 @@ OBJS = \
 
 PACKAGE = nap
 MAJOR_VERSION = 3
-MINOR_VERSION = 0
-PATCHLEVEL = .5
-VERSION = 3.0
-NODOT_VERSION = 30
-NODOT_PATCHLEVEL = 5
-USE_VERSION = 3.0
-USE_PATCHLEVEL = .5
+MINOR_VERSION = 1
+PATCHLEVEL = .0
+VERSION = 3.1
+NODOT_VERSION = 31
+NODOT_PATCHLEVEL = 0
+USE_VERSION = 3.1
+USE_PATCHLEVEL = .0
 
 #------------------------------------------------------------------------------
 # Package directories
 #------------------------------------------------------------------------------
 
-PWD = /home/dav480/tcl/tcl-nap/unix
+PWD = /home/dav480/tcl/nap/unix
 TOP_DIR = ..
 ROOT = /home/dav480/tcl
 GENERIC_DIR = $(TOP_DIR)/generic
@@ -185,7 +184,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =   -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.0\" -DPATCHLEVEL=\".5\"  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.1\" -DPATCHLEVEL=\".0\"  $(INCLUDES)
 HDF_HEADER_DIR = /home/dav480/hdf/use/include
 NC_HEADER_DIR = /home/dav480/nc/use/include
 TCL_HEADER_DIR = /home/dav480/tcl/include
@@ -220,17 +219,17 @@ LDFLAGS_OUT = -o
 LINK = $(CC) $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 SHLIB_LD = cc -shared $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 
-TCL_LIB_PATH = /home/dav480/tcl/lib/libtcl8.3$(DBGX).so
-TCL_STUB_LIB_PATH = /home/dav480/tcl/lib/libtclstub8.3$(DBGX).a
-TK_LIB_PATH = /home/dav480/tcl/lib/libtk8.3$(DBGX).so
-TK_STUB_LIB_PATH = /home/dav480/tcl/lib/libtkstub8.3$(DBGX).a
+TCL_LIB_PATH = /home/dav480/tcl/lib/libtcl8.4$(DBGX).so
+TCL_STUB_LIB_PATH = /home/dav480/tcl/lib/libtclstub8.4$(DBGX).a
+TK_LIB_PATH = /home/dav480/tcl/lib/libtk8.4$(DBGX).so
+TK_STUB_LIB_PATH = /home/dav480/tcl/lib/libtkstub8.4$(DBGX).a
 BLT_LIB_PATH = /home/dav480/tcl/lib/libBLT.a
 HDF_LIB_PATH = /home/dav480/hdf/use/lib/libdf.a /home/dav480/hdf/use/lib/libjpeg.a /home/dav480/hdf/use/lib/libmfhdf.a /home/dav480/hdf/use/lib/libz.a
 NC_LIB_PATH = /home/dav480/nc/use/lib/libnetcdf.a
 
-TK_LIB_SPEC = -L/home/dav480/tcl/lib -ltk8.3$(DBGX)
-TCL_LINK_SPEC = -ltcl8.3$(DBGX)
-TCL_SHLIB_SPEC = -ltclstub8.3$(DBGX) ${LIBS}
+TK_LIB_SPEC = -L/home/dav480/tcl/lib -ltk8.4$(DBGX)
+TCL_LINK_SPEC = -ltcl8.4$(DBGX)
+TCL_SHLIB_SPEC = -ltclstub8.4$(DBGX) ${LIBS}
 
 LIBS = 
 SYS_LIBS =  -lieee -lm -L/usr/X11R6/lib -lX11
@@ -245,9 +244,9 @@ EXTRA_LIBS = -L/home/dav480/nc/use/lib -lnetcdf -L/home/dav480/hdf/use/lib -lmfh
 #   WISH_PROG: Path of shell wish
 #------------------------------------------------------------------------------
 
-TCLSH_PROG = /home/dav480/tcl/bin/tclsh8.3
-TCL_LIBRARY_DIR = /home/dav480/tcl/lib/tcl8.3
-WISH_PROG = /home/dav480/tcl/bin/wish8.3
+TCLSH_PROG = /home/dav480/tcl/bin/tclsh8.4
+TCL_LIBRARY_DIR = /home/dav480/tcl/lib/tcl8.4
+WISH_PROG = /home/dav480/tcl/bin/wish8.4
 
 #------------------------------------------------------------------------------
 # TMP_STDOUT: Name of file to take redirected stdout (work-around windows bug)

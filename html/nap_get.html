@@ -1,4 +1,4 @@
-<!-- $Id: nap_get.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: nap_get.html,v 1.4 2003/03/14 08:22:34 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,10 +11,28 @@ nap_get
 Reading Files using <code>nap_get</code> Command
 </center> </h2>
 
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Reading_Binary_Data">Reading Binary Data</a>
+    <li><a href="#Reading_netCDF_Data">Reading netCDF Data</a>
+    <li><a href="#Reading_HDF_Data">Reading HDF Data</a>
+    <li><a href="#Listing_Names">Listing Names of Variables/SDSs and Attributes in HDF
+	and netCDF Files</a>
+    <li><a href="#Metadata">Reading Metadata from HDF and netCDF Files</a>
+
+</ol>
+
+<h3>
+<a name=Introduction>
+Introduction
+</h3>
+
 <p>
 The <code>nap_get</code> command creates a NAO containing data read from a file.
 The first argument specifies the type of file, which can be
-<code>binary</code>, <code>hdf</code> or <code>netcdf</code>.
+<code>binary</code>, <code>hdf</code>, <code>netcdf</code> or <code>swap</code>.
 </p>
 
 <p>
@@ -31,6 +49,7 @@ Note the similarity between these items and those in a NAO.
 </p>
 
 <h3>
+<a name=Reading_Binary_Data>
 Reading Binary Data
 </h3>
 
@@ -39,6 +58,13 @@ Binary data is read using the command<br>
 <code>nap_get binary</code> <var>channel</var> [<var>datatype</var> [<var>shape</var>]]<br>
 where <var>datatype</var> defaults to <code>u8</code> and
 <var>shape</var> defaults to a vector corresponding to the file size.
+
+<p>
+The commmand<br>
+<code>nap_get swap</code> <var>channel</var> [<var>datatype</var> [<var>shape</var>]]<br>
+is similar, except that bytes are swapped.
+This enables reading of data written on a machine with opposite byte-order within words.
+
 <p>
 The following example first writes six 32-bit floating-point values to a file using standard
 Tcl commands.
@@ -80,18 +106,34 @@ Value:
 </pre>
 
 <h3>
+<a name=Reading_netCDF_Data>
 Reading netCDF Data
 </h3>
 
 <p>
 NetCDF data is read using the command<br>
-<code>nap_get netcdf</code> <var>filename name</var> [<var>index</var>]<br>
+<code>nap_get netcdf</code> <var>filename name</var> [<var>index</var> [<var>raw</var>]]<br>
+
+<p>
 <var>name</var> is the name of a variable or attribute and has the form
 <li> <var>varname</var> for a variable
 <li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of a variable
 <li> <code>:</code><var>attribute</var> for a global attribute<br>
+
+<p>
 If <var>index</var> is omitted then the entire variable is read in.
 Otherwise <var>index</var> selects using cross-product indexing.
+
+<p>
+If <var>raw</var> is 1 then the result contains raw data read from the file.
+If <var>raw</var> is 0 (default) then this data is transformed using the attributes
+<code>scale_factor</code>,
+<code>add_offset</code>,
+<code>valid_min</code>,
+<code>valid_max</code>
+and
+<code>valid_range</code>
+if any of these are present.
 
 <p>
 The following example first creates a netCDF file using the netCDF utility <code>ncgen</code>.
@@ -130,18 +172,34 @@ Value:
 </pre>
 
 <h3>
+<a name=Reading_HDF_Data>
 Reading HDF Data
 </h3>
 
 <p>
 HDF data is read using the command<br>
-<code>nap_get hdf</code> <var>filename name</var> [<var>index</var>]<br>
+<code>nap_get hdf</code> <var>filename name</var> [<var>index</var> [<var>raw</var>]]<br>
+
+<p>
 <var>name</var> is the name of an SDS or attribute and has the form
 <li> <var>sdsname</var> for a SDS
 <li> <var>sdsname</var><code>:</code><var>attribute</var> for an attribute of a SDS
 <li> <code>:</code><var>attribute</var> for a global attribute<br>
+
+<p>
 If <var>index</var> is omitted then the entire SDS is read in.
 Otherwise <var>index</var> selects using cross-product indexing.
+
+<p>
+If <var>raw</var> is 1 then the result contains raw data read from the file.
+If <var>raw</var> is 0 (default) then this data is transformed using the attributes
+<code>scale_factor</code>,
+<code>add_offset</code>,
+<code>valid_min</code>,
+<code>valid_max</code>
+and
+<code>valid_range</code>
+if any of these are present.
 
 <p>
 The following example writes data to an HDF file using the OOC <code>hdf</code> method.
@@ -159,6 +217,7 @@ Value:
 </pre>
 
 <h3>
+<a name=Listing_Names>
 Listing Names of Variables/SDSs and Attributes in HDF and netCDF Files
 </h3>
 
@@ -202,6 +261,7 @@ mat64
 </pre>
 
 <h3>
+<a name=Metadata>
 Reading Metadata from HDF and netCDF Files
 </h3>
 
@@ -253,7 +313,7 @@ dimension of a specified variable/SDS in the specified file.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.4 2003/03/14 08:22:34 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: projection.test,v 1.2 2000/08/21 04:43:32 dav480 Exp $
+# $Id: projection.test,v 1.3 2002/11/29 00:53:30 dav480 Exp $
 
 source $env(LIBRARY_DIR)/projection.tcl
 
@@ -14,7 +14,7 @@ proc p {lats lons} {
 	foreach lon $lons {
 	    nap "x = nint(1e9 * projection_x(lat,lon)) / 1e9"
 	    nap "y = nint(1e9 * projection_y(lat,lon)) / 1e9"
-	    nap "mat = mat /// (lat // lon // x // y)"
+	    nap "mat = mat // (lat // lon // x // y)"
 	}
     }
     return [$mat value]

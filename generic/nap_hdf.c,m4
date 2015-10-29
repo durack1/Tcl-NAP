@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.121 2002/10/10 09:00:21 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.129 2003/03/13 03:39:28 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK_PRE Nap_HdfCheck(nap_cd);   /* CHECK_PRE is macro used in nap_check.h */
@@ -79,17 +79,28 @@ Nap_HdfSdsGetInfo(
     int32		sds_id,			/* SDS handle */
     int32		*rank,
     int32		*shape,
+    int			*is_unlimited,		/* Is dimension 0 unlimited? */
     int32		*number_type)		/* external HDF data type */
 {
+    int32		count;
+    int32		dim_id;
     char		name[MAX_NC_NAME];
     int32		natts;
     int			status;
+    int32		tmp;
 
     assert(rank);
     assert(shape);
     assert(number_type);
     status = SDgetinfo(sds_id, name, rank, shape, number_type, &natts);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDgetinfo");
+    dim_id = SDgetdimid(sds_id, 0);
+    CHECK2(dim_id >= 0, "m4NAME: Error calling SDgetdimid");
+    status = SDdiminfo(dim_id, NULL, &count, &tmp, &natts);
+    CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
+    if (is_unlimited) { 
+	*is_unlimited = count == 0;
+    }
     return TCL_OK;
 }
 
@@ -97,8 +108,7 @@ Nap_HdfSdsGetInfo(
 /*
  * Nap_HdfGetScalingInfo --
  *
- *	Get (uncalibrated) internal_number_type, scale_factor, offset &
- *	valid_range.
+ *	Get (uncalibrated) internal_number_type, scale_factor, offset & valid_range.
  *	If unscaled, then set:
  *	    internal_number_type = external_number_type,
  *	    off = 0, cal = 1,
@@ -122,6 +132,7 @@ static int
 Nap_HdfGetScalingInfo(
     NapClientData       *nap_cd,
     int32		sds_id,			/* SDS handle */
+    int			raw,			/* 1 to request raw data */
     int32		*internal_number_type,	/* uncalibrated type */
     float64		*cal,			/* scale factor */
     float64		*off,			/* offset */
@@ -147,47 +158,47 @@ Nap_HdfGetScalingInfo(
      * However it actually returns SUCCEED/FAIL
      */
 
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape, &external_number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape, NULL, &external_number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
-    status = SDgetcal(sds_id, cal, &cal_err, off, &off_err,
-	    internal_number_type);
-    if (status != SUCCEED) {
+    status = SDgetcal(sds_id, cal, &cal_err, off, &off_err, internal_number_type);
+    if (status != SUCCEED  ||  raw) {
 	*internal_number_type = external_number_type;
 	*off = 0.0;
 	*cal = 1.0;
     }
     externalDataType = Nap_Hdf2NapDataType(external_number_type);
     CHECK2(Nap_ValidDataType(externalDataType), "m4NAME: Illegal datatype");
-    min_nao = Nap_NewNAO(nap_cd, externalDataType, 0, NULL);
-    max_nao = Nap_NewNAO(nap_cd, externalDataType, 0, NULL);
-    status = SDgetrange(sds_id,
-	    (void *) max_nao->data.c,
-	    (void *) min_nao->data.c);
-    if (status == SUCCEED) {
-	tmp_nao = Nap_CastNAO(nap_cd, min_nao, NAP_F64);
-	valid_range[0] = tmp_nao->data.F64[0];
-	if (tmp_nao != min_nao) {
-	    Nap_FreeNAO(nap_cd, tmp_nao);
-	}
-	tmp_nao = Nap_CastNAO(nap_cd, max_nao, NAP_F64);
-	valid_range[1] = tmp_nao->data.F64[0];
-	if (tmp_nao != max_nao) {
-	    Nap_FreeNAO(nap_cd, tmp_nao);
-	}
-	if (valid_range[0] > valid_range[1]) {
-	    double old0 = valid_range[0];
-	    valid_range[0] = valid_range[1];
-	    valid_range[1] = old0;
-	}
-    } else {
-	switch (externalDataType) {
-	    m4ForAllUnboxedDataType(`m4range(', `)')
-	    default:		/* error */
-		assert(FALSE);
-	}
+    switch (externalDataType) {
+	m4ForAllUnboxedDataType(`m4range(', `)')
+	default:		/* error */
+	    assert(FALSE);
     }
-    Nap_FreeNAO(nap_cd, min_nao);
-    Nap_FreeNAO(nap_cd, max_nao);
+    if (!raw) {
+	min_nao = Nap_NewNAO(nap_cd, externalDataType, 0, NULL);
+	max_nao = Nap_NewNAO(nap_cd, externalDataType, 0, NULL);
+	status = SDgetrange(sds_id,
+		(void *) max_nao->data.c,
+		(void *) min_nao->data.c);
+	if (status == SUCCEED) {
+	    tmp_nao = Nap_CastNAO(nap_cd, min_nao, NAP_F64);
+	    valid_range[0] = tmp_nao->data.F64[0];
+	    if (tmp_nao != min_nao) {
+		Nap_FreeNAO(nap_cd, tmp_nao);
+	    }
+	    tmp_nao = Nap_CastNAO(nap_cd, max_nao, NAP_F64);
+	    valid_range[1] = tmp_nao->data.F64[0];
+	    if (tmp_nao != max_nao) {
+		Nap_FreeNAO(nap_cd, tmp_nao);
+	    }
+	    if (valid_range[0] > valid_range[1]) {
+		double old0 = valid_range[0];
+		valid_range[0] = valid_range[1];
+		valid_range[1] = old0;
+	    }
+	}
+	Nap_FreeNAO(nap_cd, min_nao);
+	Nap_FreeNAO(nap_cd, max_nao);
+    }
     return TCL_OK;
 }
 
@@ -244,10 +255,10 @@ Nap_HdfOpenFile(
 	Tcl_DecrRefCount(commandObj);
 	pwdStr = Tcl_GetStringFromObj(pwdObj, NULL);
 	assert(pwdStr);
-	commandObj = Tcl_NewStringObj("cd ", -1);
+	commandObj = Tcl_NewStringObj("cd {", -1);
 	CHECK2(commandObj, "m4NAME: Error calling Tcl_NewStringObj");
 	Tcl_IncrRefCount(commandObj);
-	Tcl_AppendStringsToObj(commandObj, nativeFilename, NULL);
+	Tcl_AppendStringsToObj(commandObj, nativeFilename, "}", NULL);
 	status = Tcl_EvalObj(interp, commandObj);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Tcl_EvalObj");
 	Tcl_DecrRefCount(commandObj);
@@ -271,10 +282,10 @@ Nap_HdfOpenFile(
 	CHECK2(FALSE, "m4NAME: Illegal file access mode");
     }
     if (tailStr) {
-	commandObj = Tcl_NewStringObj("cd ", -1);
+	commandObj = Tcl_NewStringObj("cd {", -1);
 	CHECK2(commandObj, "m4NAME: Error calling Tcl_NewStringObj");
 	Tcl_IncrRefCount(commandObj);
-	Tcl_AppendStringsToObj(commandObj, pwdStr, NULL);
+	Tcl_AppendStringsToObj(commandObj, pwdStr, "}", NULL);
 	Tcl_DecrRefCount(pwdObj);
 	status = Tcl_EvalObj(interp, commandObj);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Tcl_EvalObj");
@@ -370,7 +381,7 @@ Nap_HdfPutSDS(
     assert(data);
     assert(start);
     assert(edge);
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     for (i = 0; i < rank-1; i++) {
 	assert(edge[i] == 1);
@@ -424,11 +435,17 @@ Nap_HdfCreateSDS(
 {
     double		add_offset = 0.0;
     size_t		altShape[] = {1};	/* in case scalar */
+    int32		count;
     int32		dim_id;
     int32		edge32[NAP_MAX_RANK];
     int			i;
+    char		name[MAX_NC_NAME];
+    int32		natts;
+    int32		nels;
     int32		number_type;
+    int32		number_type_cv;
     double		scale_factor = 1.0;
+    int32		sds_index;
     int32		shape0;
     int32		start32[NAP_MAX_RANK];
     int			status;
@@ -438,12 +455,48 @@ Nap_HdfCreateSDS(
     number_type = Nap_Nap2HdfDataType(dataType);
     CHECK2(number_type >= 0, "m4NAME: Illegal datatype");
     shape0 = shape32[0];
+    if (!isRecord  &&  rank > 0  &&  dimName[0]) {
+	sds_index = SDnametoindex (sd_id, dimName[0]);
+	if (sds_index != FAIL) {
+	    isRecord = SDisrecord(SDselect(sd_id, sds_index));
+	}
+    }
     if (isRecord) {
 	shape32[0] = SD_UNLIMITED;
     }
     *sds_id = SDcreate(sd_id, name_sds, number_type, rank, shape32);
     CHECK2(*sds_id >= 0, "m4NAME: error calling SDcreate");
     shape32[0] = shape0;
+    for (i = 0; i < rank; i++) {
+	dim_id = SDgetdimid(*sds_id, i);
+	CHECK2(dim_id >= 0, "m4NAME: error calling SDgetdimid");
+	status = SDdiminfo(dim_id, name, &count, &number_type_cv, &natts);
+	CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
+	if (dimName  &&	 dimName[i]  &&  strcmp(dimName[i], name)) {
+	    status = SDsetdimname(dim_id, dimName[i]);
+	    CHECK5(status == SUCCEED,
+		    "m4NAME: error calling SDsetdimname i=%d name=%s sds=%s",
+		    i, dimName[i], name_sds);
+	}
+	if (cv	&&  cv[i]  &&  number_type_cv == 0) {
+	    CHECK3(cv[i]->rank == 1,
+		    "m4NAME: Coordinate variable %s has rank > 1",
+		    cv[i]->id);
+	    tmp_NAO = Nap_Promote(nap_cd, cv[i], NAP_I32, 1, altShape);
+	    number_type = Nap_Nap2HdfDataType(tmp_NAO->dataType);
+	    CHECK2(number_type >= 0, "m4NAME: Illegal datatype");
+	    status = SDsetdimscale(dim_id, shape32[i], number_type, (VOIDP) tmp_NAO->data.c);
+	    CHECK2(status == SUCCEED, "m4NAME: error calling SDsetdimscale");
+	    if (tmp_NAO != cv[i]) {
+		Nap_FreeNAO(nap_cd, tmp_NAO);
+	    }
+	    if (cv[i]->unit) {
+		status = SDsetattr(dim_id, "units", DFNT_CHAR, strlen(cv[i]->unit),
+			(VOIDP) cv[i]->unit);
+		CHECK2(status == SUCCEED, "m4NAME: error calling SDsetattr");
+	    }
+	}
+    }
     if (missingValue_NAO) {
 	status = SDsetfillvalue(*sds_id, (VOIDP) missingValue_NAO->data.c);
 	CHECK2(status == SUCCEED, "m4NAME: error calling SDsetfillvalue");
@@ -485,44 +538,22 @@ Nap_HdfCreateSDS(
 	    Nap_FreeNAO(nap_cd, tmp_NAO);
 	}
     }
+    nels = 1;
     for (i = 0; i < rank; i++) {
+	nels *= shape32[i];
 	start32[i] = shape32[i] - 1;
 	edge32[i] = 1;
     }
-    if (missingValue_NAO) { /* Force writing of fill values */
-	status = SDwritedata(*sds_id, start32, NULL, edge32, (void *) missingValue_NAO->data.c);
-	CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
-    } else if (isRecord) { /* Force expansion of unlimited dim. */
-	tmp_NAO = Nap_NewScalarNAO(nap_cd, dataType, 0.0);
-	CHECK2(tmp_NAO, "m4NAME: error calling Nap_NewScalarNAO");
-	status = SDwritedata(*sds_id, start32, NULL, edge32, (void *) tmp_NAO->data.c);
-	CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
-	Nap_FreeNAO(nap_cd, tmp_NAO);
-    }
-    for (i = 0; i < rank; i++) {
-	dim_id = SDgetdimid(*sds_id, i);
-	CHECK2(dim_id >= 0, "m4NAME: error calling SDgetdimid");
-	if (dimName  &&	 dimName[i]  &&	 shape32[i] > 0) {
-	    status = SDsetdimname(dim_id, dimName[i]);
-	    CHECK2(status == SUCCEED, "m4NAME: error calling SDsetdimname");
-	}
-	if (cv	&&  cv[i]  &&  shape32[i] > 0) {
-	    CHECK3(cv[i]->rank == 1,
-		    "m4NAME: Coordinate variable %s has rank > 1",
-		    cv[i]->id);
-	    tmp_NAO = Nap_Promote(nap_cd, cv[i], NAP_I32, 1, altShape);
-	    number_type = Nap_Nap2HdfDataType(tmp_NAO->dataType);
-	    CHECK2(number_type >= 0, "m4NAME: Illegal datatype");
-	    status = SDsetdimscale(dim_id, shape32[i], number_type, (VOIDP) tmp_NAO->data.c);
-	    CHECK2(status == SUCCEED, "m4NAME: error calling SDsetdimscale");
-	    if (tmp_NAO != cv[i]) {
-		Nap_FreeNAO(nap_cd, tmp_NAO);
-	    }
-	    if (cv[i]->unit) {
-		status = SDsetattr(dim_id, "units", DFNT_CHAR, strlen(cv[i]->unit),
-			(VOIDP) cv[i]->unit);
-		CHECK2(status == SUCCEED, "m4NAME: error calling SDsetattr");
-	    }
+    if (nels > 0) {
+	if (missingValue_NAO) { /* Force writing of fill values */
+	    status = SDwritedata(*sds_id, start32, NULL, edge32, (void *) missingValue_NAO->data.c);
+	    CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
+	} else if (isRecord) { /* Force expansion of unlimited dim. */
+	    tmp_NAO = Nap_NewScalarNAO(nap_cd, dataType, 0.0);
+	    CHECK2(tmp_NAO, "m4NAME: error calling Nap_NewScalarNAO");
+	    status = SDwritedata(*sds_id, start32, NULL, edge32, (void *) tmp_NAO->data.c);
+	    CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
+	    Nap_FreeNAO(nap_cd, tmp_NAO);
 	}
     }
     return TCL_OK;
@@ -541,7 +572,9 @@ m4define(`m4scale2', `
 		case m4DataTypeEnum($2):
 		    if (cal == 1.0  &&	off == 0.0) {
 			for (i = 0; i < tmp_nao->nels; i++) {
-			    if (IsMissing(tmp_nao, i)) {
+			    if (IsMissing(tmp_nao, i)
+				    ||  tmp_nao->data.$2[i] < valid_range[0]
+				    ||  tmp_nao->data.$2[i] > valid_range[1]) {
 				ptr$1[i] = mv_nao->data.$1[0];
 			    } else {
 				ptr$1[i] = tmp_nao->data.$2[i];
@@ -549,7 +582,9 @@ m4define(`m4scale2', `
 			}
 		    } else {
 			for (i = 0; i < tmp_nao->nels; i++) {
-			    if (IsMissing(tmp_nao, i)) {
+			    if (IsMissing(tmp_nao, i)
+				    ||  tmp_nao->data.$2[i] < valid_range[0]
+				    ||  tmp_nao->data.$2[i] > valid_range[1]) {
 				ptr$1[i] = mv_nao->data.$1[0];
 			    } else {
 				ptr$1[i] = cal * (tmp_nao->data.$2[i] - off);
@@ -578,6 +613,7 @@ static int
 Nap_HdfGetSDS(
     NapClientData       *nap_cd,
     int32		sds_id,			/* SDS handle */
+    int			raw,			/* 1 to request raw data */
     char		*data,			/* pointer to destination data area */
     Nap_NAO		*mv_nao,		/* missing value of destination nao */
     int32		*start,
@@ -602,7 +638,7 @@ Nap_HdfGetSDS(
     assert(data);
     assert(start);
     assert(edge);
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape32, &external_number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank, shape32, NULL, &external_number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     for (i = 0; i < rank; i++) {
 	if (edge[i] <= 0) {
@@ -610,7 +646,8 @@ Nap_HdfGetSDS(
 	}
 	shape[i] = edge[i];
     }
-    status = Nap_HdfGetScalingInfo(nap_cd, sds_id, &internal_number_type, &cal, &off, valid_range);
+    status = Nap_HdfGetScalingInfo(nap_cd, sds_id, raw,
+	    &internal_number_type, &cal, &off, valid_range);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfGetScalingInfo");
     internalDataType = Nap_Hdf2NapDataType(internal_number_type);
     CHECK2(Nap_ValidDataType(internalDataType), "m4NAME: Illegal datatype");
@@ -624,8 +661,7 @@ Nap_HdfGetSDS(
     i = status == SUCCEED ? fill_nao->slot : 0;
     status = Nap_SetMissing(nap_cd, tmp_nao, i);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
-    status = SDreaddata(sds_id, start, NULL, edge,
-	    (VOIDP) tmp_nao->data.c);
+    status = SDreaddata(sds_id, start, NULL, edge, (VOIDP) tmp_nao->data.c);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDreaddata");
     switch (internalDataType) {
 	m4ForAllUnboxedDataType(`m4scale(', `)')
@@ -712,13 +748,12 @@ Nap_HdfScaleBeforePut(
     float64		zmax;			/* from valid_range */
     float64		zmin;			/* from valid_range */
 
-    status = Nap_HdfGetScalingInfo(nap_cd, sds_id, &number_type, &cal, &off,
-	    valid_range);
+    status = Nap_HdfGetScalingInfo(nap_cd, sds_id, 0, &number_type, &cal, &off, valid_range);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfGetScalingInfo");
     rcal = 1.0 / cal;
-    zmin = Min(valid_range[0], valid_range[1]);
-    zmax = Max(valid_range[0], valid_range[1]);
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    zmin = valid_range[0];
+    zmax = valid_range[1];
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     CHECK2(rank32 >= old_NAO->rank, "m4NAME: Main NAO has rank > that of SDS");
     dataType = Nap_Hdf2NapDataType(number_type);
@@ -891,19 +926,23 @@ Nap_HdfGetDim(
     char		name_dim[MAX_NC_NAME];
     int32		natts;
     int32		number_type;
+    int32		rank32;
     size_t		shape[1];		/* shape of coord var */
+    int32		shape32[NAP_MAX_RANK];
     int			status;
 
     dim_id = SDgetdimid(sds_id, dim_index);
     CHECK2(dim_id >= 0, "m4NAME: Error calling SDgetdimid");
     name = name ? name : name_dim;
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
+    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     status = SDdiminfo(dim_id, name, &count, &number_type, &natts);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
     if (cv_hdf_NAO) {
 	if (number_type > 0) {
 	    dataType = Nap_Hdf2NapDataType(number_type);
 	    CHECK2(Nap_ValidDataType(dataType), "m4NAME: Illegal datatype");
-	    shape[0] = count;
+	    shape[0] = dim_index == 0  &&  SDisrecord(sds_id) ? shape32[0] : count;
 	    *cv_hdf_NAO = Nap_NewNAO(nap_cd, dataType, 1, shape);
 	    CHECK2(*cv_hdf_NAO, "m4NAME: Error calling Nap_NewNAO");
 	    status = SDgetdimscale(dim_id, (VOIDP) (*cv_hdf_NAO)->data.c);
@@ -946,6 +985,7 @@ Nap_HdfDefineSubscript(
     int32		edge32[],	/* all 1 except final element (out) */
     char		**buffer)	/* Malloced by Nap_HdfDefineSubscript */
 {
+    Nap_NAO		*boxed_subscript_NAO;	/* local (boxed) subscript nao */
     Nap_NAO		*cv_hdf_NAO;		/* cv from hdf file */
     Nap_NAO		*el_NAO;		/* element of subscript */
     int			i;
@@ -967,19 +1007,21 @@ Nap_HdfDefineSubscript(
     Nap_NAO		*tmp_NAO2;
 
     assert(subscript_NAO);
-    ++ subscript_NAO->count;
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     if (rank32 > 0) {
-	if (subscript_NAO->dataType != NAP_BOXED) {
-	    tmp_NAO = subscript_NAO;
+	if (subscript_NAO->dataType == NAP_BOXED) {
+	    boxed_subscript_NAO = subscript_NAO;
+	} else {
 	    shape[0] = 1;
-	    subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-	    subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
-	    ++ tmp_NAO->count;
+	    boxed_subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	    CHECK2(boxed_subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
+	    boxed_subscript_NAO->data.Boxed[0] = subscript_NAO->slot;
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	}
-	CHECK2(subscript_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
-	CHECK2(subscript_NAO->nels <= rank32,
+	Nap_IncrRefCount(nap_cd, boxed_subscript_NAO);
+	CHECK2(boxed_subscript_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
+	CHECK2(boxed_subscript_NAO->nels <= rank32,
 		"m4NAME: # elements in subscript > hdf rank");
 	for (i = 0; i < rank32; i++) {
 	    shape[i] = 1;
@@ -994,8 +1036,8 @@ Nap_HdfDefineSubscript(
 	    CHECK(status == TCL_OK);
 	    subscript_ptr[i] = (int32 *) MALLOC(shape[i] * sizeof(int32));
 	    CHECK(subscript_ptr[i]);
-	    if (i < subscript_NAO->nels	 &&  subscript_NAO->data.Boxed[i]) {
-		el_NAO = Nap_GetNaoFromSlot(subscript_NAO->data.Boxed[i]);
+	    if (i < boxed_subscript_NAO->nels	 &&  boxed_subscript_NAO->data.Boxed[i]) {
+		el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
 		CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript element rank > 1");
 		linkNao = Nap_GetNaoFromSlot(el_NAO->linkSlot);
 		if (linkNao) {
@@ -1040,7 +1082,7 @@ Nap_HdfDefineSubscript(
 	    }
 	    assert(sub_NAO);
 	    for (j = 0; j < shape[i]; j++) {
-		if (j == 0  &&  SDisrecord(sds_id)  &&  sub_NAO->data.I32[j] > 0) {
+		if (i == 0  &&  SDisrecord(sds_id)  &&  sub_NAO->data.I32[j] >= 0) {
 		    subscript_ptr[i][j] = sub_NAO->data.I32[j];
 		} else {
 		    subscript_ptr[i][j] = Nap_mod(sub_NAO->data.I32[j], shape32[i]);
@@ -1105,13 +1147,9 @@ Nap_HdfDefineSubscript(
 	    edge32[i] = shape[i];
 	    *buffer = NULL;
 	}
+	Nap_DecrRefCount(nap_cd, boxed_subscript_NAO);
     } else {
 	*buffer = NULL;
-    }
-    if (subscript_NAO->count > 0) {
-	-- subscript_NAO->count;
-    } else {
-	Nap_FreeNAO(nap_cd, subscript_NAO);
     }
     return TCL_OK;
 }
@@ -1145,7 +1183,7 @@ Nap_HdfPutSubscripting(
     int			status;
 
     assert(dim_num >= 0);
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     assert(rank32 == 0	||  dim_num < rank32);
     size = DFKNTsize(number_type);
@@ -1216,7 +1254,7 @@ Nap_HdfPutSubscriptingRagged(
 	row = &local_row;
     }
     shape = main_NAO->shape;
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     assert(rank32 >= 2);
     assert(dim_num < rank32);
@@ -1255,6 +1293,131 @@ Nap_HdfPutSubscriptingRagged(
 	    CHECK(status == TCL_OK);
 	}
     }
+    return TCL_OK;
+}
+
+/*
+ * Nap_HdfExtend --
+ *	If necessary then extend unlimited dimension by writing to corresponding coord. var.
+ */
+
+m4define(`m4NAME', `Nap_HdfExtend')
+
+EXTERN int
+Nap_HdfExtend(
+    NapClientData       *nap_cd,
+    int32		sd_id,
+    int32		sds_id,
+    Nap_NAO		*main_NAO)		/* pointer to main nao */
+{
+    int32		edge[NAP_MAX_RANK];
+    Nap_NAO		*cv;			/* coord. var. corr. to unlimited dim */
+    Nap_NAO		*cv64;			/* cv cast to F64 */
+    Nap_dataType	externalDataType;	/* HDF type */
+    double		final;			/* final value in current cv */
+    double		first;			/* first value in current cv */
+    int			i;
+    int32		i_sds;			/* index of SDS */
+    int			is_unlimited;		/* Is dimension 0 unlimited? */
+    int			n;			/* current # records */
+    int32		n_sds;			/* number SDSs in file */
+    int32		natts;
+    int32		number_type;
+    int32		rank32;
+    int32		sds_id_cv;		/* sds id of cv */
+    int32		shape32[NAP_MAX_RANK];	/* shape of SDS */
+    size_t		size;			/* # bytes in element */
+    int32		start[NAP_MAX_RANK];
+    int			status;
+    Nap_NAO		*tmp_NAO;
+    double		x;			/* value in internal cv */
+
+    for (i = 0; i < NAP_MAX_RANK; i++) {
+	start[i] = 0;
+	edge[i] = 1;
+    }
+    if (SDiscoordvar(sds_id)) {
+	cv = main_NAO;
+	sds_id_cv = sds_id;
+    } else {
+	cv = Nap_GetCoordVar(nap_cd, main_NAO, 0);
+	status = SDfileinfo(sd_id, &n_sds, &natts);
+	CHECK2(status == SUCCEED, "m4NAME: Error calling SDfileinfo");
+	for (i_sds = 0; i_sds < n_sds; i_sds++) {
+	    sds_id_cv = SDselect(sd_id, i_sds);
+	    status = Nap_HdfSdsGetInfo(nap_cd, sds_id_cv, &rank32, shape32, &is_unlimited,
+		    &number_type);
+	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+	    if (is_unlimited  &&  SDiscoordvar(sds_id_cv)) {
+		i_sds = n_sds;
+	    }
+	}
+	CHECK2(i_sds == n_sds + 1, "m4NAME: coord. var. for unlimited dim. not found");
+    }
+    Nap_IncrRefCount(nap_cd, cv);
+    if (cv  &&  cv->nels > 0) {
+	CHECK2(cv->rank == 1, "m4NAME: rank of internal coord. var. not 1");
+	status = Nap_HdfSdsGetInfo(nap_cd, sds_id_cv, &rank32, shape32, &is_unlimited,
+		&number_type);
+	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+	CHECK2(rank32 == 1, "m4NAME: rank of HDF coord. var. not 1");
+	CHECK2(is_unlimited, "m4NAME: HDF coord. var. does not have unlimited dim.");
+	externalDataType = Nap_Hdf2NapDataType(number_type);
+	CHECK2(Nap_ValidDataType(externalDataType), "m4NAME: Illegal datatype");
+	size = Nap_SizeOf(externalDataType);
+	tmp_NAO = cv;
+	cv = Nap_CastNAO(nap_cd, tmp_NAO, externalDataType);
+	CHECK2(cv, "m4NAME: Error calling Nap_CastNAO");
+	Nap_IncrRefCount(nap_cd, cv);
+	Nap_DecrRefCount(nap_cd, tmp_NAO);
+	cv64 = Nap_CastNAO(nap_cd, cv, NAP_F64);
+	CHECK2(cv64, "m4NAME: Error calling Nap_CastNAO");
+	Nap_IncrRefCount(nap_cd, cv64);
+	n = shape32[0];
+	if (n > 0) {		/* define first, final */
+	    tmp_NAO = Nap_NewNAO(nap_cd, externalDataType, 0, NULL);
+	    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_NewNAO");
+	    Nap_IncrRefCount(nap_cd, tmp_NAO);
+	    start[0] = 0;
+	    edge[0] = 1;
+	    status = SDreaddata(sds_id_cv, start, NULL, edge, (VOIDP) tmp_NAO->data.c);
+	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDreaddata");
+	    status = Nap_F64ScalarValue(nap_cd, tmp_NAO, &first);
+	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+	    start[0] = n - 1;
+	    status = SDreaddata(sds_id_cv, start, NULL, edge, (VOIDP) tmp_NAO->data.c);
+	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDreaddata");
+	    status = Nap_F64ScalarValue(nap_cd, tmp_NAO, &final);
+	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+	    Nap_DecrRefCount(nap_cd, tmp_NAO);
+	}
+	for (i = 0; i < cv->nels; i++) {
+	    x = cv64->data.F64[i];
+	    if (shape32[0] == 0  ||  (x-first)*(x-final) > 0.0) {
+		start[0] = n;
+		status = SDwritedata(sds_id_cv, start, NULL, edge, (void *) (cv->data.c + size*i));
+		CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
+		++n;
+	    }
+	    if (sds_id_cv != sds_id) {
+		status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &is_unlimited,
+			&number_type);
+		CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+		if (shape32[0] < n) {
+		    start[0] = shape32[0];
+		    edge[0] = n - shape32[0];
+			/* Force creation of records (do not care what data is written) */
+		    status = SDwritedata(sds_id, start, NULL, edge, (void *) (main_NAO->data.c));
+		    CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
+		    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &is_unlimited,
+			    &number_type);
+		    CHECK2(shape32[0] == n, "m4NAME: Error using SDwritedata to extend dim.");
+		}
+	    }
+	}
+	Nap_DecrRefCount(nap_cd, cv64);
+    }
+    Nap_DecrRefCount(nap_cd, cv);
     return TCL_OK;
 }
 
@@ -1302,6 +1465,7 @@ Nap_HdfPut(
     int32		edge32[NAP_MAX_RANK];
     int			i;
     int			id;
+    int			is_unlimited;		/* Is dimension 0 unlimited? */
     int32		number_type;
     Nap_NAO		*missingValue_NAO;	/* for fill value */
     int32		rank;
@@ -1381,16 +1545,23 @@ Nap_HdfPut(
 	    }
 	}
 	if (main_NAO->nels > 0) {
-	    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+	    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &is_unlimited,
+		    &number_type);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+	    if (is_unlimited) {	/* has unlimited dim? */
+		status = Nap_HdfExtend(nap_cd, sd_id, sds_id, main_NAO);
+		CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfExtend");
+	    }
 	    dataType = Nap_Hdf2NapDataType(number_type);
 	    CHECK2(Nap_ValidDataType(dataType), "m4NAME: Illegal datatype");
 	    tmp_NAO = NULL;
 	    if (subscript_NAO) {
-		++ subscript_NAO->count;
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 	    } else {
 		shape[0] = rank;
 		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
+		Nap_IncrRefCount(nap_cd, subscript_NAO);
 		for (i = 0; i < rank; i++) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
 		    if (tmp_NAO) {
@@ -1430,13 +1601,9 @@ Nap_HdfPut(
 	    for (i = 0; i < rank32; i++) {
 		FREE(subscript_ptr[i]);
 	    }
+	    Nap_DecrRefCount(nap_cd, subscript_NAO);
 	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
 	    CHECK(status == TCL_OK);
-	    if (subscript_NAO->count > 0) {
-		-- subscript_NAO->count;
-	    } else {
-		Nap_FreeNAO(nap_cd, subscript_NAO);
-	    }
 	}
     }
     status = Nap_HdfCloseFile(nap_cd, sd_id);
@@ -1456,6 +1623,7 @@ static int
 Nap_HdfGetSubscripting(
     NapClientData       *nap_cd,
     int32		sds_id,			/* HDF sds ID */
+    int			raw,			/* 1 to request raw data */
     Nap_NAO		*main_NAO,		/* pointer to main nao */
     int32		dim_num,		/* current dimension number */
     int32		start32[],		/* HDF subscript */
@@ -1473,12 +1641,12 @@ Nap_HdfGetSubscripting(
     int			status;
 
     assert(dim_num >= 0);
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     assert(rank32 == 0	||  dim_num < rank32);
     if (rank32 == 0  ||	 dim_num == rank32-1) {
 	if (buffer) {
-	    status = Nap_HdfGetSDS(nap_cd, sds_id, buffer, main_NAO->missingValuePtr,
+	    status = Nap_HdfGetSDS(nap_cd, sds_id, raw, buffer, main_NAO->missingValuePtr,
 		    start32, edge32);
 	    CHECK(status == TCL_OK);
 	    for (i = 0; i < main_NAO->shape[dim_num]; i++) {
@@ -1487,7 +1655,7 @@ Nap_HdfGetSubscripting(
 		*data_ptr += size;
 	    }
 	} else {
-	    status = Nap_HdfGetSDS(nap_cd, sds_id, *data_ptr, main_NAO->missingValuePtr,
+	    status = Nap_HdfGetSDS(nap_cd, sds_id, raw, *data_ptr, main_NAO->missingValuePtr,
 		    start32, edge32);
 	    CHECK(status == TCL_OK);
 	    if (rank32 > 0) {
@@ -1497,7 +1665,7 @@ Nap_HdfGetSubscripting(
     } else {
 	for (i = 0; i < main_NAO->shape[dim_num]; i++) {
 	    start32[dim_num] = subscript_ptr[dim_num][i];
-	    status = Nap_HdfGetSubscripting(nap_cd, sds_id, main_NAO, dim_num+1,
+	    status = Nap_HdfGetSubscripting(nap_cd, sds_id, raw, main_NAO, dim_num+1,
 		    start32, edge32, subscript_ptr, data_ptr, buffer);
 	    CHECK(status == TCL_OK);
 	}
@@ -1521,6 +1689,7 @@ Nap_HdfGet(
     char		*fileName,	/* HDF file name */
     char		*sds_name,	/* HDF sds (var) name */
     Nap_NAO		*subscript_NAO, /* pointer to subscript nao */
+    int			raw,		/* 1 to request raw data */
     Nap_NAO		*main_NAO)	/* pointer to main nao (out) */
 {
     int32		attr_index;
@@ -1561,11 +1730,11 @@ Nap_HdfGet(
     } else {
 	status = Nap_HdfOpenSDS(nap_cd, sd_id, sds_name, &exists, &sds_id);
 	CHECK3(exists, "m4NAME: SDS %s not found", sds_name);
-	status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+	status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
 	CHECK2(rank32 == main_NAO->rank, "m4NAME: HDF rank != NAO rank");
 	externalDataType = Nap_Hdf2NapDataType(number_type);
-	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, &number_type, &cal, &off, valid_range);
+	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, raw, &number_type, &cal, &off, valid_range);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfGetScalingInfo");
 	internalDataType = Nap_Hdf2NapDataType(number_type);
 	CHECK2(internalDataType == main_NAO->dataType, "m4NAME: HDF dataType != NAO dataType");
@@ -1602,7 +1771,7 @@ Nap_HdfGet(
 			subscript_NAO, subscript_ptr, start32, edge32, &buffer);
 	    CHECK(status == TCL_OK);
 	    data_ptr = main_NAO->data.c;
-	    status = Nap_HdfGetSubscripting(nap_cd, sds_id, main_NAO, 0,
+	    status = Nap_HdfGetSubscripting(nap_cd, sds_id, raw, main_NAO, 0,
 		    start32, edge32, subscript_ptr, &data_ptr, buffer);
 	    FREE(buffer);
 	    CHECK(status == TCL_OK);
@@ -1614,7 +1783,7 @@ Nap_HdfGet(
 		start32[i] = 0;
 		edge32[i]  = shape32[i];
 	    }
-	    status = Nap_HdfGetSDS(nap_cd, sds_id, main_NAO->data.c, main_NAO->missingValuePtr,
+	    status = Nap_HdfGetSDS(nap_cd, sds_id, raw, main_NAO->data.c, main_NAO->missingValuePtr,
 		    start32, edge32);
 	    CHECK(status == TCL_OK);
 	    if (! SDiscoordvar(sds_id)) {
@@ -1650,6 +1819,7 @@ Nap_HdfInfo(
     NapClientData       *nap_cd,
     char		*fileName,		/* HDF file name */
     char		*sds_name,		/* HDF sds (var) name */
+    int                 raw,			/* 1 to request raw data */
     int			*rank,			/* rank of sds (out) */
     size_t		shape[NAP_MAX_RANK],	/* shape of sds (out) */
     Nap_dataType	*externalDataType,	/* datatype of sds (out) */
@@ -1699,10 +1869,10 @@ Nap_HdfInfo(
 	*internalDataType = *externalDataType = Nap_Hdf2NapDataType(number_type);
 	rank32 = 1;
     } else {
-	status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+	status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
 	*externalDataType = Nap_Hdf2NapDataType(number_type);
-	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, &number_type, &cal, &off, valid_range);
+	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, raw, &number_type, &cal, &off, valid_range);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfGetScalingInfo");
 	*internalDataType = Nap_Hdf2NapDataType(number_type);
 	status = Nap_HdfCloseSDS(nap_cd, sds_id);
@@ -1854,7 +2024,7 @@ Nap_HdfDimNames(
     status = Nap_HdfOpenSDS(nap_cd, sd_id, name_sds, &exists, &sds_id);
     CHECK(status == SUCCEED);
     CHECK2(exists, "m4NAME: SDS does not exist");
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     for (dim_index = 0; dim_index < rank32; dim_index++) {
 	status = Nap_HdfGetDim(nap_cd, sds_id, dim_index, NULL, dim_name);
@@ -1908,7 +2078,7 @@ Nap_HdfCoordVar(
     status = Nap_HdfOpenSDS(nap_cd, sd_id, name_sds, &exists, &sds_id);
     CHECK(status == SUCCEED);
     CHECK2(exists, "m4NAME: SDS does not exist");
-    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, &number_type);
+    status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
     CHECK2(rank32 > 0, "m4NAME: SDS is scalar");
     status = Tcl_GetInt(nap_cd->interp, dim_str, &dim_index);
@@ -1978,7 +2148,7 @@ Nap_OOC_hdf(
     Nap_NAO             *subscript_NAO = NULL;	/* pointers to subscripts */
     Nap_NAO		*valid_range_NAO = NULL;	/* For new HDF SDS */
 
-    static char		*switches[] = {
+    CONST char		*switches[] = {
 				"-coordinateVariable",
 				"-datatype",
 				"-index",
@@ -1997,6 +2167,7 @@ Nap_OOC_hdf(
 	    switch (index) {
 		case 0:			/* -coordinateVariable */
 		    boxed_cv_hdf = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, boxed_cv_hdf);
 		    break;
 		case 1:			/* -datatype */
 		    str = Tcl_GetStringFromObj(objv[++i], NULL);
@@ -2004,18 +2175,23 @@ Nap_OOC_hdf(
 		    break;
 		case 2:			/* -index */
 		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, subscript_NAO);
 		    break;
 		case 3:			/* -offset */
 		    add_offset_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, add_offset_NAO);
 		    break;
 		case 4:			/* -range */
 		    valid_range_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, valid_range_NAO);
 		    break;
 		case 5:			/* -scale */
 		    scale_factor_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, scale_factor_NAO);
 		    break;
 		case 6:			/* -subscript (old name for -index) */
 		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
+		    Nap_IncrRefCount(nap_cd, subscript_NAO);
 		    break;
 		case 7:			/* -unlimited */
 		    isRecord = 1;
@@ -2030,7 +2206,7 @@ Nap_OOC_hdf(
 	    sds_name  = Tcl_GetStringFromObj(objv[i], NULL);
 	    Tcl_ResetResult(nap_cd->interp);
 	} else {
-		str = Tcl_GetStringResult(nap_cd->interp);
+		str = (char *) Tcl_GetStringResult(nap_cd->interp);
 		CHECK3(FALSE, "m4NAME: %s", str);
 	}
     }
@@ -2040,11 +2216,11 @@ Nap_OOC_hdf(
 	    add_offset_NAO, valid_range_NAO, naoPtr, boxed_cv_hdf,
 	    subscript_NAO, isRecord); 
     CHECK(status == TCL_OK);
-    Nap_FreeNAO(nap_cd, scale_factor_NAO);
-    Nap_FreeNAO(nap_cd, add_offset_NAO);
-    Nap_FreeNAO(nap_cd, valid_range_NAO);
-    Nap_FreeNAO(nap_cd, boxed_cv_hdf);
-    Nap_FreeNAO(nap_cd, subscript_NAO);
+    Nap_DecrRefCount(nap_cd, scale_factor_NAO);
+    Nap_DecrRefCount(nap_cd, add_offset_NAO);
+    Nap_DecrRefCount(nap_cd, valid_range_NAO);
+    Nap_DecrRefCount(nap_cd, boxed_cv_hdf);
+    Nap_DecrRefCount(nap_cd, subscript_NAO);
     Tcl_ResetResult(nap_cd->interp);
     return TCL_OK;
 }

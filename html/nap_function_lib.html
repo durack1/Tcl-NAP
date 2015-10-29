@@ -1,4 +1,4 @@
-<!-- $Id: nap_function_lib.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: nap_function_lib.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -11,11 +11,48 @@ NAP Library: nap_function_lib.tcl
 Miscellaneous Functions
 </center> </h2>
 
-These are defined in <code>nap_function_lib.tcl</code>.
+<h3>Table of Contents</h3>
 
-<h3>
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#acof2boxed"><code>acof2boxed(</code><var>filename</var><code>)</code></a>
+    <li><a href="#area_on_globe"><code>area_on_globe(</code><var>latitude</var><code>,
+	</code><var>longitude</var><code>)</code></a>
+    <li><a href="#color_wheel"><code>color_wheel(</code><var>n</var><code>,</code><var>v</var><code>,</code><var>b</var><code>)</code></a>
+    <li><a href="#cv">
+	<code>cv(</code><var>main_nao</var>[<code>,</code><var>dim_number</var>]<code>)</code></a>
+    <li><a href="#fix_longitude"><code>fix_longitude(</code><var>longitude</var><code>)</code></a>
+    <li><a href="#fuzzy_floor">
+	<code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code></a>
+    <li><a href="#fuzzy_ceil">
+	<code>fuzzy_ceil(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code></a>
+    <li><a href="#gets_matrix"><code>gets_matrix(</code><var>filename</var><code>)</code></a>
+    <li><a href="#head"><code>head(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code></a>
+    <li><a href="#hsv2rgb"><code>hsv2rgb(</code><var>hsv</var><code>)</code></a>
+    <li><a href="#isMissing"><code>isMissing(</code><var>x</var><code>)</code></a>
+    <li><a href="#isPresent"><code>isPresent(</code><var>x</var><code>)</code></a>
+    <li><a href="#magnify_interp"><code>magnify_interp(</code><var>a</var><code>, </code><var>mag_factor</var><code>)</code></a>
+    <li><a href="#merid_wt"><code>merid_wt(</code><var>longitude</var><code>)</code></a>
+    <li><a href="#mixed_base">
+	<code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code></a>
+    <li><a href="#outer"><code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code></a>
+    <li><a href="#reverse">
+	<code>reverse(</code><var>x</var>[<code>,</code><var>verb_rank</var>]<code>)</code></a>
+    <li><a href="#scaleAxis><code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
+    <li><a href="#scaleAxisSpan"><code>scaleAxisSpan(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
+    <li><a href="#range"><code>range(</code><var>a</var><code>)</code></a>
+    <li><a href="#tail"><code>tail(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code></a>
+    <li><a href="#zone_wt"><code>zone_wt(</code><var>latitude</var><code>)</code></a>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
+
+The following functions are defined in the file <code>nap_function_lib.tcl</code>.
+
+<h3><a name=acof2boxed>
 <code>acof2boxed(</code><var>filename</var><code>)</code>
 </h3>
+
 Read ascii cof (.acof) file and return boxed nao.
 <p>
 Example:
@@ -24,35 +61,29 @@ Example:
 nap "i = acof2boxed('abc.acof')"
 </code>
 
-<h3>
-<code>ap0(</code><var>from</var><code>,</code><var>to</var><code>,</code><var>step</var><code>)</code>
+<h3><a name=area_on_globe>
+<code>area_on_globe(</code><var>latitude</var><code>, </code><var>longitude</var><code>)</code>
 </h3>
-Quasi-arithmetic-progression, whose final step may be short.
+
+Given latitude and longitude vectors, this function calculates a matrix whose values
+are fractions of the Earth's surface area.
 <p>
 Example:
 <br>
 <code>
-% [nap "ap0(0,8,3)"]
+% [nap "area_on_globe(-90 .. 0 ... 45, 0 .. 180 ... 45)"] value -format %.4f
 <br>
-0 3 6 8
+0.0229 0.0092 0.0092 0.0092 0.0229
+<br>
+0.0781 0.0312 0.0312 0.0312 0.0781
+<br>
+0.2115 0.0846 0.0846 0.0846 0.2115
 </code>
 
-<h3>
-<code>ap_n(</code><var>from</var><code>,</code><var>to</var><code>,</code><var>n</var><code>)</code>
-</h3>
-Arithmetic progression with <var>n</var> elements.
-<p>
-Example:
-<br>
-<code>
-% [nap "ap_n(0,8,4)"]
-<br>
-0 2.66667 5.33333 8
-</code>
-
-<h3>
+<h3><a name=color_wheel>
 <code>color_wheel(</code><var>n</var><code>,</code><var>v</var><code>,</code><var>b</var><code>)</code>
 </h3>
+
 Square containing color wheel.
 <br>
 <var>n</var> is number rows & columns
@@ -70,14 +101,16 @@ nap "color_wheel(100,255,3#150)"
 This produces a <code>u8</code> array with shape
 <code>{3 100 100}</code> & values from 0 to 255.
 
-<h3>
+<h3><a name=cv>
 <code>cv(</code><var>main_nao</var>[<code>,</code><var>dim_number</var>]<code>)</code>
 </h3>
+
 This is simply an alias for <code>coordinate_variable</code>.
 
-<h3>
+<h3><a name=fix_longitude>
 <code>fix_longitude(</code><var>longitude</var><code>)</code>
 </h3>
+
 Adjust elements of longitude vector by adding or subtracting multiple of 360 to ensure:
 <br>
 &minus;180 &le; <var>x</var><sub>0</sub> < 180
@@ -86,9 +119,10 @@ Adjust elements of longitude vector by adding or subtracting multiple of 360 to 
 <br>
 Also ensure unit is <code>degrees_east</code>.
 
-<h3>
+<h3><a name=fuzzy_floor>
 <code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code>
 </h3>
+
 Like <code>floor()</code> except allow for rounding error.
 <br>
 <var>eps</var> is tolerance and defaults to <code>1e-9</code>.
@@ -101,9 +135,10 @@ Example:
 4 5
 </code>
 
-<h3>
+<h3><a name=fuzzy_ceil>
 <code>fuzzy_ceil(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code>
 </h3>
+
 Like <code>ceil()</code> except allow for rounding error.
 <br>
 <var>eps</var> is tolerance and defaults to <code>1e-9</code>.
@@ -116,9 +151,10 @@ Example:
 6 5
 </code>
 
-<h3>
+<h3><a name=gets_matrix>
 <code>gets_matrix(</code><var>filename</var><code>)</code>
 </h3>
+
 Read text file and return NAO matrix whose rows correspond to the lines in the file.
 Ignore blank lines and lines whose first non-whitespace character is '#'.
 <br>
@@ -129,9 +165,10 @@ Example:
 gets_matrix('my_matrix.txt')
 </code>
 
-<h3>
+<h3><a name=head>
 <code>head(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code>
 </h3>
+
 If <var>n</var> &ge; 0 then result is 1st <var>n</var> elements of <var>x</var>,
 cycling if <var>n</var> > nels(<var>x</var>).
 <br>
@@ -152,9 +189,10 @@ Example:
 3 1 9
 </pre>
 
-<h3>
+<h3><a name=hsv2rgb>
 <code>hsv2rgb(</code><var>hsv</var><code>)</code>
 </h3>
+
 Convert colour in HSV form to RGB.
 <br>
 <var>hsv</var> is an array whose leading dimension has size 3.
@@ -186,9 +224,10 @@ Example:
 50 100 100
 </code>
 
-<h3>
+<h3><a name=isMissing>
 <code>isMissing(</code><var>x</var><code>)</code>
 </h3>
+
 1 if <var>x</var> misssing, 0 if present.
 <br>
 <p>
@@ -200,9 +239,10 @@ Example:
 0 1 0
 </code>
 
-<h3>
+<h3><a name=isPresent>
 <code>isPresent(</code><var>x</var><code>)</code>
 </h3>
+
 0 if <var>x</var> misssing, 1 if present.
 <br>
 <p>
@@ -214,9 +254,54 @@ Example:
 1 0 1
 </code>
 
-<h3>
+<h3><a name=magnify_interp>
+<code>magnify_interp(</code><var>a</var><code>, </code><var>mag_factor</var><code>)</code>
+</h3>
+
+
+Magnify each dimension of array <var>a</var> by factor defined by the
+corresponding element of </code><var>mag_factor</var> if this is a vector.
+If this is a scalar then every dimension is magnified by the same factor.
+The new values are estimated using multi-linear interpolation.
+
+<p>
+This function can be used to make images larger or smaller.
+
+<p>
+Example:
+<br>
+<code>
+% [nap "magnify_interp({{1 2 3}{4 5 6}}, {1 3})"] value
+<br>
+1.00000 1.33333 1.66667 2.00000 2.33333 2.66667 3.00000
+<br>
+4.00000 4.33333 4.66667 5.00000 5.33333 5.66667 6.00000
+</code>
+
+<h3><a name=magnify_nearest>
+<code>magnify_nearest(</code><var>a</var><code>, </code><var>mag_factor</var><code>)</code>
+</h3>
+
+
+This function is similar to 
+<code>magnify_interp</code>
+except that the new values are defined by the nearest neighbour rather than interpolation.
+
+<p>
+Example:
+<br>
+<code>
+% [nap "magnify_nearest({{1 2 3}{4 5 6}}, {1 3})"] value
+<br>
+1 1 2 2 2 3 3
+<br>
+4 4 5 5 5 6 6
+</code>
+
+<h3><a name=merid_wt>
 <code>merid_wt(</code><var>longitude</var><code>)</code>
 </h3>
+
 Calculate normalised (so sum weights = 1) meridional weights from longitudes.
 <br>
 <p>
@@ -228,9 +313,10 @@ Example:
 0.125 0.1875 0.125 0.1875 0.25 0.125
 </code>
 
-<h3>
+<h3><a name=mixed_base>
 <code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code>
 </h3>
+
 Convert scalar value <var>x</var> to mixed base defined by vector <var>b</var>.
 <br>
 <p>
@@ -242,9 +328,10 @@ Following example converts 87 inches to yards, feet & inches:
 2 1 3
 </code>
 
-<h3>
+<h3><a name=outer>
 <code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code>
 </h3>
+
 Tensor outer-product.
 <p>
 <var>dyad</var> is name of either
@@ -272,9 +359,10 @@ Following example produces a multiplication table:
  5 10 15 20 25
 </pre>
 
-<h3>
+<h3><a name=reverse>
 <code>reverse(</code><var>x</var>[<code>,</code><var>verb_rank</var>]<code>)</code>
 </h3>
+
 Reverse order of items in array <var>x</var>.
 <br>
 <p>
@@ -290,9 +378,10 @@ Examples:
 6 5 4
 </pre>
 
-<h3>
+<h3><a name=scaleAxis>
 <code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code>
 </h3>
+
 Find suitable values for axis of graph.
 <br>
 <var>xstart</var>: 1st data value
@@ -321,9 +410,10 @@ Example:
 -300 -200 -100 0 100 200 300 400 500
 </code>
 
-<h3>
+<h3><a name=scaleAxisSpan>
 <code>scaleAxisSpan(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code>
 </h3>
+
 Find suitable values for axis of graph.
 <br>
 <var>xstart</var>: 1st data value
@@ -352,9 +442,10 @@ Example:
 -400 -200 0 200 400 600
 </code>
 
-<h3>
+<h3><a name=range>
 <code>range(</code><var>a</var><code>)</code>
 </h3>
+
 Result is 2-element vector containing minimum and maximum of array <var>a</var>.
 <br>
 Example:
@@ -365,9 +456,10 @@ Example:
 -5 9
 </code>
 
-<h3>
+<h3><a name=tail>
 <code>tail(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code>
 </h3>
+
 If <var>n</var> &ge; 0 then result is final <var>n</var> elements of <var>x</var>,
 cycling if <var>n</var> > nels(<var>x</var>).
 <br>
@@ -389,9 +481,10 @@ Example:
 9 2 7
 </pre>
 
-<h3>
+<h3><a name=zone_wt>
 <code>zone_wt(</code><var>latitude</var><code>)</code>
 </h3>
+
 Calculate normalised (so sum weights = 1) zonal weights from latitudes.
 <br>
 <p>
@@ -414,7 +507,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

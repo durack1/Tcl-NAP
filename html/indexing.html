@@ -1,4 +1,4 @@
-<!-- $Id: indexing.html,v 1.2 2002/10/16 08:59:45 dav480 Exp $ -->
+<!-- $Id: indexing.html,v 1.3 2003/03/17 01:07:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -10,6 +10,29 @@ NAP Indexing
 <h2> <center>
 Indexing
 </center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Syntax">Indexing Syntax</a>
+    <li><a href="#Dimension_Position">Dimension-Position</a>
+    <li><a href="#Subscript">Subscript</a>
+    <li><a href="#Elemental_Index">Elemental Index</a>
+    <li><a href="#Index">Index</a>
+    <li><a href="#Shape_Preserving">Shape-Preserving</a>
+    <li><a href="#Full_index">Full-index</a>
+    <li><a href="#Cross_product_index">Cross-product-index</a>
+    <li><a href="#indirect_indexing">Indirect Indexing</a>
+    <ol>
+	<li><a href="#Indirect_Shape_Preserving_Indexing">Indirect Shape-Preserving Indexing</a>
+	<li><a href="#Indirect_Cross_Product_Indexing">Indirect Cross-Product Indexing</a>
+	<li><a href="#Indirect_Full_Indexing">Indirect Full Indexing</a>
+	<li><a href="#How_Indirect_Indexing_Works">How Indirect Indexing Works</a>
+    </ol>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
 
 <p>
 <em>Indexing</em> is the process of extracting elements from arrays.
@@ -40,7 +63,7 @@ Here is a simple example of a vector indexed by a scalar:
 9
 </pre>
 
-<h3>Indexing Syntax</h3>
+<h3><a name=Syntax>Indexing Syntax</h3>
 
 NAP syntax specifies that indexing is implied by two adjacent NAOs, with the base array
 on the left and the index on the right.
@@ -66,7 +89,7 @@ can be indexed, as shown by:
 19
 </pre>
 
-<h3>Dimension-Position</h3>
+<h3><a name=Dimension_Position>Dimension-Position</h3>
 
 A <em>dimension-position</em> is a scalar value defining the position along a dimension.
 Fractional values are valid and represent positions <em>between</em> the array elements.
@@ -123,7 +146,7 @@ Thus the value is estimated to be
 <br>
 0.9 * 4.0 + 0.1 * 2.0 = 3.6 + 0.2 = 3.8
 
-<h3>Subscript</h3>
+<h3><a name=Subscript>Subscript</h3>
 
 A <em>subscript</em> is
 similar to a <em>dimension-position</em> except that there are no size limits.
@@ -151,7 +174,7 @@ index backward from the end, as shown by:
 -5
 </pre>
 
-<h3>Elemental Index</h3>
+<h3><a name=Elemental_Index>Elemental Index</h3>
 
 An <em>elemental index</em> is a
 vector of <var>rank</var> subscripts, specifying the subscripts of an element of an array.
@@ -178,7 +201,7 @@ is estimated, using bilinear interpolation, to be
 0.25&nbsp;*&nbsp;0.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;7.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-4.0)&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-9.0) 
 = -1.5
 
-<h3>Index</h3>
+<h3><a name=Index>Index</h3>
 
 An <em>index</em> is an array defining one or more elemental indices.
 The following table lists the three types, which are explained in the sections below:
@@ -201,7 +224,7 @@ The following table lists the three types, which are explained in the sections b
 		2 or more
 </table>
 
-<h3>Shape-Preserving</h3>
+<h3><a name=Shape_Preserving>Shape-Preserving</h3>
 
 <em>Shape-preserving</em> indexing is used to index a vector.
 The shape of the result is the same as that of the index.
@@ -270,7 +293,7 @@ A HHVREVZHC
 HELLO WORLD
 </pre>
 
-<h3>Full-index</h3>
+<h3><a name=Full_index>Full-index</h3>
 
 A <em>full-index</em> is an
 array specifying a separate elemental index for every element of the result.
@@ -309,7 +332,7 @@ to a vector (if this were allowed).
 The shape-preserving-index is the hypothetical full-index reshaped to omit the
 final redundant dimension of size 1.
 
-<h3>Cross-product-index</h3>
+<h3><a name=Cross_product_index>Cross-product-index</h3>
 
 A <em>cross-product-index</em> is a boxed vector pointing to scalars, vectors and nulls,
 whose cross-product combination defines the elemental indices of the indexed array.
@@ -444,7 +467,7 @@ The following three sections correspond to the three types of index:
 and
 <em>full</em>.
 
-<h4>Indirect Shape-Preserving Indexing</h4>
+<h4><a name=Indirect_Shape_Preserving_Indexing>Indirect Shape-Preserving Indexing</h4>
 
 The following table defines 
 <em>indirect shape-preserving</em> indexing of any vector
@@ -502,7 +525,7 @@ Note that this syntax does not allow indirect indices such as that in "<code>t(3
 Instead we have to use <em>binary</em> "<code>@@</code>" as in
 "<code>t(3+coordinate_variable(t)@@12)</code>".
 
-<h4>Indirect Cross-Product Indexing</h4>
+<h4><a name=Indirect_Cross_Product_Indexing>Indirect Cross-Product Indexing</h4>
 
 The syntax for a general <em>cross-product-index</em> (involving direct and/or indirect
 indexing) is:<br>
@@ -673,7 +696,7 @@ such as
 <li>wrap around to allow interpolation across longitude 180
 <li>data-type <code>f32</code>
 
-<h4>Indirect Full Indexing</h4>
+<h4><a name=Indirect_Full_Indexing>Indirect Full Indexing</h4>
 
 A full index can be preceded by the unary "<code>@</code>"
 or "<code>@@</code>" operator to give indirect indexing.
@@ -690,7 +713,7 @@ as those in the above example of cross-product indexing.
 29 21.9
 </pre>
 
-<h4>How Indirect Indexing Works</h4>
+<h4><a name=How_Indirect_Indexing_Works>How Indirect Indexing Works</h4>
 
 Indirect indexing uses ancillary NAOs linked to index NAOs using their link slots.
 These ancillary NAOs contain integers with value <br>
@@ -716,7 +739,7 @@ the function <code>invert_grid()</code>.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: indexing.html,v 1.2 2002/10/16 08:59:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: indexing.html,v 1.3 2003/03/17 01:07:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

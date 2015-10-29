@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: plot_nao_procs.tcl,v 1.39 2002/08/07 08:19:28 dav480 Exp $
+# $Id: plot_nao_procs.tcl,v 1.46 2003/03/04 23:02:23 dav480 Exp $
 #
 # Produce xy-graph, barchart (histogram) or z-plot (image).
 # Uses BLT graph or barchart command. A z-plot is produced using the graph image marker facility.
@@ -14,11 +14,16 @@ namespace eval Plot_nao {
 
 	# Following variables do not need namespace for each graph window
     variable frame_id 0;	# Number of previous graphs created
-    variable help_usage \
-	    "Produce xy-graph, barchart (histogram) or z-plot (image).\
+    variable help_intro \
+	    "Produce one of following four types of plot:\
+	    \n  xy-graph: One or more curves defined by x and y coordinates\
+	    \n  barchart: Histogram defined by x and y coordinates\
+	    \n  z-plot: Image defined by z values in matrix (or 3D array)\
+	    \n  tiled-plot: Page of tiles (each tile is z-plot) defined by 3D array\
 	    \n\
-	    \nUses BLT graph or barchart command. A z-plot is produced using the graph\
-	    \nimage marker facility.\
+	    \nUses BLT graph or barchart command. A z-plot or tiled-plot is produced\
+	    \nusing the graph image-marker facility."
+    variable help_all "$help_intro\
 	    \n\
 	    \nUsage\
 	    \n  plot_nao <NAP expression> ?options?\
@@ -29,6 +34,7 @@ namespace eval Plot_nao {
 	    \n     \"lappend Plot_nao::\${window_id}::save \[set Plot_nao::\${window_id}::xyz]\")\
 	    \n  -colors <list>: Colors of graph elements (lines). (Default: black red\
 	    \n     green blue yellow orange purple grey aquamarine beige)\
+	    \n  -columns <int>: (tiled-plot only) number of columns of tiles on page\
 	    \n  -configure <script>: Prefix graph-name to each line & execute after graph created\
 	    \n  -filename <string>: Name of output PostScript file.\
 	    \n  -fill <0 or 1>: 1 = Scale PostScript to fill page. (Default: 0)\
@@ -38,6 +44,7 @@ namespace eval Plot_nao {
 	    \n  -height <int>: Desired height (screen units)\
 	    \n     Type xy/bar: Height of whole window (Default: automatic)\
 	    \n     Type z: Image height (can be \"min max\") (Default: NAO dim if within limits)\
+	    \n     Type tiled: Not used\
 	    \n  -help: Display this help page\
 	    \n  -key <int>: width (pixels) of image-key. No key if 0 or blank. (Default: 30)\
 	    \n  -labels <list>: Labels of graph elements (lines). (Default: Use element\
@@ -45,7 +52,7 @@ namespace eval Plot_nao {
 	    \n  -menu <0 or 1>: 0 = Start with menu bar at top hidden. (Default: 1)\
 	    \n  -orientation <P, L or A>: P = portrait, L = landscape, A = automatic (Default: A)\
 	    \n  -overlay <C, L, S, N or \"E <nap expression>\">: Define overlay.\
-	    \n     C = coast, L = land, S = sea, N = none, E = expr (Default: N)\
+	    \n     C = coast, L = land, S = sea, N = none, A = auto, E = expr (Default: A)\
 	    \n  -ovpal <NAP expression>: Overlay palette in same form as main palette\
 	    \n      (Default: black white red green blue)\
 	    \n  -palette <NAP expression>: Main palette defining color map for 2D image. This is\
@@ -60,18 +67,21 @@ namespace eval Plot_nao {
 	    \n  -printer <string>: name (Default: env(PRINTER) if defined, else any printer)\
 	    \n  -range <NAP expression>: defines scaling (Default: auto scaling)\
 	    \n  -rank <1, 2 or 3>: rank of sub-arrays to be displayed (Default: 3 <<< rank(data))\
+	    \n      Do recursive call to plot_nao for each sub-array of this rank\
 	    \n  -scaling <0 or 1>: 0 = Start with scaling widget hidden. (Default: 1)\
+	    \n  -sub_title <list>: (tiled-plot only) Title of each tile\
 	    \n  -symbols <list>: One for each element. Draw at points. Can be plus, square,\
 	    \n     circle, cross, splus, scross, triangle (Default: \"\" i.e. none)\
 	    \n  -title <string>: title (Default: NAO label (if any) else <NAP expression>)\
-	    \n  -type <string> plot-type (\"bar\", \"xy\" or \"z\")\
+	    \n  -type <string> plot-type (\"bar\", \"tile\", \"xy\" or \"z\")\
 	    \n     If rank is 1 then default type is \"xy\".\
 	    \n     If rank is 2 and n_rows <= 8 then default type is \"xy\".\
 	    \n     If rank is 2 and n_rows  > 8 then default type is \"z\".\
-	    \n     If rank is 3 then type is \"z\" regardless of this option.\
+	    \n     If rank is 3 then default type is \"z\".\
 	    \n  -width <int>: Desired width (screen units)\
 	    \n     Type xy/bar: Width of whole window (Default: automatic)\
 	    \n     Type z: Image width (can be \"min max\") (Default: NAO dim if within limits)\
+	    \n     Type tiled: Not used\
 	    \n  -xflip <0, 1>: Flip left-right?  0 = no, 1 = yes.  (Default: 0)\
 	    \n  -xlabel <string>: x-axis label (Default: name of last dimension)\
 	    \n  -yflip <0, 1, ascending or geog>: Flip upside down?  0 = no, 1 = yes,\
@@ -91,8 +101,6 @@ namespace eval Plot_nao {
 	    \n  set windowID \[plot_nao sales -labels \"Joe Mary\" -type bar]\
 	    \n  set pathName \$windowID.graph\
 	    \n  \$pathName element configure Joe -foreground blue"
-    variable overlay_nao "";	# overlay (e.g. coastline)
-    variable overlay_palette;	# NAO defining color mapping for overlay (e.g. coastline)
     variable x "";		# Current x coord under crosshairs
     variable y "";		# Current y coord under crosshairs
     variable z "";		# Current z values under crosshairs
@@ -107,7 +115,7 @@ namespace eval Plot_nao {
 	}
 	if [catch "uplevel 2 nap \"$nao_expr\"" nao] {
 	    if {$nao_expr == ""  ||  [regexp -nocase {^-h} $nao_expr]} {
-		puts $::Plot_nao::help_usage
+		puts $::Plot_nao::help_all
 	    } else {
 		handle_error $nao
 	    }
@@ -141,6 +149,9 @@ namespace eval Plot_nao {
 	    variable new_height -1;	# current image height
 	    variable new_width -1;	# current image width
 	    variable orientation "A";	# P = portrait, L = landscape, A = automatic
+	    variable overlay_nao "";	# overlay (e.g. coastline)
+	    variable overlay_option A;	# C = coast, L = land, S = sea, N = none, A = auto, E = expr
+	    variable overlay_palette;	# NAO defining color mapping for overlay (e.g. coastline)
 	    variable main_palette "";	# NAO defining color mapping for 2D images
 	    variable print_command "";	# 
 	    variable save "";		# Used to save crosshair data
@@ -175,7 +186,6 @@ namespace eval Plot_nao {
 	set height "";			# height (in pixels) of image (can be "min max" for image)
 	set labels ""
 	set ncols ""
-	set overlay_option none
 	set parent ""
 	set range_nao ""
 	set rank_nao 3
@@ -208,6 +218,7 @@ namespace eval Plot_nao {
 	    set_in_namespace ylabel $str
 	}
 	unset str
+	set ::Print_gui::filename ""
 	set i [process_options {
 		{-barwidth {set barwidth $option_value}}
 		{-buttonCommand {set buttonCommand $option_value}}
@@ -220,12 +231,12 @@ namespace eval Plot_nao {
 		{-gap_width  {set_in_namespace gap_width  $option_value}}
 		{-geometry {set geometry $option_value}}
 		{-height {set height $option_value}}
-		{-help {puts $::Plot_nao::help_usage}}
+		{-help {puts $::Plot_nao::help_all}}
 		{-key {set_in_namespace key_width $option_value}}
 		{-labels {set labels $option_value}}
 		{-menu {set_in_namespace want_menu_bar $option_value}}
 		{-orientation {set_in_namespace orientation $option_value}}
-		{-overlay {set overlay_option $option_value}}
+		{-overlay {set_in_namespace overlay_option $option_value}}
 		{-ovpal   {palette_option overlay_palette $option_value}}
 		{-palette {palette_option main_palette    $option_value}}
 		{-paperheight {set ::Print_gui::paperheight $option_value}}
@@ -250,10 +261,12 @@ namespace eval Plot_nao {
 	    handle_error "Illegal option"
 	    return
 	}
+	if {$::Print_gui::filename eq ""  &&  !$auto_print} {
+	    set ::Print_gui::filename tmp.ps
+	}
 	Plot_nao::incrRefCount $window_id $nao
 	set rank_nao [[nap "i32(rank_nao <<< rank(nao))"]]
 	nap "shape_frame = (shape(nao))(0 .. (rank(nao) - rank_nao - 1) ... 1)"
-	eval set_overlay $window_id $nao $overlay_option
 	set nplots [[nap "prod(shape_frame)"]]
 	if {$nplots > 1} {
 	    if {$geometry == ""} {
@@ -263,12 +276,17 @@ namespace eval Plot_nao {
 		nap "range_nao = range(nao)"
 	    }
 	    set all ""
+	    set cv0 [$nao coord 0]
 	    for {set i 0} {$i < $nplots} {incr i} {
 		nap "tmp = (mixed_base(i, shape_frame))(1 .. nels(shape_frame) ... 1)"
 		set cell_subscript "[$tmp value -format "%g,"][commas "$rank_nao-1"]"
-		unset tmp
 		nap "cell = nao(cell_subscript)"
-		set cell_title "{$title\n($cell_subscript)}"
+		if {$cv0 eq "(NULL)"} {
+		    set cell_title "{$title\n($cell_subscript)}"
+		} else {
+		    set cell_title "{$title\n(@[[nap "cv0(tmp)"]])}"
+		}
+		unset tmp
 		lappend all [eval Plot_nao::plot_nao $cell $args \
 			-geometry $geometry \
 			-range $range_nao \
@@ -514,7 +532,7 @@ namespace eval Plot_nao {
 	#
 	set command "set Plot_nao::${window_id}::magnification"
 	append command { [get_entry "magnification factor (relative to original NAO)"}
-	append command " -parent $all -text 1.0]"
+	append command " -parent $all -text 1]"
 	append command "; $redraw_command"
 	$m add command -label "adjust height & width of image" -command $command
 	#
@@ -602,19 +620,20 @@ namespace eval Plot_nao {
 	set m $parent.overlay
 	menu $m
 	$m add command -label "set overlay NAO coast values to 0" \
-		-command "::Plot_nao::set_overlay $window_id $nao coast; $redraw_command"
+		-command "set ::Plot_nao::${window_id}::overlay_option C; $redraw_command"
 	#
 	$m add command -label "set overlay NAO land values to 2" \
-		-command "::Plot_nao::set_overlay $window_id $nao land; $redraw_command"
+		-command "set ::Plot_nao::${window_id}::overlay_option L; $redraw_command"
 	#
 	$m add command -label "set overlay NAO sea values to 4" \
-		-command "::Plot_nao::set_overlay $window_id $nao sea; $redraw_command"
+		-command "set ::Plot_nao::${window_id}::overlay_option S; $redraw_command"
 	#
 	$m add command -label "set overlay NAO using NAP expression" \
-		-command "::Plot_nao::overlay_nap $all $window_id; $redraw_command"
+		-command "set ::Plot_nao::${window_id}::overlay_option E; \
+			::Plot_nao::overlay_nap $all $window_id; $redraw_command"
 	#
 	$m add command -label "clear overlay NAO" \
-		-command "::Plot_nao::set_overlay $window_id $nao none; $redraw_command"
+		-command "set ::Plot_nao::${window_id}::overlay_option N; $redraw_command"
 	#
 	$m add separator
 	#
@@ -626,14 +645,16 @@ namespace eval Plot_nao {
     # overlay_land_flag --
 
     proc overlay_land_flag {
+	window_id
 	func
 	value
 	nao
     } {
-	global Plot_nao::overlay_nao
+	global Plot_nao::${window_id}::overlay_nao
 	nap "longitude = coordinate_variable(nao, -1)"
 	nap "latitude  = coordinate_variable(nao, -2)"
-	if {$overlay_nao == ""} {
+	if {$overlay_nao == ""  ||
+		[[nap "! prod((shape overlay_nao){-2 -1} == (shape nao){-2 -1})"]]} {
 	    nap "overlay_nao = 255u8"
 	    $overlay_nao set missing 255
 	}
@@ -650,30 +671,14 @@ namespace eval Plot_nao {
     } {
 	set help_menu $parent.help_menu
 	menu $help_menu -tearoff 0
-	$help_menu add command -label introduction -command "Plot_nao::help_intro"
+	$help_menu add command -label introduction -command \
+		{message_window $::Plot_nao::help_intro -geometry +0+0 -parent ""}
 	$help_menu add command -label usage -command \
-		{message_window $::Plot_nao::help_usage -geometry +0+0 -parent ""}
+		{message_window $::Plot_nao::help_all -geometry +0+0 -parent "" -width 90}
 	$help_menu add command -label "BLT graph manual" \
 		-command "Plot_nao::help_www_car caps/CAPS_BLT_Graph.html"
 	$help_menu add command -label "BLT barchart manual" \
 		-command "Plot_nao::help_www_car caps/CAPS_BLT_Barchart.html"
-    }
-
-
-    # help_intro --
-    #
-    # Display introduction to plot_nao
-
-    proc help_intro {
-    } {
-	set text \
-	    "Produce xy-graph, barchart (histogram) or z-plot (image).\
-	    \n\
-	    \nUses BLT graph or barchart command. A z-plot is produced using the graph\
-	    \nimage marker facility.\
-	    \n\
-	    "
-	message_window $text -geometry +0+0 -parent ""
     }
 
 
@@ -766,7 +771,7 @@ namespace eval Plot_nao {
     } {
 	set Plot_nao::${window_id}::call_level #0
 	set expr [get_entry expression -parent $all -width 40]
-	set_overlay $window_id "" expr $expr
+	set_overlay $window_id $expr
     }
 
 
@@ -815,10 +820,7 @@ namespace eval Plot_nao {
 	expr
     } {
 	global ::Plot_nao::${window_id}::call_level
-	switch $name {
-	    main_palette	{set n ::Plot_nao::${window_id}::$name}
-	    overlay_palette	{set n ::Plot_nao::$name}
-	}
+	set n ::Plot_nao::${window_id}::$name
 	if {$expr == ""} {
 	    set $n ""
 	} else {
@@ -843,7 +845,7 @@ namespace eval Plot_nao {
 	nap "n = 255"
 	nap "h = ap_n(f32(from), f32(to), n)"
 	nap "s = v = n # 1f32"
-	nap "mat = transpose(hsv2rgb(h /// s /// v))"
+	nap "mat = transpose(hsv2rgb(h /// s // v))"
 	nap "white = 3 # 1f32"
 	nap "::Plot_nao::${window_id}::$name = u8(255.999f32 * (mat // white))"
     }
@@ -852,29 +854,63 @@ namespace eval Plot_nao {
     # set_overlay --
     #
     # Define overlay_nao.
-    # If mode is "none" then set overlay_nao to "".
-    # If mode is "coast", "land" or "sea" then set overlay_nao using "land_flag", using
+    # If overlay_option is "none" then set overlay_nao to "".
+    # If overlay_option is "coast", "land" or "sea" then set overlay_nao using "land_flag", using
     #   coordinate vars of <nao> for latitude & longitude.
-    # If mode is "expr" then set overlay_nao using NAP expression specified by <args>. This
-    #   expression is evaluated in caller's namespace.
-    # mode can be abbreviated to 1st letter.
+    # If overlay_option is "auto" then treat as "coast" if cv units are geographic
+    # If overlay_option is "expr" then set overlay_nao using NAP expression specified by <nao>.
+    #    This expression is evaluated in caller's namespace.
+    # overlay_option can be abbreviated to 1st letter.
 
     proc set_overlay {
 	window_id
 	nao
-	mode
-	args
     } {
 	global Plot_nao::${window_id}::call_level
-	switch [string toupper [string index $mode 0]] {
-	    N	{set ::Plot_nao::overlay_nao ""}
-	    C	{overlay_land_flag is_coast 0 $nao}
-	    L	{overlay_land_flag is_land  2 $nao}
-	    S	{overlay_land_flag !is_land 4 $nao}
+	global Plot_nao::${window_id}::overlay_nao
+	global Plot_nao::${window_id}::overlay_option
+	switch [string toupper [string index $overlay_option 0]] {
+	    N	{set overlay_nao ""}
+	    C	{overlay_land_flag $window_id is_coast 0 $nao}
+	    L	{overlay_land_flag $window_id is_land  2 $nao}
+	    S	{overlay_land_flag $window_id !is_land 4 $nao}
+	    A	{
+		set unit_x [geog_unit [[nap "coordinate_variable(nao,-1)"] unit]]
+		set unit_y [geog_unit [[nap "coordinate_variable(nao,-2)"] unit]]
+		if {$unit_x eq "degrees_east"  &&  $unit_y eq "degrees_north"} {
+		    overlay_land_flag $window_id is_coast 0 $nao
+		} else {
+		    set overlay_nao ""
+		}
+	    }
 	    E	{
-		if [catch "uplevel $call_level nap \"::Plot_nao::overlay_nao = $args\"" result] {
+		if [catch "uplevel $call_level \
+			    nap \"::Plot_nao::${window_id}::overlay_nao = $nao\"" result] {
 		    handle_error $result
 		}
+	    }
+	}
+	if {$overlay_nao != ""} {
+	    # If overlay_nao is boxed (polyline) then convert to overlay matrix
+	    if {[$overlay_nao datatype] == "boxed"} {
+		nap "box = $overlay_nao"
+		nap "overlay_nao = reshape(f32(_), (shape(nao)){-2 -1})"
+		$overlay_nao set coord [$nao coord]
+		set n [$box nels]
+		for {set i 0} {$i < $n} {incr i} {
+		    nap "p = open_box(box, i)"
+		    nap "px = cvx @@ p(,0)"
+		    nap "py = cvy @@ p(,1)"
+		    nap "pxy = px /// py"
+		    $overlay_nao draw $pxy 1f32
+		}
+	    } else {
+		nap "cvx = coordinate_variable(overlay_nao,-1)"
+		nap "cvy = coordinate_variable(overlay_nao,-2)"
+		if {[geog_unit [$cvx unit]] == "degrees_east"} {
+		    nap "cvx = fix_longitude(cvx)"
+		}
+		$overlay_nao set coord $cvy $cvx
 	    }
 	}
     }
@@ -1069,10 +1105,13 @@ namespace eval Plot_nao {
 	create_main_menu $all $window_id $graph
 	nap "cvx = coordinate_variable(nao, -1)"
 	blt::barchart $graph -title $title -barmode aligned -barwidth $barwidth \
-		-plotrelief flat -background white
+		-plotborderwidth 0 -background white
 	configure_graph $graph $configure
 	$graph grid off
+	$graph axis configure x -background white
+	$graph axis configure y -background white
 	$graph axis configure x -title $xlabel
+	$graph axis configure y -title $ylabel
 	if {$range_nao == ""} {
 	    $graph axis configure y -loose 1
 	} else {
@@ -1178,9 +1217,12 @@ namespace eval Plot_nao {
 	Plot_nao::incrRefCount $window_id $nao
 	create_main_menu $all $window_id $graph
 	nap "cvx = coordinate_variable(nao, -1)"
-	blt::graph $graph -title $title -plotpadx 0 -plotpady 0 -plotrelief flat -background white
+	blt::graph $graph -title $title -plotpadx 0 -plotpady 0 -plotborderwidth 0 -background white
 	configure_graph $graph $configure
+	$graph axis configure x -background white
+	$graph axis configure y -background white
 	$graph axis configure x -title $xlabel
+	$graph axis configure y -title $ylabel
 	$graph axis configure x -loose 1
 	if {$range_nao == ""} {
 	    $graph axis configure y -loose 1
@@ -1279,7 +1321,6 @@ namespace eval Plot_nao {
     } {
         global Plot_nao::${window_id}::new_height
         global Plot_nao::${window_id}::new_width
-        global Plot_nao::overlay_nao
         global Plot_nao::${window_id}::main_palette
         global Plot_nao::${window_id}::want_scaling_widget
         global Plot_nao::${window_id}::xlabel
@@ -1329,16 +1370,6 @@ namespace eval Plot_nao {
 	    }
 	}
 	set_yflip $window_id $want_yflip $nao
-	if {$overlay_nao != ""} {
-	    if {[$overlay_nao datatype] != "boxed"} {
-		nap "cvx = coordinate_variable(overlay_nao,-1)"
-		nap "cvy = coordinate_variable(overlay_nao,-2)"
-		if {[geog_unit [$cvx unit]] == "degrees_east"} {
-		    nap "cvx = fix_longitude(cvx)"
-		}
-		$overlay_nao set coord $cvy $cvx
-	    }
-	}
 	nap "cvx = coordinate_variable(nao,-1)"
 	nap "cvy = coordinate_variable(nao,-2)"
 	if {[geog_unit [$cvx unit]] == "degrees_east"} {
@@ -1421,28 +1452,14 @@ namespace eval Plot_nao {
 	set xend [[nap "nx - 1"]]
 	set y0   [[nap "ny - 1"]]
 	set yend 0
-	    # If overlay_nao is boxed (polyline) then convert to overlay matrix
-	if {$overlay_nao != ""} {
-	    if {[$overlay_nao datatype] == "boxed"} {
-		nap "box = $overlay_nao"
-		nap "overlay_nao = reshape(f32(_), (shape(nao)){-2 -1})"
-		$overlay_nao set coord [$nao coord]
-		set n [$box nels]
-		for {set i 0} {$i < $n} {incr i} {
-		    nap "p = open_box(box, i)"
-		    nap "px = cvx @@ p(,0)"
-		    nap "py = cvy @@ p(,1)"
-		    nap "pxy = px /// py"
-		    $overlay_nao draw $pxy 1f32
-		}
-	    }
-	}
 	set redraw_command [list Plot_nao::draw_image $all $window_id $graph $nao $range_nao \
-		$x0 $y0 $xend $yend $cvx $cvy $old_nao]
+		$x0 $y0 $xend $yend $cvx $cvy]
 	create_main_menu $all $window_id $graph $redraw_command $nao
 	blt::graph $graph -title $title -plotpadx 0 -plotpady 0 -plotborder 0 -background white
 	configure_graph $graph $configure
 	$graph legend configure -hide yes
+	$graph axis configure x -background white
+	$graph axis configure y -background white
 	$graph axis configure x -min $x0 -max $xend -ticklength 5
 	$graph axis configure y -max $y0 -min $yend -descending 1 -ticklength 5
 	set_axis_label $graph x $xlabel $cvx
@@ -1459,8 +1476,7 @@ namespace eval Plot_nao {
 	    set frame $all.scaling_range.$color
 	    create_scaling_range $all $window_id $frame $nao $layer $color
 	}
-	draw_image $all $window_id $graph $nao $range_nao $x0 $y0 $xend $yend \
-		$cvx $cvy $old_nao
+	draw_image $all $window_id $graph $nao $range_nao $x0 $y0 $xend $yend $cvx $cvy
 	bind $graph <Motion> "Plot_nao::crosshairs_xyz [list $all $window_id %x %y]"
     }
 
@@ -1681,33 +1697,36 @@ namespace eval Plot_nao {
 	yend
 	cvx
 	cvy
-	old_nao
 	{right_margin_without_key 10}
 	{right_margin_with_key 60}
     } {
 	global Plot_nao::${window_id}::gap_width
+	global Plot_nao::${window_id}::image_nao
 	global Plot_nao::${window_id}::key_width
-        global Plot_nao::${window_id}::magnification
-        global Plot_nao::${window_id}::new_height
-        global Plot_nao::${window_id}::new_width
-        global Plot_nao::overlay_nao
-        global Plot_nao::${window_id}::overlay_palette
-        global Plot_nao::${window_id}::main_palette
-        global Plot_nao::${window_id}::image_nao
+	global Plot_nao::${window_id}::magnification
+	global Plot_nao::${window_id}::main_palette
+	global Plot_nao::${window_id}::new_height
+	global Plot_nao::${window_id}::new_width
 	global Plot_nao::${window_id}::scalingFrom
 	global Plot_nao::${window_id}::scalingTo
 	global Plot_nao::${window_id}::xflip
 	global Plot_nao::${window_id}::yflip
 
-	set nx [[nap "(shape(nao))(-1)"]]
-	set ny [[nap "(shape(nao))(-2)"]]
-	set nx_old [[nap "(shape(old_nao))(-1)"]]
-	set ny_old [[nap "(shape(old_nao))(-2)"]]
-	if {$magnification != ""} {
-	    set new_width  [expr int($magnification * $nx_old)]
-	    set new_height [expr int($magnification * $ny_old)]
-	}
 	set rank_nao [$nao rank]
+	if {$magnification != ""} {
+	    switch $rank_nao {
+		2 {nap "nao = magnify_nearest(nao, magnification)"}
+		3 {nap "nao = magnify_nearest(nao, 1 // 2 # magnification)"}
+	    }
+	    nap "cvx = magnify_interp(cvx, magnification)"
+	    nap "cvy = magnify_interp(cvy, magnification)"
+	    set new_width  [$cvx nels]
+	    set new_height [$cvy nels]
+	}
+	set nx [[nap "(shape nao)(-1)"]]
+	set ny [[nap "(shape nao)(-2)"]]
+	set xend [[nap "nx - 1"]]
+	set y0   [[nap "ny - 1"]]
 	if {$xflip || $yflip} {
 	    nap "j = 0 // (nels(cvx) - 1)"
 	    nap "j = j(xflip) .. j(!xflip)"
@@ -1726,13 +1745,9 @@ namespace eval Plot_nao {
 		3 {nap "nao = nao(,i,j)"}
 	    }
 	}
-	if {$overlay_nao == ""} {
-	    set ov ""
-	} else {
-	    nap "ov = overlay_nao(@@cvy, @@cvx)"
-	}
 	nap "image_nao = nao"
 	$graph axis configure x -max $xend
+	$graph axis configure y -max $y0
 	$graph axis configure y2 -hide 1
 	eval $graph marker delete [$graph marker names]
 	set_scaling $window_id $nao $range_nao intercept slope y_0 y_1
@@ -1741,7 +1756,7 @@ namespace eval Plot_nao {
 	}
 	configure_ticks $graph x $cvx $new_width
 	configure_ticks $graph y $cvy $new_height
-	nao2image u $window_id $nao $y_0 $y_1 $slope $intercept $ov
+	nao2image u $window_id $nao $y_0 $y_1 $slope $intercept 1
 	if {$key_width != ""  &&  $key_width > 0  &&  $rank_nao == 2} {
 	    set ncols [[nap "(shape(nao))(1)"]]
 	    set x2 [expr "$xend + $gap_width * $ncols / $new_width"]
@@ -1775,6 +1790,7 @@ namespace eval Plot_nao {
 		nap "key_nao = transpose(reshape(cvy2, key_width // nrows))"
 		nao2image u $window_id $key_nao $y_0 $y_1 $slope $intercept
 		$graph axis configure y2 -min $yend -max $y0 -ticklength 5 -descending 1 -hide 0
+		$graph axis configure y2 -background white
 		configure_ticks $graph y2 $cvy2 $new_height
 		set imageName [image create photo -format NAO -data $u]
 		$graph marker create image -image $imageName -coords "$x2 $y0 $x3 $yend"
@@ -1952,7 +1968,7 @@ namespace eval Plot_nao {
 		if {$scalingFrom($layer) == ""  ||  $scalingTo($layer) == ""} {
 		    set range_nao ""
 		} else {
-		    nap "range_nao = range_nao /// ($scalingFrom($layer) // $scalingTo($layer))"
+		    nap "range_nao = range_nao // ($scalingFrom($layer) // $scalingTo($layer))"
 		}
 	    }
 	}
@@ -2110,8 +2126,6 @@ namespace eval Plot_nao {
 	set nlevels [[nap "(shape(nao))(0)"]]
 	set ny [[nap "(shape(nao))(1)"]]
 	set nx [[nap "(shape(nao))(2)"]]
-	set new_height $ny
-	set new_width  $nx
 	set_yflip $window_id $want_yflip $nao
 	frame $all.scaling_range
 	if {$want_scaling_widget} {
@@ -2152,10 +2166,10 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::gap_height
 	global Plot_nao::${window_id}::gap_width
 	global Plot_nao::${window_id}::key_width
+        global Plot_nao::${window_id}::magnification
 	global Plot_nao::${window_id}::orientation
         global Plot_nao::${window_id}::new_height
         global Plot_nao::${window_id}::new_width
-        global Plot_nao::overlay_nao
 	global Plot_nao::${window_id}::print_command
 	global Plot_nao::${window_id}::scalingFrom
 	global Plot_nao::${window_id}::scalingTo
@@ -2163,6 +2177,27 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::yflip
 	global Print_gui::paperheight 
 	global Print_gui::paperwidth
+	set screen_height [winfo screenheight $graph]
+	set screen_width  [winfo screenwidth  $graph]
+	set screen_ratio [expr double($screen_height) / double($screen_width)]
+	set paper_ratio [expr double([winfo fpixels . $paperheight]) \
+			    / double([winfo fpixels . $paperwidth])]
+	if {$orientation eq "L"} {
+	    set paper_ratio [expr 1.0 / $paper_ratio]
+	}
+	if {$orientation ne "A"} {
+	    if {$screen_ratio > $paper_ratio} {
+		set screen_height [expr $screen_width * $paper_ratio]
+	    } else {
+		set screen_width [expr $screen_height / $paper_ratio]
+	    }
+	    set new_width  -1
+	    set new_height -1
+	}
+	if {$magnification ne ""} {
+	    set new_width  [expr int($magnification * $nx)]
+	    set new_height [expr int($magnification * $ny)]
+	}
 	set can $graph.can
 	destroy $can
 	set standard_font "-family $standard_font -size [expr -$gap_height / 2]"
@@ -2176,48 +2211,23 @@ namespace eval Plot_nao {
 	}
 	unset tmp
 	set axis_text_width [font measure $standard_font [lindex $axis_text 0]]
+	set ncols [layout_tiles $window_id $nlevels $ncols $screen_height $screen_width \
+		$ny $nx $gap_height $gap_width $key_width $title_height \
+		$tick_length $axis_text_width]
 	nap "j = 0 // (nx - 1)"
 	nap "j = i32(nint(ap_n(j(xflip), j(!xflip), nint(new_width))))"
 	nap "i = 0 // (ny - 1)"
 	nap "i = i32(nint(ap_n(i(yflip), i(!yflip), nint(new_height))))"
-	if {$overlay_nao == ""} {
-	    set ov ""
-	} else {
-	    nap "cvy = (coordinate_variable(overlay_nao, 0))(i)"
-	    nap "cvx = (coordinate_variable(overlay_nao, 1))(j)"
-	    nap "ov = overlay_nao(@@cvy, @@cvx)"
-	}
+	nap "mat = nao(0,i,j)"
+	set image_height "[$i nels]"
+	set image_width  "[$j nels]"
+	set nrows [expr ($nlevels + $ncols - 1) / $ncols]
 	for {set level 0} {$level < $nlevels} {incr level} {
 	    nap "mat = nao(level,i,j)"
-	    nao2image u $window_id $mat $y0 $y1 $slope $intercept $ov
+	    nao2image u $window_id $mat $y0 $y1 $slope $intercept 1
 	    set img [image create photo -format NAO -data $u]
 	    if {$level == 0} {
 		# Create canvas & key
-		set image_width  "[image width $img]"
-		set image_height "[image height $img]"
-		if {$ncols == ""} {
-		    set paper_ratio [expr double([winfo fpixels . $paperheight]) \
-					/ double([winfo fpixels . $paperwidth])]
-		    switch [string toupper $orientation] {
-			L {set paper_ratio [expr 1.0 / $paper_ratio]}
-		    }
-		    set dmin 1e9
-		    for {set ncols 1} {$ncols <= $nlevels} {incr ncols} {
-			set nrows [expr ($nlevels + $ncols - 1) / $ncols]
-			set can_height [expr $title_height + $nrows * ($image_height + $gap_height)]
-			set can_width  [expr $ncols * ($image_width + $gap_width) + $gap_width]
-			if {$key_width > 0} {
-			    incr can_width [expr $key_width + $tick_length + $axis_text_width]
-			}
-			set d [expr abs($paper_ratio - double($can_height) / double($can_width))]
-			if {$d < $dmin} {
-			    set dmin $d
-			    set ncols_min $ncols
-			}
-		    }
-		    set ncols $ncols_min
-		}
-		set nrows [expr ($nlevels + $ncols - 1) / $ncols]
 		set can_height [expr $title_height + $nrows * ($image_height + $gap_height)]
 		set can_width  [expr $ncols * ($image_width + $gap_width) + $gap_width]
 		if {$key_width > 0} {
@@ -2258,6 +2268,89 @@ namespace eval Plot_nao {
 	set print_command "::Print_gui::canvas2ps $can 0 $can_height $can_width"
     }
 
+    # layout_tiles --
+    #
+    # Return # columns (if ncols arg defined then this is result)
+    # Also if both are undefined then set new_height & new_width
+
+    proc layout_tiles {
+	window_id
+	nlevels
+	ncols
+	screen_height
+	screen_width
+	image_height
+	image_width
+	gap_height
+	gap_width
+	key_width
+	title_height
+	tick_length
+	axis_text_width
+    } {
+        global Plot_nao::${window_id}::new_height
+        global Plot_nao::${window_id}::new_width
+	if {$ncols eq ""} {
+	    set nc_min 1
+	    set nc_max $nlevels
+	} else {
+	    set nc_min $ncols
+	    set nc_max $ncols
+	}
+	if {$new_height < 0  &&  $new_width < 0} {
+	    for {set step 1} {1} {incr step} {
+		set min_area 1e9
+		for {set nc $nc_min} {$nc <= $nc_max} {incr nc} {
+		    set nrows [expr ($nlevels + $nc - 1) / $nc]
+		    set new_height [expr ($image_height + $step - 1) / $step]
+		    set new_width [expr ($image_width  + $step - 1) / $step]
+		    set can_height [expr $title_height + $nrows * ($new_height + $gap_height)]
+		    set can_width  [expr $nc * ($new_width + $gap_width) + $gap_width]
+		    if {$key_width > 0} {
+			incr can_width [expr $key_width + $tick_length + $axis_text_width]
+		    }
+		    if {$can_width <= $screen_width  &&  $can_height <= $screen_height} {
+			set area [expr $can_height * $can_width]
+			if {$area < $min_area} {
+			    set min_area $area
+			    set ncols $nc
+			}
+		    }
+		}
+		if {$ncols ne ""} {
+		    return $ncols
+		}
+	    }
+	} else {
+	    set min_area_fits 1e9; # for case where fits on screen
+	    set min_area 1e9; #  all cases
+	    set ncols_fits ""
+	    for {set nc $nc_min} {$nc <= $nc_max} {incr nc} {
+		set nrows [expr ($nlevels + $nc - 1) / $nc]
+		set can_height [expr $title_height + $nrows * ($new_height + $gap_height)]
+		set can_width  [expr $nc * ($new_width + $gap_width) + $gap_width]
+		if {$key_width > 0} {
+		    incr can_width [expr $key_width + $tick_length + $axis_text_width]
+		}
+		set area [expr $can_height * $can_width]
+		if {$area < $min_area} {
+		    set min_area $area
+		    set ncols $nc
+		}
+		if {$can_width <= $screen_width  &&  $can_height <= $screen_height  && \
+			$area < $min_area_fits} {
+		    set min_area_fits $area
+		    set ncols_fits $nc
+		}
+	    }
+	    if {$ncols_fits ne ""} {
+		return $ncols_fits
+	    } else {
+		return $ncols
+	    }
+	}
+    }
+
     # nao2image --
     #
     # Produce 3D image NAO from:
@@ -2272,9 +2365,10 @@ namespace eval Plot_nao {
 	y1
 	slope
 	intercept
-	{overlay_nao ""}
+	{allow_overlay 0}
     } {
         global Plot_nao::${window_id}::main_palette
+	global Plot_nao::${window_id}::overlay_nao
         global Plot_nao::${window_id}::overlay_palette
 	upvar $name_result u
 	nap "u = u8((slope * nao + intercept) >>> y0 <<< y1)"
@@ -2284,20 +2378,23 @@ namespace eval Plot_nao {
 		handle_error "error calling NAP function palette3()"
 		return
 	    }
-	    nap "u = (rgb_mat(,0))(u) /// (rgb_mat(,1))(u) /// (rgb_mat(,2))(u)"
+	    nap "u = (rgb_mat(,0))(u) /// (rgb_mat(,1))(u) // (rgb_mat(,2))(u)"
 	}
-	if {$overlay_nao != ""} {
-	    nap "ov_rgb_mat = palette3(overlay_palette)"
-	    nap "ip = isPresent(overlay_nao)"
-	    if {[$u rank] == 2} {
-		nap "u = (ip ? (ov_rgb_mat(,0))(overlay_nao) : u) ///
-			 (ip ? (ov_rgb_mat(,1))(overlay_nao) : u) ///
-			 (ip ? (ov_rgb_mat(,2))(overlay_nao) : u)"
-	    } else {
-		nap "n_layers = 3 <<< (shape(u))(0)"
-		nap "u = (ip ? (ov_rgb_mat(,0))(overlay_nao) : u(0,,)) ///
-			 (ip ? (ov_rgb_mat(,1))(overlay_nao) : u(n_layers-2,,)) ///
-			 (ip ? (ov_rgb_mat(,2))(overlay_nao) : u(n_layers-1,,))"
+	if {$allow_overlay} {
+	    set_overlay $window_id $nao
+	    if {$overlay_nao != ""} {
+		nap "ov_rgb_mat = palette3(overlay_palette)"
+		nap "ip = isPresent(overlay_nao)"
+		if {[$u rank] == 2} {
+		    nap "u = (ip ? (ov_rgb_mat(,0))(overlay_nao) : u) ///
+			     (ip ? (ov_rgb_mat(,1))(overlay_nao) : u) //
+			     (ip ? (ov_rgb_mat(,2))(overlay_nao) : u)"
+		} else {
+		    nap "n_layers = 3 <<< (shape(u))(0)"
+		    nap "u = (ip ? (ov_rgb_mat(,0))(overlay_nao) : u(0,,)) ///
+			     (ip ? (ov_rgb_mat(,1))(overlay_nao) : u(n_layers-2,,)) //
+			     (ip ? (ov_rgb_mat(,2))(overlay_nao) : u(n_layers-1,,))"
+		}
 	    }
 	}
     }
