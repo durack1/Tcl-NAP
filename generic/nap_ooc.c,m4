@@ -14,10 +14,9 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.28 2002/11/28 03:35:33 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.34 2003/09/09 08:11:22 dav480 Exp $";
 #endif /* not lint */
 
-#include <blt.h>
 #include "nap_hdf.h"
 #include "nap_netcdf.h"
 #include "napPolygon.h"
@@ -181,6 +180,7 @@ Nap_AppendNAOValue(
 {
     int			d;			/* # decimal places */
     Nap_NAO		*dblNao;		/* NAO cast to double */
+    Tcl_DString		ds;			/* dynamic string */
     char		fg;			/* format char: 'f' or 'g' */
     char                *format;
     char		format1[16];		/* Use if rank > 1 */
@@ -214,8 +214,15 @@ Nap_AppendNAOValue(
 			    "-keep",
 			    (char *) NULL};
 
+    Tcl_DStringInit(&ds);
     if (naoPtr) {
-	format = naoPtr->dataType == NAP_C8 ? "%c" : "%g";
+	if (Nap_TypeIsC8(naoPtr->dataType)) {
+	    format = "%c";
+	} else if (Nap_TypeIsReal(naoPtr->dataType)) {
+	    format = "%g";
+	} else {
+	    format = "%0.0f";
+	}
 	for (i = 0; i < objc; ++i) {
 	    status = Tcl_GetIndexFromObj(nap_cd->interp, objv[i], switches, "switch", 0, &index);
 	    if (status != TCL_OK) {
@@ -227,29 +234,36 @@ Nap_AppendNAOValue(
 		    isList = 1;
 		    break;
 		case 1:			/* columns */
-		    status = Tcl_GetIntFromObj(nap_cd->interp, objv[++i], &j);
+		    ++i;
+		    CHECK2(i < objc, "m4NAME: -columns without value");
+		    status = Tcl_GetIntFromObj(nap_cd->interp, objv[i], &j);
 		    CHECK(status == TCL_OK);
 		    maxColumns = j;
 		    break;
 		case 2:			/* format */
-		    formatPtr = Tcl_GetStringFromObj(objv[++i], NULL);
-		    CHECK2(formatPtr,
-			    "m4NAME: Error calling Tcl_GetStringFromObj");
+		    ++i;
+		    CHECK2(i < objc, "m4NAME: -format without value");
+		    formatPtr = Tcl_GetStringFromObj(objv[i], NULL);
+		    CHECK2(formatPtr, "m4NAME: Error calling Tcl_GetStringFromObj");
 		    if (formatPtr[0]) {
-			format = formatPtr;
+			Tcl_UtfToExternalDString(NULL, formatPtr, -1, &ds);
+			format = formatPtr = Tcl_DStringValue(&ds);
 		    } else {
 			formatPtr = NULL;
 		    }
 		    break;
 		case 3:			/* lines */
-		    status = Tcl_GetIntFromObj(nap_cd->interp, objv[++i], &j);
+		    ++i;
+		    CHECK2(i < objc, "m4NAME: -lines without value");
+		    status = Tcl_GetIntFromObj(nap_cd->interp, objv[i], &j);
 		    CHECK(status == TCL_OK);
 		    maxLines = j;
 		    break;
 		case 4:			/* missing */
-		    missingValueText = Tcl_GetStringFromObj(objv[++i], NULL);
-		    CHECK2(missingValueText,
-			    "m4NAME: Error calling Tcl_GetStringFromObj");
+		    ++i;
+		    CHECK2(i < objc, "m4NAME: -missing without value");
+		    missingValueText = Tcl_GetStringFromObj(objv[i], NULL);
+		    CHECK2(missingValueText, "m4NAME: Error calling Tcl_GetStringFromObj");
 		    break;
 		case 5:			/* keep */
 		    *keep = 1;
@@ -410,6 +424,7 @@ Nap_AppendNAOValue(
     } else {
 	Nap_AppendWords(nap_cd, "(NULL)");
     }
+    Tcl_DStringFree(&ds);
     return TCL_OK;
 }
 
@@ -699,73 +714,6 @@ Nap_SetValue(
 
 
 /*
- * Nap_OOC_blt_vector --
- *
- * Object-oriented sub-command 'blt_vector'.
- */
-
-void
-changedProc(
-    Tcl_Interp		*interp,
-    ClientData		clientData,
-    Blt_VectorNotify	notify)
-{
-    Nap_NAO		*naoPtr;
-    NapClientData       *nap_cd = Nap_GetClientData(interp);
-
-    switch (notify) {
-	case BLT_VECTOR_NOTIFY_UPDATE:
-	    break;
-	case BLT_VECTOR_NOTIFY_DESTROY:
-	    naoPtr = (Nap_NAO *) clientData;
-	    Nap_DecrRefCount(nap_cd, naoPtr);
-	    break;
-	default:
-	    assert(0);
-    }
-}
-
-m4define(`m4NAME', `Nap_OOC_blt_vector')
-
-static int 
-Nap_OOC_blt_vector(
-    NapClientData       *nap_cd,
-    int                 objc,
-    Tcl_Obj *CONST      objv[],
-    Nap_NAO		*naoPtr)
-{
-    ClientData		clientData;		/* use in call-back */
-    Blt_VectorId	clientId;		/* client identifier for BLT vector */
-    Nap_NAO		*dbl_nao;
-    int			status;
-    char		*vecName;		/* name of BLT vector */
-    Blt_Vector		*vecPtr;
-
-    assert(objc == 3);
-    dbl_nao = Nap_CastNAO(nap_cd, naoPtr, NAP_F64);
-    CHECK2(dbl_nao, "m4NAME: Error calling Nap_CastNAO");
-    Nap_IncrRefCount(nap_cd, dbl_nao);
-    vecName = Tcl_GetStringFromObj(objv[2], NULL);
-    CHECK2(vecName, "m4NAME: Error calling Tcl_GetStringFromObj");
-    if (Blt_VectorExists(nap_cd->interp, vecName))  {
-	status = Blt_GetVector(nap_cd->interp, vecName, &vecPtr);
-	CHECK(status == TCL_OK);
-    } else {
-	status = Blt_CreateVector(nap_cd->interp, vecName, 0, &vecPtr);
-	CHECK(status == TCL_OK);
-    }
-    clientId = Blt_AllocVectorId (nap_cd->interp, vecName);
-    CHECK(clientId);
-    status = Blt_ResetVector(vecPtr, dbl_nao->data.F64, dbl_nao->nels, dbl_nao->nels, TCL_STATIC);
-    CHECK(status == TCL_OK);
-    clientData = (ClientData) dbl_nao;
-    Blt_SetVectorChangedProc(clientId, changedProc, clientData);
-    Tcl_ResetResult(nap_cd->interp);
-    return TCL_OK;
-}
-
-
-/*
  * Nap_OOC_coord --
  *
  * Object-oriented sub-command 'coordinate'.
@@ -898,7 +846,9 @@ Nap_OOC_set(
     case 2:	/* dimension names */
 	for (j = 0; j < naoPtr->rank; j++) {
 	    dimName = j+3 < objc ? Tcl_GetStringFromObj(objv[j+3], NULL) : "";
-	    if (*dimName  &&  Nap_lexName(dimName) == strlen(dimName)) {
+	    if (*dimName  &&  strcmp(dimName, "(NULL)") != 0) {
+		CHECK3(Nap_lexName(dimName) == strlen(dimName),
+			"m4NAME: Illegal dimension-name '%s'", dimName);
 		status = Nap_AttachCoordVar(nap_cd, naoPtr, NULL, dimName, j);
 		CHECK(status == TCL_OK);
 	    } else {
@@ -1068,8 +1018,6 @@ m4end
  *	<ID> binary ?<TCL_CHANNEL>?
  *	    Write raw (binary) data (same as 'write').
  *	    <TCL_CHANNEL> defaults to stdout.
- *	<ID> blt_vector <NAME>
- *	    Set BLT vector named <NAME> (which may or may not aleady exist) to value of data
  *	<ID> coordinate ?<DIM_NAME>|<DIM_NUMBER>? ?<DIM_NAME>|<DIM_NUMBER>? ...
  *	    Coordinate variable ID
  *	    "<ID> coo" is equivalent to: "<ID> coo 0 1 2 ... rank-1"
@@ -1317,8 +1265,7 @@ Nap_ObjectCommand(
 	    break;
 	case 2:	/* blt_vector */
 	    CHECK2(objc == 3, "m4NAME: wrong # arguments");
-	    status = Nap_OOC_blt_vector(nap_cd, objc, objv, naoPtr);
-	    CHECK(status == 0);
+	    CHECK2(FALSE, "m4NAME: Method 'blt_vector' is no longer available");
 	    break;
 	case 3:	/* coord. vars */
 	    status = Nap_OOC_coord(nap_cd, objc, objv, naoPtr);

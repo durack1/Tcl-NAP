@@ -1,4 +1,4 @@
-<!-- $Id: install.html,v 1.8 2003/03/25 00:38:12 dav480 Exp $ -->
+<!-- $Id: install.html,v 1.9 2003/05/20 05:28:44 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -16,14 +16,12 @@ Installing NAP
 <ol>
     <li><a href="#Introduction">Introduction</a>
     <li><a href="#Installing_Tcl_Tk">Installing Tcl/Tk</a>
-    <li><a href="#Installing_BLT">Installing BLT</a>
     <li><a href="#Installing_Printer">Installing Printer</a>
     <li><a href="#Installing_nap">Installing nap</a>
 </ol>
 
 <h3><a name=Introduction>Introduction</h3>
 
-The <b>nap</b> extension requires the <b>BLT</b> extension.
 The graphics procedure <code>plot_nao</code> uses the
 <b>printer</b> extension.
 The following instructions explain how to install these three extensions with <b>Tcl/Tk</b>.
@@ -33,24 +31,6 @@ The following instructions explain how to install these three extensions with <b
 Download <b>Tcl/Tk</b> from
 <a href="http://aspn.activestate.com/ASPN/Tcl/Downloads/">ActiveState Tcl Downloads</a>.
 Installation instructions are available from this site.
-
-<h3><a name=Installing_BLT>Installing BLT</h3>
-
-Download <b>BLT</b> from
-<a href="http://sourceforge.net/projects/blt/">SourceForge: The BLT Toolkit Project Summary</a>.
-For windows, select and execute the <code>.exe</code> file matching your version of Tcl.
-For unix, select the most recent source file (with suffix <code>.tar.gz</code>),
-unpack it into a new directory using a command such as
-<pre>
-    zcat BLT*.tar.gz | tar -xvf - 
-</pre>
-then compile using the instructions in the file <code>INSTALL</code>.
-<p>
-Note that BLT does not use the stubs interface for dynamic linking.
-This means that different BLT binary libraries are needed for different
-Tcl versions (eg. 8.3, 8.4).
-If you are using Tcl 8.4 then you need at least version <code>2.4z</code> of BLT
-and it must be compiled for Tcl 8.4.
 
 <h3><a name=Installing_Printer>Installing Printer</h3>
 
@@ -169,7 +149,7 @@ which is normally stored in your home directory with the following name:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: install.html,v 1.8 2003/03/25 00:38:12 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: install.html,v 1.9 2003/05/20 05:28:44 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

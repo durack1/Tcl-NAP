@@ -1,4 +1,4 @@
-<!-- $Id: plot_nao.html,v 1.5 2003/03/17 05:12:27 dav480 Exp $ -->
+<!-- $Id: plot_nao.html,v 1.6 2003/05/20 05:31:36 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -26,11 +26,10 @@ NAP Visualisation using procedure <code>plot_nao</code>
  
 A NAO can be visualised using procedure <code>plot_nao</code>, which can represent it by:
 <ul>
-<li> xy graphs (produced using BLT <code>graph</code> command)
-<li> barcharts and histograms (produced using BLT <code>barchart</code> command)
-<li> color-coded z images and maps (produced using the BLT graph image marker facility to
-    overlay a NAP photo-image)
-<li> tiled images (multiple images on a page) (produced directly from NAP photo-images)
+<li> xy graphs
+<li> barcharts and histograms
+<li> color-coded z images and maps
+<li> tiled images (multiple images on a page)
 </ul>
 It is possible to animate color-coded images and xy graphs.
 
@@ -51,8 +50,6 @@ The Tcl code is in the files <code>plot_nao.tcl</code> and <code>plot_nao_procs.
 <P><CODE>
 -colors </CODE> <I>list</I>: Colors of graph elements (lines). (Default: black red
      green blue yellow orange purple grey aquamarine beige)
-<P><CODE>
--configure </CODE> <I>script</I>: Prefix graph-name to each line & execute after graph created
 <P><CODE>
 -filename </CODE> <I>string</I>: Name of output PostScript file.
 <P><CODE>
@@ -108,7 +105,7 @@ The Tcl code is in the files <code>plot_nao.tcl</code> and <code>plot_nao_procs.
 -scaling </CODE> 0 or 1: 0 = Start with scaling widget hidden. (Default: 1)
 <P><CODE>
 -symbols </CODE> <I>list</I>: One for each element. Draw at points. Can be plus, square,
-     circle, cross, splus, scross, triangle (Default: "" i.e. none)
+     circle, cross, splus, scross, triangle or single character (e.g. "*") (Default: "" i.e. none)
 <P><CODE>
 -title </CODE> <I>string</I>: title (Default: NAO label (if any) else <I>expression</I>)
 <P><CODE>
@@ -145,9 +142,7 @@ The height and width used are limited by the screen dimensions.
   $sales set coord "" month
   plot_nao sales -colors "blue red" -symbols "plus cross" -type xy
   $sales set label "Car sales"
-  set windowID [plot_nao sales -labels "Joe Mary" -type bar]
-  set pathName $windowID.graph
-  $pathName element configure Joe -foreground blue"
+  plot_nao sales -labels "Joe Mary" -type bar
 </pre>
 
 <P>
@@ -161,7 +156,7 @@ The height and width used are limited by the screen dimensions.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.5 2003/03/17 05:12:27 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.6 2003/05/20 05:31:36 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

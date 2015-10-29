@@ -1,4 +1,4 @@
-<!-- $Id: indexing.html,v 1.3 2003/03/17 01:07:45 dav480 Exp $ -->
+<!-- $Id: indexing.html,v 1.4 2003/07/22 07:24:26 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -15,14 +15,19 @@ Indexing
 
 <ol>
     <li><a href="#Introduction">Introduction</a>
+    <ol>
     <li><a href="#Syntax">Indexing Syntax</a>
     <li><a href="#Dimension_Position">Dimension-Position</a>
     <li><a href="#Subscript">Subscript</a>
     <li><a href="#Elemental_Index">Elemental Index</a>
+    </ol>
     <li><a href="#Index">Index</a>
-    <li><a href="#Shape_Preserving">Shape-Preserving</a>
-    <li><a href="#Full_index">Full-index</a>
-    <li><a href="#Cross_product_index">Cross-product-index</a>
+    <ol>
+	<li><a href="#Shape_Preserving">Shape-Preserving</a>
+	<li><a href="#Vector_flip">Vector-Flip</a>
+	<li><a href="#Full_index">Full-index</a>
+	<li><a href="#Cross_product_index">Cross-product-index</a>
+    </ol>
     <li><a href="#indirect_indexing">Indirect Indexing</a>
     <ol>
 	<li><a href="#Indirect_Shape_Preserving_Indexing">Indirect Shape-Preserving Indexing</a>
@@ -44,7 +49,7 @@ An index can appear:
 <ul>
 <li>within a NAP expression
 <li>as an argument of an OOC.
-    E.g. method <code>set&nbsp;value</code> takes an an argument which specifies
+    E.g. method <code>set&nbsp;value</code> takes an an argument that specifies
     which elements are to be modified
 <li>as an argument of commands <code>nap_get hdf</code> and <code>nap_get netcdf</code>,
     specifying positions within a file
@@ -63,11 +68,11 @@ Here is a simple example of a vector indexed by a scalar:
 9
 </pre>
 
-<h3><a name=Syntax>Indexing Syntax</h3>
+<h4><a name=Syntax>Indexing Syntax</h4>
 
 NAP syntax specifies that indexing is implied by two adjacent NAOs, with the base array
 on the left and the index on the right.
-Thus it is not necessary to parenthesize an index which is simply a constant or variable-name.
+Thus it is not necessary to parenthesise an index that is simply a constant or variable-name.
 However parentheses may make the code clearer to humans, who are likely to be
 familiar with languages where this is required.
 
@@ -89,7 +94,7 @@ can be indexed, as shown by:
 19
 </pre>
 
-<h3><a name=Dimension_Position>Dimension-Position</h3>
+<h4><a name=Dimension_Position>Dimension-Position</h4>
 
 A <em>dimension-position</em> is a scalar value defining the position along a dimension.
 Fractional values are valid and represent positions <em>between</em> the array elements.
@@ -108,22 +113,24 @@ and
 <code>3</code>
 (corresponding to the value <code>4</code>).
 Thus the value is estimated to be
-<br>
+<nobr>
+<code>
 0.5 * 9.0 + 0.5 * 4.0 = 4.5 + 2.0 = 6.5
-<br>
+</code>
+</nobr>
 using ordinary one-dimensional linear interpolation.
 
 <p>
-If <var>s</var> is the dimension-size and <var>p</var> the position, then:
-<br>
-0 &le; <var>p</var> &lt; <var>s</var>
-<br>
+If <var>n</var> is the dimension-size and <var>p</var> the position, then
+<nobr>
+0 &le; <var>p</var> &lt; <var>n</var>.
+</nobr>
 Values between 
-<var>s</var>-1
+<var>n</var>-1
 and 
-<var>s</var>
+<var>n</var>
 are defined by treating position 
-<var>s</var>
+<var>n</var>
 as equivalent to 0.
 This gives wraparound useful with cyclic dimensions such as longitude.
 Thus
@@ -143,17 +150,23 @@ and
 <code>0</code>
 and corresponding to the value <code>2</code>).
 Thus the value is estimated to be
-<br>
+<nobr>
+<code>
 0.9 * 4.0 + 0.1 * 2.0 = 3.6 + 0.2 = 3.8
+</code>
+</nobr>
 
-<h3><a name=Subscript>Subscript</h3>
+<h4><a name=Subscript>Subscript</h4>
 
+<em>Dimension-positions</em> are always specified via <em>subscripts</em>.
 A <em>subscript</em> is
 similar to a <em>dimension-position</em> except that there are no size limits.
-The corresponding <em>dimension-position</em> is defined by<br>
-<var>subscript</var>&nbsp;<code>%</code>&nbsp;<var>s</var><br>
-where <var>s</var> is the dimension-size.
-Note that dimension-positions can only be defined via subscripts.
+If <var>s</var> is the subscript and <var>n</var> is the dimension-size, then
+the dimension-position <var>p</var> is defined by
+<nobr>
+<var>s</var><code>%</code><var>n</var>,
+</nobr>
+the remainder after dividing <var>s</var> by <var>n</var>.
 <p>
 Thus in our example subscript <code>6</code> is treated as 
 <code>6%4</code> = <code>2</code>.
@@ -174,7 +187,7 @@ index backward from the end, as shown by:
 -5
 </pre>
 
-<h3><a name=Elemental_Index>Elemental Index</h3>
+<h4><a name=Elemental_Index>Elemental Index</h4>
 
 An <em>elemental index</em> is a
 vector of <var>rank</var> subscripts, specifying the subscripts of an element of an array.
@@ -197,14 +210,17 @@ elemental indices to extract individual elements.
 The value corresponding to the index
 <code>{0.5&nbsp;1.5}</code>
 is estimated, using bilinear interpolation, to be
-<br>
+<nobr>
+<code>
 0.25&nbsp;*&nbsp;0.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;7.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-4.0)&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-9.0) 
 = -1.5
+</code>
+</nobr>
 
 <h3><a name=Index>Index</h3>
 
 An <em>index</em> is an array defining one or more elemental indices.
-The following table lists the three types, which are explained in the sections below:
+The following table lists the four types, which are explained in the sections below:
 
 <table border>
     <tr>
@@ -212,6 +228,10 @@ The following table lists the three types, which are explained in the sections b
 	<th align=center>Rank of Indexed Array
 	<tr valign=top> <td>
 		shape-preserving
+	    </td> <td>
+		1
+	<tr valign=top> <td>
+		vector-flip
 	    </td> <td>
 		1
 	<tr valign=top> <td>
@@ -224,7 +244,7 @@ The following table lists the three types, which are explained in the sections b
 		2 or more
 </table>
 
-<h3><a name=Shape_Preserving>Shape-Preserving</h3>
+<h4><a name=Shape_Preserving>Shape-Preserving</h4>
 
 <em>Shape-preserving</em> indexing is used to index a vector.
 The shape of the result is the same as that of the index.
@@ -293,7 +313,56 @@ A HHVREVZHC
 HELLO WORLD
 </pre>
 
-<h3><a name=Full_index>Full-index</h3>
+<h4><a name=Vector_flip>Vector-Flip</h4>
+
+<p>
+It is often necessary to reverse the order of elements in a vector.
+One could use <em>shape-preserving</em> indexing, as in:
+<pre>
+% [nap "{2 4 6 8}(3 .. 0)"]
+8 6 4 2
+</pre>
+
+<p>
+NAP provides the <em>niladic</em> operator 
+&quot;<code>-</code>&quot
+to specify such reversal (or <em>flipping</em>).
+(A <em>niladic</em> operator is one without any operands.)
+Thus one can simplify the above example to:
+<pre>
+% [nap "{2 4 6 8}(-)"]
+8 6 4 2
+</pre>
+
+<p>
+Such an index of a vector, consisting of just 
+&quot;<code>-</code>&quot, is called a <em>vector-flip</em>.
+Note that 
+<a href="#Cross_product_index">cross-product-indexing</a>
+also allows the niladic 
+&quot;<code>-</code>&quot
+ to specify flipping of one or more dimensions.
+
+<p>
+What does the niladic 
+&quot;<code>-</code>&quot
+generate?
+Let's see:
+<pre>
+% [nap "-"] all
+::NAP::62-62  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Value:
+-Inf
+</pre>
+It generates a scalar 32-bit NAO with the value <em>negative infinity</em>!
+Indexing treats such a NAO as meaning &quot;flip&quot.
+So the above indexing example could also (but less conveniently) be written as:
+<pre>
+% [nap "{2 4 6 8}(-1if32)"]
+8 6 4 2
+</pre>
+
+<h4><a name=Full_index>Full-index</h4>
 
 A <em>full-index</em> is an
 array specifying a separate elemental index for every element of the result.
@@ -332,20 +401,29 @@ to a vector (if this were allowed).
 The shape-preserving-index is the hypothetical full-index reshaped to omit the
 final redundant dimension of size 1.
 
-<h3><a name=Cross_product_index>Cross-product-index</h3>
+<h4><a name=Cross_product_index>Cross-product-index</h4>
 
-A <em>cross-product-index</em> is a boxed vector pointing to scalars, vectors and nulls,
-whose cross-product combination defines the elemental indices of the indexed array.
-The shape of a cross-product-index is a single-element vector containing the rank
-of the indexed array.
+A <em>cross-product-index</em> is a boxed vector containing <em>rank</em> elements
+pointing to scalars, vectors, nulls and 
+<a href="#Vector_flip">flips</a>.
+The cross-product combination of this vector defines the elemental indices of the indexed array.
 
 <p>
 A cross-product-index is usually defined using the operator 
 &quot;<code>,</code>&quot.
 This allows the left and/or right operand to be omitted and such <em>null</em> (missing)
 operands are treated as
-<code>0..</code><var>s</var><code>-1</code>, where <var>s</var> is the dimension-size.
+<nobr>
+&quot;<code>0..(</code><var>n</var><code>-1)</code>&quot;,
+</nobr>
+where <var>n</var> is the dimension-size.
 Scalar operands produce no corresponding dimension in the result.
+A flip (dimension reversal) is normally represented by the niladic 
+&quot;<code>-</code>&quot operator,
+which is equivalent to 
+<nobr>
+&quot;<code>(</code><var>n</var><code>-1)..0</code>&quot;.
+</nobr>
 
 <p>
 The following examples again use the previously defined variable
@@ -415,6 +493,29 @@ Dimension 0   Size: 1      Name: (NULL)    Coordinate-variable: (NULL)
 Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
  2 -4 -9
+</pre>
+
+The following examples show how the niladic &quot;<code>-</code>&quot operator
+is used to flip (reverse) dimensions:
+
+<pre>
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat(,-)"]
+ 7.0  0.0  1.5
+-9.0 -4.0  2.0
+% [nap "mat(-,)"]
+ 2.0 -4.0 -9.0
+ 1.5  0.0  7.0
+% [nap "mat(-,-)"]
+-9.0 -4.0  2.0
+ 7.0  0.0  1.5
+% [nap "mat(0,-)"]
+7 0 1.5
+% [nap "mat(-,{2 0 0})"]
+-9.0  2.0  2.0
+ 7.0  1.5  1.5
 </pre>
 
 The following example creates a rank-3 array <code>a3d</code> with shape
@@ -565,7 +666,7 @@ is calculated from (vector or scalar)
 <p>
 The following creates a 3&times;4 matrix 
 <code>temperature</code>
-which will be used to demonstrate <em>indirect indexing</em>.
+that will be used to demonstrate <em>indirect indexing</em>.
 It has
 <li>unit of <code>degC</code> (degrees Celsius).
 <li>rows corresponding to latitudes 10&deg;N, 20&deg;N and 30&deg;N
@@ -739,7 +840,7 @@ the function <code>invert_grid()</code>.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: indexing.html,v 1.3 2003/03/17 01:07:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: indexing.html,v 1.4 2003/07/22 07:24:26 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

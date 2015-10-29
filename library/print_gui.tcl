@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: print_gui.tcl,v 1.6 2002/02/19 01:49:32 dav480 Exp $
+# $Id: print_gui.tcl,v 1.7 2003/05/16 06:47:03 dav480 Exp $
 #
 # GUI interface to package "printer"
 #
@@ -185,6 +185,12 @@ namespace eval Print_gui {
 	paperwidth
 	maxpect
     } {
+	if {$image_height == 0} {
+	    set image_height [$can cget -height]
+	}
+	if {$image_width == 0} {
+	    set image_width [$can cget -width]
+	}
 	set paper_border [expr 2.0 * [winfo fpixels . $border]]
 	set paper_height [expr [winfo fpixels . $paperheight] - $paper_border]
 	set paper_width  [expr [winfo fpixels . $paperwidth]  - $paper_border]

@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.185 2002/12/10 02:09:01 dav480 Exp $
+ * $Id: nap.h,m4,v 1.189 2003/07/19 14:17:19 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -71,7 +71,7 @@ m4dnl	If you see this line, you can ignore the next one.
 #endif /* Sign2 */
 
 #ifndef Sq
-#define Sq(x) (x)*(x)
+#define Sq(x) ((x)*(x))
 #endif /* Sq */
 
 #ifndef Nint
@@ -79,7 +79,7 @@ m4dnl	If you see this line, you can ignore the next one.
 #endif /* Nint */
 
 #ifndef Pow
-#define Pow(x,y) (x)==0.0 && (y)==0.0 ? 1.0 : pow(x,y)
+#define Pow(x,y) ((x)==0.0 && (y)==0.0 ? 1.0 : pow(x,y))
 #endif /* Pow */
 
 #ifndef hypot
@@ -97,7 +97,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *  IsMissing tests whether element i of NAO is missing
  */
 #ifndef IsMissing
-#define IsMissing(naoPtr, i) naoPtr->isMissing(naoPtr, i)
+#define IsMissing(naoPtr, i) (naoPtr->isMissing(naoPtr, i))
 #endif /* IsMissing */
 
 /*
@@ -105,7 +105,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 #ifndef IsNaN64
     #ifdef ISNAN64
-	#define IsNaN64(x) ISNAN64(x) != 0
+	#define IsNaN64(x) ISNAN64(x)
     #else
 	#define IsNaN64(x) Nap_NE_f64(x, x)
     #endif /* ISNAN64 */
@@ -477,9 +477,10 @@ EXTERN char		*Nap_DataTypeToText(Nap_dataType dataType);
 EXTERN void		Nap_DecrRefCount(NapClientData *nap_cd, Nap_NAO *naoPtr);
 EXTERN char		*Nap_dilate(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN char		*Nap_Div(NapClientData *nap_cd, char *str1, char *str2);
-EXTERN int		Nap_F64ScalarValue(NapClientData *nap_cd, Nap_NAO *naoPtr, double *result);
+EXTERN Nap_NAO		*Nap_DupNAO(NapClientData *nap_cd, Nap_NAO *old);
 EXTERN char		*Nap_Eq(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_erode(NapClientData *nap_cd, Nap_NAO *box_nao);
+EXTERN int		Nap_F64ScalarValue(NapClientData *nap_cd, Nap_NAO *naoPtr, double *result);
 EXTERN size_t		Nap_Find(NapClientData *nap_cd, float v[], size_t n, float x, size_t g);
 EXTERN double		Nap_fmod(double x, double y);
 EXTERN float		Nap_fmod_f32(float x, float y);
@@ -539,6 +540,7 @@ EXTERN Nap_NAO		*Nap_NewNAO(NapClientData *nap_cd, Nap_dataType dataType, int ra
 				size_t *shape);
 EXTERN Nap_NAO		*Nap_NewScalarNAO(NapClientData *nap_cd, Nap_dataType dataType,
 				double value);
+EXTERN char		*Nap_Niladic(NapClientData *nap_cd, char *str);
 EXTERN char		*Nap_Not(NapClientData *nap_cd, char *str);
 EXTERN int		Nap_OilNao(Nap_NAO *nao_ptr);
 EXTERN char		*Nap_Or(NapClientData *nap_cd, char *str1, char *str2);
@@ -554,10 +556,11 @@ EXTERN Nap_NAO		*Nap_Reduce(NapClientData *nap_cd, char *name, Nap_NAO *naoPtr,
 EXTERN char		*Nap_Rem(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN Nap_NAO		*Nap_ReshapeNAO(NapClientData *nap_cd, Nap_NAO *old,
 				Nap_dataType dataType, int rank, size_t *shape);
+EXTERN Nap_NAO		*Nap_ReshapeNAO2(NapClientData *nap_cd, Nap_NAO *old,
+				Nap_dataType dataType, int rank, size_t *shape,
+				int want_text, int want_dims);
 EXTERN Nap_NAO		*Nap_ReshapeNAO_trailing(NapClientData *nap_cd, Nap_NAO *old,
 				Nap_dataType dataType, int rank, size_t *shape);
-EXTERN Nap_NAO		*Nap_ReshapeNAO2(NapClientData *nap_cd, Nap_NAO *old,
-				Nap_dataType dataType, int rank, size_t *shape, int tolerant);
 EXTERN char		*Nap_ScalarConstant(NapClientData *nap_cd, Nap_Number n);
 EXTERN int		Nap_SetDimName(NapClientData *nap_cd, Nap_NAO *mainNaoPtr, char *dimName,
 				int dimNum);

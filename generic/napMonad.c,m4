@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.185 2003/03/06 06:03:44 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.192 2003/09/24 06:22:50 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -929,8 +929,8 @@ Nap_psum(
     long		w[NAP_MAX_RANK];	/* weights for indexing */
 
     assert(naoPtr);
-    result = Nap_CopyNAO(nap_cd, naoPtr);
-    CHECK2NULL(result, "m4NAME: error calling Nap_CopyNAO");
+    result = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(result, "m4NAME: error calling Nap_DupNAO");
     switch (naoPtr->dataType) {
 	m4ForAllNumericDataType(`m4psum_mv(', `)')
 	default:                /* error */
@@ -1028,8 +1028,8 @@ Nap_sort(
 
     assert(naoPtr);
     CHECK2NULL(naoPtr->rank == 1, "m4NAME: rank of argument of sort() not 1");
-    result = Nap_CopyNAO(nap_cd, naoPtr);
-    CHECK2NULL(result, "m4NAME: error calling Nap_CopyNAO");
+    result = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(result, "m4NAME: error calling Nap_DupNAO");
     n = naoPtr->nels;
     s = Nap_SizeOf(naoPtr->dataType);
     switch (naoPtr->dataType) {
@@ -1633,6 +1633,7 @@ Nap_Tally(
     int			p[NAP_MAX_RANK];	/* partial products of shape */
     size_t		shape[NAP_MAX_RANK];	/* shape of result */
 
+    CHECK2NULL(str, "m4NAME: Operand of unary # is NULL");
     assert(str);
     naoPtr = Nap_GetNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_GetNaoFromId");
@@ -1709,7 +1710,7 @@ Nap_Tally(
 	    Nap_IncrRefCount(nap_cd, naoPtr);
 	    Nap_DecrRefCount(nap_cd, naoTmp);
 	}
-	dataMax = -1;
+	dataMax = 0;
 	switch (naoPtr->dataType) {
 	m4ForAllIntegerDataType(`m4tallyMax(', `)')
 	default:            /* error */
@@ -1774,7 +1775,6 @@ Nap_Not(
     Nap_NAO		*new = NULL;
     int			status;
 
-    assert(str);
     naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
@@ -1826,8 +1826,8 @@ Nap_Complement(
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
     CHECK2NULL(Nap_IsInteger(naoPtr), "m4NAME: Non-integer operand to '~'");
-    new = Nap_CopyNAO(nap_cd, naoPtr);
-    CHECK2NULL(new, "m4NAME: Error calling Nap_CopyNAO");
+    new = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_DupNAO");
     status = Nap_SetMissing(nap_cd, new, 0);
     CHECK1NULL(status == TCL_OK);
     switch (new->dataType) {
@@ -1871,8 +1871,8 @@ Nap_Negate(
     naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
-    new = Nap_CopyNAO(nap_cd, naoPtr);
-    CHECK2NULL(new, "m4NAME: Error calling Nap_CopyNAO");
+    new = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_DupNAO");
     switch (new->dataType) {
     m4ForAllSignedDataType(`m4negate(', `)')
     default:            /* error */
@@ -1903,8 +1903,8 @@ Nap_Identity(
     naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
-    new = Nap_CopyNAO(nap_cd, naoPtr);
-    CHECK2NULL(new, "m4NAME: Error calling Nap_CopyNAO");
+    new = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_DupNAO");
     Nap_DecrRefCount(nap_cd, naoPtr);
     return new->id;
 }
@@ -2389,19 +2389,7 @@ Nap_Func(
 	}
     }
     assert(str1);
-    if (strlen(str1) > 0  &&  Nap_lexID(str1) == strlen(str1)) {
-	naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
-	CHECK3NULL(naoPtr1, "m4NAME: Left argument is unknown NAO ID %s", str1);
-	if (boxed) {
-	    Nap_IncrRefCount(nap_cd, naoPtr1);
-	    result = Nap_Subscript(nap_cd, naoPtr1->id, boxed->id);
-	    Nap_DecrRefCount(nap_cd, naoPtr1);
-	} else {
-	    result = naoPtr1->id;
-	}
-	CHECK3NULL(result, "m4NAME: Undefined result for sub-array %s()", str1);
-	assert(naoPtr1);
-    } else {
+    if (strlen(str1) > 0  &&  Nap_lexName(str1) == strlen(str1)) {
 	CHECK3NULL(str2, "m4NAME: Function \"%s()\" called with no arguments", str1);
 	CHECK2NULL(naoPtr2, "m4NAME: Error calling Nap_GetNaoFromId");
 	assert(boxed);
@@ -2419,6 +2407,18 @@ Nap_Func(
 		}
 	    }
 	}
+    } else {
+	naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
+	CHECK3NULL(naoPtr1, "m4NAME: Left argument is unknown NAO ID %s", str1);
+	if (boxed) {
+	    Nap_IncrRefCount(nap_cd, naoPtr1);
+	    result = Nap_Subscript(nap_cd, naoPtr1->id, boxed->id);
+	    Nap_DecrRefCount(nap_cd, naoPtr1);
+	} else {
+	    result = naoPtr1->id;
+	}
+	CHECK3NULL(result, "m4NAME: Undefined result for sub-array %s()", str1);
+	assert(naoPtr1);
     }
     FREE(str1);
     tmp_NAO = Nap_GetNaoFromId(nap_cd, result);
@@ -2428,6 +2428,38 @@ Nap_Func(
 	Nap_DecrRefCount(nap_cd, boxed);
     }
     --tmp_NAO->count;
+    Tcl_SetResult(nap_cd->interp, result, TCL_VOLATILE);
+    return result;
+}
+
+/*
+ * Nap_Niladic --
+ *
+ * Operator with no argument.
+ */
+
+m4define(`m4NAME', `Nap_Niladic')
+
+EXTERN char *
+Nap_Niladic(
+    NapClientData	*nap_cd, 
+    char		*op)		/* operator */
+{
+    Nap_NAO		*naoPtr;
+    char		*result = NULL;	/* NAO ID to be returned */
+
+    assert(op);
+    if (strcmp(op, ",") == 0) {
+	result = Nap_Link(nap_cd, NULL, NULL);
+	CHECK2NULL(result, "m4NAME: Error calling Nap_Link");
+    } else if (strcmp(op, "-") == 0) {
+	naoPtr = Nap_NewNAO(nap_cd, NAP_F32, 0, NULL);
+	CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_NewNAO");
+	naoPtr->data.F32[0] = -napF32Inf;
+	result = naoPtr->id;
+    } else {
+	assert(0);
+    }
     Tcl_SetResult(nap_cd->interp, result, TCL_VOLATILE);
     return result;
 }

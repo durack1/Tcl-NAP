@@ -8,9 +8,9 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: P.J. Turner CSIRO Atmospheric Research August 1998
-# $Id: browse_var.tcl,v 1.11 2002/04/08 00:10:37 dav480 Exp $
+# $Id: browse_var.tcl,v 1.13 2003/05/20 15:14:13 dav480 Exp $
 
-package require BLT
+package require BWidget
 
 # Usage
 #   browse_var ?<MASTER>?
@@ -314,20 +314,17 @@ namespace eval Browse_var {
 	destroy $f
 	frame $f
 	set t $f.treeview
-	blt::hierbox $t -separator "::" -hideroot yes -height 200
+	Tree $t -height 20 -padx 2
 	$t configure -xscrollcommand "$f.xscroll set" -yscrollcommand "$f.yscroll set" 
 	scrollbar $f.xscroll -orient horizontal -command "$t xview" 
 	scrollbar $f.yscroll -orient vertical -command "$t yview" 
-	set prefix ::ROOT::
-	set e [$t insert end $prefix]
-	$t entry configure $e -label " "
-	$t open $e
-	eval $t insert end [list_namespaces "::" $prefix]
+	$t insert end root / -data :: -text :: -open 1 -fill red
+	grow_tree $t /
 	grid $t $f.yscroll -sticky news
 	grid $f.xscroll -sticky news
 	grid rowconfigure $f 0 -weight 1
 	grid columnconfigure $f 0 -weight 1
-	$t bind all <ButtonPress-1> "Browse_var::button_command $t"
+	$t bindText <ButtonPress-1> "Browse_var::button_command $t"
 	pack $f -fill both -expand true -after .lv.heading
     }
 
@@ -335,34 +332,32 @@ namespace eval Browse_var {
     # button_command --
 
     proc button_command {
-	h
+	t
+	node
     } {
 	global ::Browse_var::namespace
-	set namespace [string range [$h get -full current] 6 end]
-	if {$namespace == ""} {
-	    set namespace ::
-	}
+	set old [string map ":: /" $namespace]
+	$t itemconfigure $old -fill black
+	set namespace [$t itemcget $node -data]
+	$t itemconfigure $node -fill red
 	Browse_var::select
     }
 
 
-    # list_namespaces --
+    # grow_tree --
 
-    proc list_namespaces {
-	{parent ::}
-	{prefix ""}
+    proc grow_tree {
+	t
+	tree_parent
     } {
-	set result ""
-	set children [lsort [eval namespace children $parent]]
+	set namespace_parent [$t itemcget $tree_parent -data]
+	set children [lsort [namespace children $namespace_parent]]
 	foreach child $children {
-	    set grandchildren [namespace children $child]
-	    if {$grandchildren == ""} {
-		append result " ${prefix}${child}::"
-	    } else {
-		append result " ${prefix}${child}:: [list_namespaces $child $prefix] "
-	    }
+	    set tail [namespace tail $child]
+	    set new [string map {:: /} $child]
+	    $t insert end $tree_parent $new -data $child -text $tail
+	    grow_tree $t $new
 	}
-	return $result
     }
 
 }

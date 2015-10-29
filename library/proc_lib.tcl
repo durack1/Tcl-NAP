@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: proc_lib.tcl,v 1.93 2002/08/07 08:19:28 dav480 Exp $
+# $Id: proc_lib.tcl,v 1.97 2003/06/26 07:56:43 dav480 Exp $
 
 
 # aeq --
@@ -228,7 +228,9 @@ proc get_entry {
 	grab set $all
 	tkwait variable Get_entry::complete
 	grab release $all
-	focus $save_focus
+	if {[winfo exists $save_focus]} {
+	    focus $save_focus
+	}
 	destroy $all
 	update idletasks
     } else {
@@ -314,6 +316,26 @@ proc LargerOf {
 # Procedure "lazy" does nothing!
 
 proc lazy args {
+}
+
+
+# list_vars --
+#
+# Sorted list of variables matching specified regular expression
+# Note that regular expression argument (re) is changed to ^$re$
+# This has same functionality as old command "inform vars"
+
+proc list_vars {
+    {re ""}
+} {
+    set re ^$re$
+    set result ""
+    foreach var [uplevel info vars] {
+	if {[regexp -- $re $var]} {
+	    append result " " $var
+	}
+    }
+    return [lsort $result]
 }
 
 
@@ -625,10 +647,10 @@ proc open_input_file {
     if {$filename == ""} {
         if {[info commands tk_getOpenFile] == "tk_getOpenFile"} {
 	    if {$extensions == ""} {
-		set filename [tk_getOpenFile]
+		set filename [tk_getOpenFile -initialdir [pwd]]
 	    } else {
 		set types "{{$extensions} {$extensions}}"
-		set filename [tk_getOpenFile -filetypes $types]
+		set filename [tk_getOpenFile -initialdir [pwd] -filetypes $types]
 	    }
         } else {
             return -code error "open_input_file: filename is ''"
@@ -855,15 +877,23 @@ proc puts_file {
 
 # r --
 #
-# redo specified command (default: -1, i.e. previous command)
+# Redo specified command/s
 #
 # Usage:
-#   r ?event?
+#   r;			# Repeat previous command (-1)
+#   r N;		# Repeat command number N
+#   r ?FROM? ?TO?;	# Repeat all commands from FROM to TO
 
 proc r {
-    {event -1}
+    {from -1}
+    {to ""}
 } {
-    history redo $event
+    if {"$to" eq ""} {
+	set to $from
+    }
+    for {set i $from} {$i <= $to} {incr i} {
+	history redo $i
+    }
 }
 
 
@@ -927,11 +957,15 @@ proc text_width text {
 # does not match any variable.
 
 proc unset_re {args} {
-    foreach re $args {
-	foreach var [uplevel inform vars $re] {
-	    uplevel unset $var
+    foreach var [uplevel info vars] {
+	foreach re $args {
+	    if {[regexp -- ^$re$ $var]} {
+		uplevel unset $var
+		break
+	    }
 	}
     }
+    return
 }
 
 # yes_no --

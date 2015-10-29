@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: bin_io.tcl,v 1.18 2002/12/16 06:55:41 dav480 Exp $
+# $Id: bin_io.tcl,v 1.19 2003/06/03 09:32:54 dav480 Exp $
 
 
 # check --
@@ -302,7 +302,11 @@ proc get_cif {
 		} else {
 		    nap "s = shape(mat)"
 		    if {[[nap "s(0) == ny  &&  s(1) == nx"]]} {
-			nap "result = result /// mat"
+			if {[$result rank] == 2} {
+			    nap "result = result /// mat"
+			} else {
+			    nap "result = result // mat"
+			}
 		    } else {
 			error "File $fileName has shape which is incompatible with previous files"
 		    }

@@ -21,7 +21,7 @@
 #   drh@acm.org
 #   http://www.hwaci.com/drh/
 #
-# $Revision: 1.2 $
+# $Revision: 1.3 $
 #
 #
 # Modified Peter Turner CSIRO Atmospheric Research November 2000
@@ -91,14 +91,14 @@
 # Tree:newitem .t.w /nedbear -image ifile -attributes "height 3 metres"
 #
 # Proceedure calls available are listed below
-# to use without needing to prepend Tree:: the
+# to use without needing to prepend Tree0:: the
 # proceedures can be imported:
 #
-# namespace import Tree::Tree:create
+# namespace import Tree0::Tree:create
 #
 #
 
-namespace eval Tree {
+namespace eval Tree0 {
     variable Tree
 
     namespace export Tree:create 
@@ -147,7 +147,7 @@ proc Tree:create {w args} {
     variable Tree
 
     eval canvas $w -bg white $args
-    bind $w <Destroy> "Tree::Tree:delitem $w /"
+    bind $w <Destroy> "Tree0::Tree:delitem $w /"
 # Set the font added here
     Tree:font
     Tree:dfltconfig $w /
@@ -388,12 +388,12 @@ proc Tree:buildlayer {w v in} {
       if {$Tree($w:$vx/$c:open)} {
          set j [$w create image $in $y -image Tree:openbm]
          $w bind $j <1> \
-         "set [list Tree::Tree($w:$vx/$c:open)] 0; Tree::Tree:build $w"
+         "set [list Tree0::Tree($w:$vx/$c:open)] 0; Tree0::Tree:build $w"
          Tree:buildlayer $w $vx/$c [expr $in+18]
       } else {
          set j [$w create image $in $y -image Tree:closedbm]
          $w bind $j <1> \
-         "set [list Tree::Tree($w:$vx/$c:open)] 1; Tree::Tree:build $w"
+         "set [list Tree0::Tree($w:$vx/$c:open)] 1; Tree0::Tree:build $w"
       }
     }
   }
@@ -467,7 +467,7 @@ proc Tree:buildwhenidle w {
 
     if {![info exists Tree($w:buildpending)]} {
         set Tree($w:buildpending) 1
-        after idle "Tree::Tree:build $w"
+        after idle "Tree0::Tree:build $w"
     }
 }
 

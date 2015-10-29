@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.9 2002/10/27 06:56:46 dav480 Exp $
+dnl	$Id: configure.m4,v 1.11 2003/07/21 08:05:35 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -104,7 +104,16 @@ case "$HOST_OS" in
         LINK='$(CC)'
     ;;
 esac
+case "$HOST_OS" in
+    Linux)
+	DEBUGGER="xxgdb"
+    ;;
+    *)
+	DEBUGGER="dbx"
+    ;;
+esac
 AC_SUBST(COMPRESS)
+AC_SUBST(DEBUGGER)
 AC_SUBST(LINK)
 SC_CONFIG_CFLAGS
 AC_SUBST(system)
@@ -225,7 +234,6 @@ AC_SUBST(NODOT_PATCHLEVEL)
 
 TCL_VERSION=$TCL_MAJOR_VERSION.$TCL_MINOR_VERSION
 TK_VERSION=$TK_MAJOR_VERSION.$TK_MINOR_VERSION
-BLT_USE_VERSION=`echo ${BLT_VERSION} | tr -d .`
 TAR_SUFFIX=.tgz
 
 case "$HOST_OS" in
@@ -268,8 +276,6 @@ eval AC_DEFINE_UNQUOTED(PATCHLEVEL, "${PATCHLEVEL}")
 # Also note that the FINAL directory with a matching filename is the one used.
 #------------------------------------------------------------------------------
 
-BLT_HEADER_DIR=.
-BLT_LIB_DIR=.
 HDF_DLL_DIR=''
 HDF_HEADER_DIR=.
 HDF_LIB_DIR=.
@@ -298,12 +304,6 @@ do
     do
 	for DIR in $DIR1 $DIR1/include $DIR1/lib $DIR1/dlllib $DIR1/bin
 	do
-	    if test -r $DIR/blt.h; then
-		BLT_HEADER_DIR=$DIR
-	    fi
-	    if test -r $DIR/${LIB_PREFIX}BLT$BLT_USE_VERSION$STLIB_SUFFIX; then
-		BLT_LIB_DIR=$DIR
-	    fi
 	    if test -r $DIR/hd${HDF_999_VERSION}m.dll; then
 		HDF_DLL_DIR=$DIR
 	    fi
@@ -357,9 +357,6 @@ case "$HOST_OS" in
 	TK_LIB_PATH="$TCL_LIB_DIR/tk$TK_USE_VERSION\$(DBGX).lib"
 	TK_LIB_SPEC="'`cygpath -w $TK_LIB_PATH`'"
 	TK_STUB_LIB_PATH="$TCL_LIB_DIR/tkstub$TK_USE_VERSION\$(DBGX).lib"
-	BLT_LIB_PATH="$BLT_LIB_DIR/BLT${BLT_USE_VERSION}.lib"
-	BLT_LIB_DIR="`cygpath -w $BLT_LIB_DIR`"
-	BLT_LIB_SPEC="'$BLT_LIB_DIR\\BLT${BLT_USE_VERSION}.lib'"
 	HDF_LIB_PATH="$HDF_LIB_DIR/hd${HDF_999_VERSION}m.lib"
 	HDF_LIB_PATH="$HDF_LIB_PATH $HDF_LIB_DIR/hm${HDF_999_VERSION}m.lib"
 	HDF_LIB_DIR="`cygpath -w $HDF_LIB_DIR`"
@@ -383,8 +380,6 @@ case "$HOST_OS" in
 	TK_LIB_SPEC="-L$TCL_LIB_DIR $TK_LIB_FLAG"
 	TCL_LINK_SPEC="$TCL_LIB_FLAG"
 	TCL_SHLIB_SPEC="$TCL_STUB_LIB_FLAG $SHLIB_LD_LIBS"
-	BLT_LIB_PATH="$BLT_LIB_DIR/libBLT.a"
-	BLT_LIB_SPEC="-L$BLT_LIB_DIR -lBLT"
 	HDF_LIB_SPEC="-L$HDF_LIB_DIR -lmfhdf -ldf -ljpeg -lz"
 	NAP_LIB_SPEC="-L$TCL_LIB_DIR -lnap$NAP_USE_VERSION\${DBGX}"
 	NAP_LIBRARY_DIR=$TCL_LIB_DIR/nap$NAP_VERSION
@@ -412,9 +407,6 @@ esac
 TMP="${LIB_PREFIX}nap$NAP_USE_VERSION\${DBGX}$SHLIB_SUFFIX"
 NAP_SHLIB="$SHLIB_DIR/$TMP"
 
-AC_SUBST(BLT_HEADER_DIR)
-AC_SUBST(BLT_LIB_PATH)
-AC_SUBST(BLT_LIB_SPEC)
 AC_SUBST(HDF_DLL_DIR)
 AC_SUBST(HDF_HEADER_DIR)
 AC_SUBST(HDF_LIB_SPEC)
@@ -443,9 +435,6 @@ AC_SUBST(X11_LIB_SWITCHES)
 AC_SUBST(bindir)
 AC_SUBST(libdir)
 
-AC_MSG_RESULT([Using BLT_HEADER_DIR=$BLT_HEADER_DIR])
-AC_MSG_RESULT([Using BLT_LIB_SPEC=$BLT_LIB_SPEC])
-AC_MSG_RESULT([Using BLT_LIB_PATH=$BLT_LIB_PATH])
 AC_MSG_RESULT([Using HOST_OS=$HOST_OS])
 AC_MSG_RESULT([Using HDF_VERSION=$HDF_VERSION])
 AC_MSG_RESULT([Using HDF_DLL_DIR=$HDF_DLL_DIR])

@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.129 2003/03/13 03:39:28 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.131 2003/09/17 00:06:44 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK_PRE Nap_HdfCheck(nap_cd);   /* CHECK_PRE is macro used in nap_check.h */
@@ -69,6 +69,7 @@ Nap_HdfCheck(
  * Nap_HdfSdsGetInfo --
  *
  *	Get rank, shape & HDF (external) number_type
+ *	Determine whether dimension 0 is unlimited. (If rank is 0 then false.)
  */
 
 m4define(`m4NAME', `Nap_HdfSdsGetInfo')
@@ -94,12 +95,16 @@ Nap_HdfSdsGetInfo(
     assert(number_type);
     status = SDgetinfo(sds_id, name, rank, shape, number_type, &natts);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDgetinfo");
-    dim_id = SDgetdimid(sds_id, 0);
-    CHECK2(dim_id >= 0, "m4NAME: Error calling SDgetdimid");
-    status = SDdiminfo(dim_id, NULL, &count, &tmp, &natts);
-    CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
     if (is_unlimited) { 
-	*is_unlimited = count == 0;
+	if (*rank > 0) { 
+	    dim_id = SDgetdimid(sds_id, 0);
+	    CHECK2(dim_id >= 0, "m4NAME: Error calling SDgetdimid");
+	    status = SDdiminfo(dim_id, NULL, &count, &tmp, &natts);
+	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
+	    *is_unlimited = count == 0;
+	} else {
+	    *is_unlimited = 0;
+	}
     }
     return TCL_OK;
 }
@@ -1088,29 +1093,34 @@ Nap_HdfDefineSubscript(
 		    subscript_ptr[i][j] = Nap_mod(sub_NAO->data.I32[j], shape32[i]);
 		}
 	    }
-	    if (cv_hdf_NAO  &&	mode == 'r') {
-		++cv_hdf_NAO->count;
-		++sub_NAO->count;
-		str = Nap_Func(nap_cd, cv_hdf_NAO->id , sub_NAO->id);
-		CHECK2(str, "m4NAME: Error defining new coordinate variable");
-		--cv_hdf_NAO->count;
-		--sub_NAO->count;
-		tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
-		CHECK2(tmp_NAO, "m4NAME: Error calling Nap_GetNumericNaoFromId");
-		if (tmp_NAO->rank == 0) {
-		    tmp_NAO2 = tmp_NAO;
-		    j = shape[0];
-		    shape[0] = 1;
-		    tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1,
-			    shape);
-		    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
-		    Nap_FreeNAO(nap_cd, tmp_NAO2);
-		    shape[0] = j;
+	    if (mode == 'r') {
+		if (cv_hdf_NAO) {
+		    ++cv_hdf_NAO->count;
+		    ++sub_NAO->count;
+		    str = Nap_Func(nap_cd, cv_hdf_NAO->id , sub_NAO->id);
+		    CHECK2(str, "m4NAME: Error defining new coordinate variable");
+		    --cv_hdf_NAO->count;
+		    --sub_NAO->count;
+		    tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
+		    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_GetNumericNaoFromId");
+		    if (tmp_NAO->rank == 0) {
+			tmp_NAO2 = tmp_NAO;
+			j = shape[0];
+			shape[0] = 1;
+			tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1,
+				shape);
+			CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
+			Nap_FreeNAO(nap_cd, tmp_NAO2);
+			shape[0] = j;
+		    }
+		    tmp_NAO->unit = Nap_StrDup(cv_hdf_NAO->unit);
+		    status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
+		    CHECK(status == TCL_OK);
+		    Nap_FreeNAO(nap_cd, tmp_NAO);
+		} else {
+		    status = Nap_AttachCoordVar(nap_cd, main_NAO, NULL, name, i);
+		    CHECK(status == TCL_OK);
 		}
-		tmp_NAO->unit = Nap_StrDup(cv_hdf_NAO->unit);
-		status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
-		CHECK(status == TCL_OK);
-		Nap_FreeNAO(nap_cd, tmp_NAO);
 	    }
 	    Nap_FreeNAO(nap_cd, cv_hdf_NAO);
 	    Nap_FreeNAO(nap_cd, el_NAO);

@@ -1,10 +1,10 @@
 # nap_interp.test --
 # 
-# Test command 'nap_info'
+# Test running nap under multiple interpreters
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: nap_interp.test,v 1.5 2002/08/26 06:49:00 dav480 Exp $
+# $Id: nap_interp.test,v 1.6 2003/04/04 08:20:19 dav480 Exp $
 
 Test nap_interp-1.1 {run nap under slave interp} {
     nap "a = 1"

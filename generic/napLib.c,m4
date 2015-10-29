@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.182 2003/02/26 04:39:52 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.187 2003/06/24 05:29:35 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -754,6 +754,7 @@ Nap_StrCat(
  *  Nap_AppendStr --
  *  Append string to tcl result.
  *  If str is NULL or empty do nothing.
+ *  Use system encoding (default iso8859-1 code).
  */
 
 EXTERN void
@@ -761,17 +762,20 @@ Nap_AppendStr(
     NapClientData	*nap_cd,
     char		*str)
 {
+    Tcl_DString		ds;			/* dynamic string */
     int			n = Tcl_GetCharLength(Tcl_GetObjResult(nap_cd->interp));
     Tcl_Obj		*objPtr;
 
     if (str && *str) {
+	Tcl_ExternalToUtfDString(NULL, str, -1, &ds);
 	if (n > 0) {
 	    objPtr = Tcl_GetObjResult(nap_cd->interp);
-	    Tcl_AppendToObj(objPtr, str, -1);
+	    Tcl_AppendToObj(objPtr, Tcl_DStringValue(&ds), -1);
 	} else {
-	    objPtr = Tcl_NewStringObj(str, -1);
+	    objPtr = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
 	    Tcl_SetObjResult(nap_cd->interp, objPtr);
 	}
+	Tcl_DStringFree(&ds);
     }
 }
 
@@ -1939,7 +1943,7 @@ Nap_F64ScalarValue(
 }
 
 /* 
- * Nap_ReshapeNAO --
+ * Nap_ReshapeNAO2 --
  *
  *	Create new NAO with specified shape & data-type.
  *	Do cyclic copy of data from NAO 'old' to 'new'.
@@ -1981,7 +1985,8 @@ Nap_ReshapeNAO2(
     Nap_dataType	dataType,	/* new data-type */
     int			rank,		/* new rank */
     size_t		*shape,		/* new shape */
-    int			tolerant)	/* Ignore reshape errors? */
+    int			want_text,	/* Include label & unit? */
+    int			want_dims)	/* Include dims & CVs? */
 {
     size_t		i;
     size_t		j;
@@ -1993,15 +1998,19 @@ Nap_ReshapeNAO2(
 	assert(Nap_IsNAO(nap_cd, old));
 	new = Nap_NewNAO(nap_cd, dataType, rank, shape);
 	if (new) {
-	    status = Nap_CopyDims(nap_cd, old, new);
-	    if (status != TCL_OK  &&  !tolerant) {
-		return NULL;
-	    }
 	    if (old->nels == 0  &&  new->nels > 0) {
 		return NULL;
 	    }
-	    new->label = Nap_StrDup(old->label);
-	    new->unit = Nap_StrDup(old->unit);
+	    if (want_dims) {
+		status = Nap_CopyDims(nap_cd, old, new);
+		if (status != TCL_OK) {
+		    return NULL;
+		}
+	    }
+	    if (want_text) {
+		new->label = Nap_StrDup(old->label);
+		new->unit = Nap_StrDup(old->unit);
+	    }
 	    switch (new->dataType) {
 	    m4ForAllDataType(`m4copy_nao1(', `)')
 	    default:		/* error */
@@ -2017,6 +2026,15 @@ Nap_ReshapeNAO2(
     }
 }
 
+
+/* 
+ * Nap_ReshapeNAO --
+ *
+ *	Create new NAO with specified shape & data-type.
+ *	Do cyclic copy of data from NAO 'old' to 'new'.
+ *      If error return NULL.
+ */
+
 Nap_NAO *
 Nap_ReshapeNAO(
     NapClientData	*nap_cd,
@@ -2025,7 +2043,7 @@ Nap_ReshapeNAO(
     int			rank,		/* new rank */
     size_t		*shape)		/* new shape */
 {
-    return Nap_ReshapeNAO2(nap_cd, old, dataType, rank, shape, FALSE);
+    return Nap_ReshapeNAO2(nap_cd, old, dataType, rank, shape, TRUE, TRUE);
 }
 
 
@@ -2081,16 +2099,18 @@ Nap_ReshapeNAO_trailing(
 
 
 /* 
- * Nap_CopyNAO --
+ * Nap_CopyNAO3 --
  *
  *	Return pointer to new NAO which is copy of existing one.
+ *	Option to include label & unit.
  *      If error return NULL.
  */
 
-Nap_NAO *
-Nap_CopyNAO(
+static Nap_NAO *
+Nap_CopyNAO3(
     NapClientData	*nap_cd,
-    Nap_NAO		*old)
+    Nap_NAO		*old,
+    int			want_text)		/* Include label & unit? */
 {
     int                 i;
     Nap_NAO		*result;
@@ -2101,7 +2121,7 @@ Nap_CopyNAO(
     }
     assert(old->id);
     assert(Nap_IsNAO(nap_cd, old));
-    result = Nap_ReshapeNAO(nap_cd, old, old->dataType, old->rank, old->shape);
+    result = Nap_ReshapeNAO2(nap_cd, old, old->dataType, old->rank, old->shape, want_text, TRUE);
     if (result->dataType == NAP_BOXED  ||  result->dataType == NAP_RAGGED) {
 	for (i = 0; i < result->nels; i++) {
 	    tmpPtr = Nap_GetNaoFromSlot(result->data.Boxed[i]);
@@ -2110,6 +2130,39 @@ Nap_CopyNAO(
     }
     return result;
 }
+
+
+/* 
+ * Nap_CopyNAO --
+ *
+ *	Return pointer to new NAO which is copy (excluding label & unit) of existing one.
+ *      If error return NULL.
+ */
+
+Nap_NAO *
+Nap_CopyNAO(
+    NapClientData	*nap_cd,
+    Nap_NAO		*old)
+{
+    return Nap_CopyNAO3(nap_cd, old, FALSE);
+}
+
+
+/* 
+ * Nap_DupNAO --
+ *
+ *	Return pointer to new NAO which is copy (including label & unit) of existing one.
+ *      If error return NULL.
+ */
+
+Nap_NAO *
+Nap_DupNAO(
+    NapClientData	*nap_cd,
+    Nap_NAO		*old)
+{
+    return Nap_CopyNAO3(nap_cd, old, TRUE);
+}
+
 
 /* 
  * Nap_CastNAO --

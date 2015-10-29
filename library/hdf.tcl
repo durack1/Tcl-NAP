@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.83 2003/03/24 01:31:58 dav480 Exp $
+# $Id: hdf.tcl,v 1.89 2003/07/28 02:29:33 dav480 Exp $
 
 
 # hdf --
@@ -27,6 +27,8 @@ proc hdf {
 } {
     eval Hdf::main $args
 }
+
+package require BWidget
 
 namespace eval Hdf {
     variable delay 500;		# time (msec) between windows (frames) of animation
@@ -71,45 +73,24 @@ namespace eval Hdf {
 	    hdf		{label .hdf.head.heading -text "HDF Browser"}
 	    netcdf	{label .hdf.head.heading -text "netCDF Browser"}
 	}
-
         button .hdf.head.help -text "Help" -command {::Hdf::hdf_help}
         pack .hdf.head.heading -side left
         pack .hdf.head.help -side right
 
-	frame .hdf.grid
-	grid columnconfigure .hdf.grid 0 -weight 0
-	grid columnconfigure .hdf.grid 1 -weight 1
-
-	button .hdf.grid.filename_button -text "File" \
-	    -command {set ::Hdf::filename {}; ::Hdf::create_tree .hdf.grid.tree}
-
-	entry .hdf.grid.filename_entry -relief sunken -bd 2 \
-	    -textvariable Hdf::filename
-
+	frame .hdf.file
+	button .hdf.file.filename_button -text "File" \
+	    -command {set ::Hdf::filename {}; ::Hdf::create_tree .hdf.tree}
+	entry .hdf.file.filename_entry -relief sunken -bd 2 -background white \
+	    -textvariable Hdf::filename 
 	# If the filename is changed by hand then also update the SDS display
+	bind .hdf.file.filename_entry <Key-Return> {::Hdf::create_tree .hdf.tree}
+	pack .hdf.file.filename_button -side left
+	pack .hdf.file.filename_entry -side left -expand true -fill x
 
-	bind .hdf.grid.filename_entry <Key-Return> {::Hdf::create_tree .hdf.grid.tree}
-	grid .hdf.grid.filename_button .hdf.grid.filename_entry \
-	    -sticky ew
+	frame .hdf.tree -bg white; # HDF file tree
+	frame .hdf.index; # Spatial index widget
+	frame .hdf.do; # All the buttons along the bottom of the menu
 
-	# Create a frame to put the HDF file tree in and put it in the grid
-
-	frame .hdf.grid.tree -bg white
-        # This frame forces the tree frame to the right
-        # allowing the scroll bar to be on the far right
-        # On Sun systems the scroll bar had white space on the right
-        # This plus an increase in canvas width from 400 to 450
-        # fixes this problem. It seems like there is a bug in Tk. 
-        frame .hdf.grid.pad -bg white
-        grid .hdf.grid.pad .hdf.grid.tree -sticky news
-
-	# Spatial index widget
-
-	frame .hdf.grid.index
-	grid .hdf.grid.index -columnspan 2 -sticky news
-
-	# All the buttons along the bottom of the menu
-	frame .hdf.do
 	button .hdf.do.range -text "Range" -command ::Hdf::hdf_range
 	button .hdf.do.text -text "Text" -command ::Hdf::hdf_text
 	button .hdf.do.graph -text "Graph" -command {::Hdf::hdf_graph} 
@@ -130,16 +111,11 @@ namespace eval Hdf {
 	    -expand true \
 	    -padx 1 \
 	    -pady 2
-#
-# Can use either pack or grid. Tried grid to see if it
-# helped with the scroll bar bug - it did not!
-#
-#	pack .hdf.head  -expand true -fill x
-#	pack .hdf.grid  -expand true -fill x -anchor e
-#	pack .hdf.do -expand true -fill x
-	grid .hdf.head  -sticky ew
-	grid .hdf.grid  -sticky ew
-	grid .hdf.do -sticky ew
+	pack .hdf.head  -expand true -fill x
+	pack .hdf.file  -expand true -fill x
+	pack .hdf.tree  -expand true -fill x
+	pack .hdf.index -expand true -fill x
+	pack .hdf.do    -expand true -fill x
     }
 
 
@@ -376,7 +352,6 @@ namespace eval Hdf {
 	    \n   'Image'   button: Display data as image(s).\
 	    \n   'Animate' button: Animate window-sequence produced by 'Graph' or 'Image'.\
 	    \n   'NAO'     button: Create Numeric Array Object.\
-	    \n   'Help'    button: Display this '$hdf_netcdf help'.\
 	    \n   'Cancel'  button: Remove $hdf_netcdf widget." \
 	    -label "$hdf_netcdf help"
     }
@@ -456,10 +431,12 @@ namespace eval Hdf {
     proc hdf_select_file {
     } {
 	global Hdf::filename
+	global Hdf::sds_name
 	set ext(hdf) .hdf
 	set ext(netcdf) .nc
 	if {$filename == ""} {
 	    set filename [open_input_file "" $ext($Hdf::hdf_netcdf)]
+	    set sds_name ""
 	}
 	set status [file readable $filename]
 	if {!$status} {
@@ -504,8 +481,8 @@ namespace eval Hdf {
     #   hdf_var_name
 
     proc hdf_var_name {} {
-	 if {![winfo exists .hdf.grid.tree.w]} {
-	    ::Hdf::create_tree .hdf.grid.tree
+	 if {![winfo exists .hdf.tree.w]} {
+	    ::Hdf::create_tree .hdf.tree
 	 }
 	 if {${Hdf::sds_name} == ""} {
 	    tkwait variable Hdf::sds_name
@@ -526,117 +503,87 @@ namespace eval Hdf {
 	    return
 	}
 	. config -bd 3 -relief flat
-
-	destroy $w.w
-	destroy $w.sb
-	#
-	# Create the space for a tree with scroll bar
-	#
+	set tree $w.w
+	set sbar $w.sb
+	destroy $tree $sbar
 	set hdfList [split $hdfContents "\n"]
-        #
-        # Adjust the tree window size according to
-        # the number of items in the file
-        #
+        # Adjust the tree window size according to the number of items in the file
         set number_items [llength $hdfList]
-        set view_height 100 
-        if {$number_items > 10} {
-            set view_height 150
-        }
-        if {$number_items > 20} {
-            set view_height 200
-        }
-	::Tree::Tree:create $w.w -width 450 -height $view_height \
-             -yscrollcommand "$w.sb set"
-	scrollbar $w.sb -orient vertical -command "$w.w yview"
-	grid $w.w -row 0 -column 0 -sticky nes
-	grid $w.sb -row 0 -column 1 -sticky nes
-        update idletasks
-	#
-	# Write out the information
-	#
-	set global_attribute 0
-        set update_counter 0
+	set height [expr $number_items > 40 ? 20 : $number_items < 20 ? 10 : $number_items/2]
+	Tree $tree -height $height -background white -padx 2 -yscrollcommand "$sbar set"
+	scrollbar $sbar -orient vertical -command "$tree yview"
+	pack $sbar -side right -fill y
+	pack $tree -expand true -fill x -anchor w
 	foreach item $hdfList {
-	    set items [split $item ":"]
-	    set sds [lindex $items 0]
-	    set attr [lindex $items 1]
-	    set attr [string map {/ ":"} $attr]
-	    if {"$sds" == ""} {
-		if {!$global_attribute} {
-		    ::Tree::Tree:newitem $w.w "/Global attributes"
-		    set global_attribute 1
+	    regsub {:.*} $item "" sds
+	    regsub {[^:]*(:|$)} $item "" att
+	    set eitem [encode $item]
+	    if {"$sds" eq ""} {
+		if {![$tree exists /]} {
+		    $tree insert end root / -text "Global attributes"
 		}
-		::Tree::Tree:newitem $w.w "/Global attributes/$attr"
+		$tree insert end / $eitem -text $att
 	    } else {
 		set shape [hdf_info -shape "$filename" "$sds"]
-		::Tree::Tree:newitem $w.w "/$sds" -attributes "    $shape"
-		if {"$attr" != ""} {
-		    ::Tree::Tree:newitem $w.w "/${sds}/$attr"
+		if {"$att" eq ""} {
+		    $tree insert end root $eitem -text "$sds  $shape"
+		} else {
+		    $tree insert end [encode $sds] $eitem -text $att
 		}
 	    }
-#
-# Only update in groups to avoid countinuous updating
-#
-            incr update_counter
-            if {$update_counter == 20} {
-                set update_counter 0
-                update idletasks
-            }
+	    update idletasks
 	}
+	$tree bindText <ButtonPress-1> "::Hdf::button_command $tree"
         update idletasks
-	#
-	# set bindings and draw the tree
-	#
-	.hdf.grid.tree.w bind x <1> {
-	    set lbl [::Tree::Tree:labelat %W %x %y]
-	    ::Tree::Tree:setselection %W $lbl
-	#
-	# write the result of the tree selection
-	#
-	# To use this as the structure of HDF file
-	# we need to modify the result to get
-	# an SDSname or and attribute
-	#
-	# Remove leading /
-	#
-	    set mlbl [string range $lbl 1 end]
-	#
-	# Map any / to : and map any : to /
-	# This is a kludge to prevent a / in the name
-	# messing up this tree script. Really should be
-	# rewritten using lists to avoid the problems
-	# created by special characters
-	#
-	    set mlbl [string map {/ : : /} $mlbl]
-	#
-	# If it is not "Global Attributes" then
-	# change the sdsname
-	#
-	    if [string compare "Global attributes" "$mlbl"] {
-		if {[string length $mlbl] > 17} {
-		    set temp [string range $mlbl 0 16]
-		    if [string compare "Global attributes" "$temp"] {
-			set Hdf::sds_name $mlbl
-			::Hdf::show_index 
-		    } else {
-			set Hdf::sds_name [string range $mlbl 17 end]
-			::Hdf::show_index
-		    }
-		} else {
-		    set Hdf::sds_name $mlbl
-		    ::Hdf::show_index
-		}
-	    } 
-	}
+    }
 
-	#
-	# This is suppose to open a tree node 
-	# with a double click.
-	#
-	.hdf.grid.tree.w bind x <Double-1> {
-	    ::Tree::Tree:open %W [::Tree::Tree:labelat %W %x %y]
+    # encode --
+    #
+    # convert string to hex (doubling length of string)
+
+    proc encode {
+	s
+    } {
+	set n [string length $s]
+	for {set i 0} {$i < $n} {incr i} {
+	    append h [format %2.2x [scan [string index $s $i] %c]]
 	}
-	update idletasks
+	return $h
+    }
+
+    # decode --
+    #
+    # convert hex to string
+
+    proc decode {
+	h
+    } {
+	set n [string length $h]
+	for {set i 0} {$i < $n} {incr i 2} {
+	    append s [format %c [scan [string range $h $i [expr $i + 1]] %x]]
+	}
+	return $s
+    }
+
+    # button_command --
+
+    proc button_command {
+	tree
+	eitem
+    } {
+	global Hdf::sds_name
+	if {$sds_name ne ""} {
+	    set old [encode $sds_name]
+	    if {![$tree exists $old]} {
+		error "Tree item for $sds_name does not exist"
+	    }
+	    $tree itemconfigure $old -fill black
+	}
+	if {$eitem ne "/"} {
+	    $tree itemconfigure $eitem -fill red
+	    set sds_name [decode $eitem]
+	    show_index
+	}
     }
 
     #
@@ -657,7 +604,7 @@ namespace eval Hdf {
 	}
 	set sds_rank [hdf_info -rank $filename $sds_name]
 	set shp [hdf_info -shape $filename $sds_name]
-	set win .hdf.grid.index
+	set win .hdf.index
 	set win ${win}.sf
 	destroy $win
 	set names [namespace children [namespace current]::indexWidget]

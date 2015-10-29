@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.70 2002/12/13 03:24:53 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.75 2003/07/21 10:54:18 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -146,6 +146,34 @@ Nap_InnerProd(
 }
 
 /*
+ *  SubscriptType --
+ *	Argument is subscript (part of index corresponding to a dimension)
+ *	Result is:
+ *	    0 for normal subscript
+ *	    1 for NULL, indicating full dimension (in normal order)
+ *	   -1 for scalar F32 (-infinity), indicating full dimension reversed
+ *	Note that niladic operator '-' generates such a (-infinity). E.g. "vector(-)"
+ */
+
+m4define(`m4NAME', `SubscriptType')
+
+static int
+SubscriptType(
+    Nap_NAO		*naoPtr)	/* subscript */
+{
+    if (naoPtr) {
+	if (naoPtr->dataType == NAP_F32  &&  naoPtr->rank == 0
+		&&  naoPtr->data.F32[0] == -napF32Inf) {
+	    return -1;
+	} else {
+	    return 0;
+	}
+    } else {
+	return 1;
+    }
+}
+
+/*
  *  Nap_SubscriptCopy --
  *	Copy elements defined by cross-product of subscripts.
  *	Called by Nap_SubscriptCrossProduct, then recursively by Nap_SubscriptCopy.
@@ -165,16 +193,37 @@ Nap_SubscriptCopy(
     char                *src,		/* source */
     char                **dst)		/* destination (in/out) */
 {
-    size_t		i;		/* source offset */
+    int			i;		/* source offset */
     long		j;		/* scalar value of subscript */
-    size_t		k;		/* subscript of high-order subscript */
+    int			k;		/* subscript of high-order subscript */
     long		shape0;		/* divisor for subscripts */
     int			status;
 
     assert(n > 0);
     if (prodShape[0] > 0) {
 	shape0 = prodShape[0] / prodShape[1];
-	if (naoSubEl[0]) {
+	switch (SubscriptType(naoSubEl[0])) {
+	case -1:
+	    if (n == 1) {
+		for (k = shape0-1; k >= 0; k--) {
+		    if (is_missing) {
+			memcpy(*dst, mv, prodShape[1]);
+		    } else {
+			i = prodShape[1] * k;
+			memcpy(*dst, src+i, prodShape[1]);
+		    }
+		    *dst += prodShape[1];
+		}
+	    } else {
+		for (k = shape0-1; k >= 0; k--) {
+		    i = prodShape[1] * k;
+		    status = Nap_SubscriptCopy(nap_cd, n-1, prodShape+1, naoSubEl+1, mv,
+			    is_missing, src+i, dst);
+		    CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
+		}
+	    }
+	    break;
+	case 0:
 	    assert(naoSubEl[0]->dataType == NAP_I32);
 	    if (n == 1) {
 		for (k = 0; k < naoSubEl[0]->nels; k++) {
@@ -196,7 +245,8 @@ Nap_SubscriptCopy(
 		    CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
 		}
 	    }
-	} else {
+	    break;
+	case 1:
 	    if (n == 1) {
 		for (k = 0; k < shape0; k++) {
 		    if (is_missing) {
@@ -215,6 +265,9 @@ Nap_SubscriptCopy(
 		    CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
 		}
 	    }
+	    break;
+	default:
+	    assert(0);
 	}
     }
     return TCL_OK;
@@ -363,7 +416,16 @@ Nap_SubscriptInterp(
     assert(rank > 0  &&  rank <= NAP_MAX_RANK);
     assert(dimNum <= rank);
     if (dimNum < rank) {
-	if (naoSubEl[dimNum]) {
+	switch (SubscriptType(naoSubEl[dimNum])) {
+	case -1:
+	    for (k = shape[dimNum] - 1; k >= 0; k--) {
+		subscript[dimNum] = k;
+		status = Nap_SubscriptInterp(nap_cd, rank, shape, dimNum+1, naoSubEl, subscript,
+			is_missing, src, mv, dst);
+		CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
+	    }
+	    break;
+	case 0:
 	    modulus = shape[dimNum];
 	    assert(naoSubEl[dimNum]->dataType == NAP_F32);
 	    for (k = 0; k < naoSubEl[dimNum]->nels; k++) {
@@ -372,13 +434,17 @@ Nap_SubscriptInterp(
 			is_missing || IsMissing(naoSubEl[dimNum], k), src, mv, dst);
 		CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
 	    }
-	} else {
+	    break;
+	case 1:
 	    for (k = 0; k < shape[dimNum]; k++) {
 		subscript[dimNum] = k;
 		status = Nap_SubscriptInterp(nap_cd, rank, shape, dimNum+1, naoSubEl, subscript,
 			is_missing, src, mv, dst);
 		CHECK2(status == TCL_OK, "m4NAME: Error calling m4NAME");
 	    }
+	    break;
+	default:            /* error */
+	    assert(0);
 	}
     } else {
 	if (is_missing) {
@@ -428,7 +494,11 @@ Nap_SubscriptIndirect(
     assert(n >= 0  &&  n <= NAP_MAX_RANK);
     *dataType = NAP_I32;
     for (d = 0; d < n; d++) {
-	if (naoSub[d]) {
+	switch (SubscriptType(naoSub[d])) {
+	case -1:
+	    naoResult[d] = naoSub[d];
+	    break;
+	case 0:
 	    CHECK2(Nap_TypeIsNumeric(naoSub[d]->dataType),
 		     "m4NAME: Subscript has illegal data-type");
 	    if (code[d] == 0) {
@@ -461,20 +531,81 @@ Nap_SubscriptIndirect(
 	    if (naoResult[d]->dataType == NAP_F32) {
 		*dataType = NAP_F32;
 	    }
-	} else {
+	    break;
+	case 1:
 	    naoResult[d] = NULL;
+	    break;
+	default:	/* error */
+	    assert(0);
 	}
     }
     for (d = 0; d < n; d++) {
-	naoTmp = naoResult[d];
-	if (naoTmp) {
-	    naoResult[d] = Nap_CastNAO(nap_cd, naoTmp, *dataType);
-	    assert(naoResult[d]);
-	    Nap_IncrRefCount(nap_cd, naoResult[d]);
-	    Nap_DecrRefCount(nap_cd, naoTmp);
+	switch (SubscriptType(naoSub[d])) {
+	case 0:
+	    naoTmp = naoResult[d];
+	    if (naoTmp) {
+		naoResult[d] = Nap_CastNAO(nap_cd, naoTmp, *dataType);
+		assert(naoResult[d]);
+		Nap_IncrRefCount(nap_cd, naoResult[d]);
+		Nap_DecrRefCount(nap_cd, naoTmp);
+	    }
 	}
     }
     assert(*dataType == NAP_I32  ||  *dataType == NAP_F32);
+    return TCL_OK;
+}
+
+/*
+ *  Nap_ReverseVector --
+ */
+
+m4begin
+
+m4define(`m4NAME', `Nap_ReverseVector')
+
+#       reverse vector: m4rv(dataType)
+m4define(`m4rv', `
+	    case m4DataTypeEnum($1):
+		for (i = 0; i < n; i++) {
+		    naoResult->data.$1[i] = naoArray->data.$1[n-i-1];
+		}
+		break;')
+
+m4end
+
+static int
+Nap_ReverseVector(
+    NapClientData       *nap_cd,
+    Nap_NAO		*naoArray,		/* vector array (left operand) */
+    Nap_NAO		**naoResultPtr)		/* for final result */
+{
+    size_t              i;			/* subscript (element number) */
+    size_t              n;			/* # elements */
+    Nap_NAO		*naoResult;		/* for final result */
+    Nap_NAO		*newCV; 		/* new coordinate variable */
+    Nap_NAO		*oldCV; 		/* old coordinate variable */
+    int			status;
+
+    if (naoArray) {
+	assert(naoArray->rank == 1);
+	n = naoArray->nels;
+	naoResult = Nap_DupNAO(nap_cd, naoArray);
+	oldCV = Nap_GetCoordVar(nap_cd, naoArray, 0);
+	if (oldCV) {
+	    status = Nap_ReverseVector(nap_cd, oldCV, &newCV);
+	    CHECK(status == TCL_OK);
+	    status = Nap_AttachCV(nap_cd, naoResult, newCV, 0);
+	    CHECK(status == TCL_OK);
+	}
+	switch (naoResult->dataType) {
+	m4ForAllDataType(`m4rv(', `)')
+	default:            /* error */
+	    assert(FALSE);
+	}
+    } else {
+	naoResult = NULL;
+    }
+    *naoResultPtr = naoResult;
     return TCL_OK;
 }
 
@@ -566,13 +697,21 @@ Nap_SubscriptCrossProduct(
     }
     rank = 0;
     for (d = 0; d < n; d++) {
-	if (naoSubNewEl[d]) {
+	switch (SubscriptType(naoSubNewEl[d])) {
+	case -1:
+	    shape[rank] = naoArray->shape[d];
+	    dimName[rank] = naoArray->dimName[d];
+	    status = Nap_ReverseVector(nap_cd, oldCV[d], newCV+rank);
+	    CHECK(status == TCL_OK);
+	    ++rank;
+	    break;
+	case 0:
 	    CHECK2(naoSubNewEl[d]->rank < 2, "m4NAME: Rank of boxed subscript > 1");
 	    if (naoSubNewEl[d]->rank > 0) {
 		shape[rank] = naoSubNewEl[d]->nels;
 		dimName[rank] = naoArray->dimName[d];
 		if (naoSubOldEl[d]  &&  naoSubOldEl[d]->rank == 1  &&  code[d] > 0) {
-		    newCV[rank] = Nap_CopyNAO(nap_cd, naoSubOldEl[d]);
+		    newCV[rank] = Nap_DupNAO(nap_cd, naoSubOldEl[d]);
 		    naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
 		    newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
 		} else if (naoArray->coordVarSlot[d] > 0) {
@@ -586,11 +725,15 @@ Nap_SubscriptCrossProduct(
 		}
 		++rank;
 	    }
-	} else {
+	    break;
+	case 1:
 	    shape[rank] = naoArray->shape[d];
 	    dimName[rank] = naoArray->dimName[d];
 	    newCV[rank] = oldCV[d];
 	    ++rank;
+	    break;
+	default:	/* error */
+	    assert(0);
 	}
     }
     if (dataType == NAP_I32) {
@@ -902,13 +1045,13 @@ Nap_SubscriptOfVector(
     if (naoSub->rank == 1) {
 	newCV = NULL;
 	if (code[0] > 0) {
-	    newCV = Nap_CopyNAO(nap_cd, naoSub);
-	    CHECK2(newCV, "m4NAME: Error calling Nap_CopyNAO");
+	    newCV = Nap_DupNAO(nap_cd, naoSub);
+	    CHECK2(newCV, "m4NAME: Error calling Nap_DupNAO");
 	    status = Nap_AttachLink(nap_cd, newCV, NULL);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
 	} else if (oldCV[0]) {
-	    naoTmp = Nap_CopyNAO(nap_cd, naoSub);
-	    CHECK2(naoTmp, "m4NAME: Error calling Nap_CopyNAO");
+	    naoTmp = Nap_DupNAO(nap_cd, naoSub);
+	    CHECK2(naoTmp, "m4NAME: Error calling Nap_DupNAO");
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    str = Nap_Func(nap_cd, oldCV[0]->id, naoTmp->id);
 	    CHECK2(str, "m4NAME: Error defining new coord. var");
@@ -1082,8 +1225,21 @@ Nap_Subscript(
 	    str = Nap_Cat(nap_cd, naoArray->id, naoSubEl->id);
 	    naoResult = Nap_GetNumericNaoFromId(nap_cd, str);
 	} else if (naoArray->rank == 1) {
-	    status = Nap_SubscriptOfVector(nap_cd, naoArray, naoSubEl, &naoResult);
-	    CHECK1NULL(status == TCL_OK);
+	    switch (SubscriptType(naoSubEl)) {
+	    case -1:
+		status = Nap_ReverseVector(nap_cd, naoArray, &naoResult);
+		CHECK1NULL(status == TCL_OK);
+		break;
+	    case 0:
+		status = Nap_SubscriptOfVector(nap_cd, naoArray, naoSubEl, &naoResult);
+		CHECK1NULL(status == TCL_OK);
+		break;
+	    case 1:
+		naoResult = naoArray;
+		break;
+	    default:		/* error */
+		assert(0);
+	    }
 	} else {
 	    status = Nap_SubscriptFull(nap_cd, naoArray, naoSubEl, &naoResult);
 	    CHECK1NULL(status == TCL_OK);
@@ -1102,10 +1258,14 @@ Nap_Subscript(
 	}
     }
     assert(naoArray);
-    Nap_DecrRefCount(nap_cd, naoArray);
     assert(naoSub);
-    Nap_DecrRefCount(nap_cd, naoSub);
     assert(naoResult);
+    Nap_DecrRefCount(nap_cd, naoSub);
+    if (naoResult == naoArray) {
+	--(naoArray->count);
+    } else {
+	Nap_DecrRefCount(nap_cd, naoArray);
+    }
     assert(naoResult->id);
     assert(Nap_IsNAO(nap_cd, naoResult));
     return naoResult->id;
@@ -1602,18 +1762,18 @@ m4define(`m4match', `
     case m4DataTypeEnum($1):
 	switch (naoPtr1->step) {
 	case NAP_EQUAL:
-	    if (n < 2) {
-		step = 0.0;
-	    } else if (n == 2) {
+	    if (n == 2) {
 		step = naoPtr1->data.$1[1] - naoPtr1->data.$1[0];
-	    } else {
+	    } else if (n > 2) {
 		step = (naoPtr1->data.$1[n-2] - naoPtr1->data.$1[0]) / (n-2.0);
 	    }
 	    for (j = 0; j < naoPtr2->nels; j++) {
-		if (IsMissing(naoPtr2, j)) {
+		if (n < 1  ||  IsMissing(naoPtr2, j)) {
 		    r = m4MissingValue(I32);
-		} else if (step == 0.0) {
+		} else if (naoPtr2->data.$1[j] == naoPtr1->data.$1[0]) {
 		    r = 0;
+		} else if (n == 1) {
+		    r = m4MissingValue(I32);
 		} else if (naoPtr2->data.$1[j] == naoPtr1->data.$1[n-1]) {
 		    r = n - 1;
 		} else if (naoPtr2->data.$1[j] == naoPtr1->data.$1[n-2]) {
@@ -1633,7 +1793,11 @@ m4define(`m4match', `
 	    g = n;
 	    for (j = 0; j < naoPtr2->nels; j++) {
 		r = Nap_HuntNao(nap_cd, naoPtr1, naoPtr2->data.$1+j, g);
-		if (naoPtr2->data.$1[j] != naoPtr1->data.$1[r]) {
+		if (naoPtr2->data.$1[j] == naoPtr1->data.$1[r]) {
+		    while (r > 0  &&  naoPtr2->data.$1[j] == naoPtr1->data.$1[r-1]) {
+			--r;
+		    }
+		} else {
 		    r = m4MissingValue(I32);
 		}
 		result->data.I32[j] = r;

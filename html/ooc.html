@@ -1,4 +1,4 @@
-<!-- $Id: ooc.html,v 1.3 2003/03/14 08:22:34 dav480 Exp $ -->
+<!-- $Id: ooc.html,v 1.4 2003/05/20 05:29:46 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -56,10 +56,10 @@ NAP Object-Oriented Commands (OOCs)
             <li><a href="#set_value">Set value</CODE></a>
 	</ol>
     </ol>
-    <li><a href="#Write">Methods which Write to File or Internal Structure</a>
+    <li><a href="#Write">Methods which Write to File</a>
     <ol>
         <li><a href="#binary">Method <code>binary</code></a>
-        <li><a href="#blt_vector">Method <code>blt_vector</code></a>
+        <li><a href="#hdf">Method <code>hdf</code></a>
         <li><a href="#netcdf">Method <code>netcdf</code></a>
         <li><a href="#swap">Method <code>swap</code></a>
     </ol>
@@ -861,7 +861,7 @@ to new values copied from successive elements of NAO
 (default: <code>""</code> meaning null value).
 Elements of <VAR>value</VAR> are recycled if necessary.
 
-<h3><a name=Write>Methods which Write to File or Internal Structure</h3>
+<h3><a name=Write>Methods which Write to File</h3>
 
 <h4><a name=binary>Method <code>binary</code></h4>
 <p>
@@ -886,15 +886,6 @@ Value:
 0 0.25 1 2.25 4
 % close $file
 </pre>
-
-<h4><a name=blt_vector>Method <code>blt_vector</code></h4>
-<p>
-<VAR>ooc_name</VAR><CODE> blt_vector</CODE> <VAR>name</VAR><br>
-
-<p>
-This sets the
-BLT vector named <VAR>name</VAR> (which may or may not already exist) to 
-the value of the data in the NAO. 
 
   <h4><a name=hdf>Method <code>hdf</code></h4>
 <p>
@@ -1050,7 +1041,7 @@ This enables writing of data to be read on a machine with opposite byte-order wi
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: ooc.html,v 1.3 2003/03/14 08:22:34 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: ooc.html,v 1.4 2003/05/20 05:29:46 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

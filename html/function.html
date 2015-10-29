@@ -1,4 +1,4 @@
-<!-- $Id: function.html,v 1.3 2003/03/17 03:10:03 dav480 Exp $ -->
+<!-- $Id: function.html,v 1.4 2003/08/25 07:28:01 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -759,15 +759,153 @@ where matrix <var>y</var> defines a mapping from
 matrix <var>x</var> defines a mapping from
 <var>ij</var> space to <var>x</var>.<br>
 The result is a 3D array whose 
-<li>dimension 0 is of size 2, corresponding to the 
-    <var>i</var> and <var>j</var> mappings
-<li>Dimension 1 has the specified coordinate-variable
+<li>Dimension 0 has the specified coordinate-variable
     <var>ycv</var>
-<li>Dimension 2 has the specified coordinate-variable 
+<li>Dimension 1 has the specified coordinate-variable 
     <var>xcv</var>.<br>
+<li>dimension 2 is of size 2, corresponding to the 
+    <var>i</var> and <var>j</var> mappings
 We can think of the result as two matrices defining mappings from
 <var>xy</var> space to <var>i</var>
 and <var>j</var> respectively.
+
+<p>
+The following 2D example shows how a satellite image can be mapped to latitude/longitude space
+(i.e. a <em>Cylindrical Equidistant</em> map projection).
+Note that the terms <em>line</em> and <em>pixel</em> refer to
+the row and column of a raw satellite image respectively.
+We are interested in an input region bounded by line 40, line 50, pixel 1 and pixel 21.
+Assume we know the latitude and longitude on a 3&times;3 grid corresponding to
+lines 40, 50, 60 and pixels 1, 11, 21.
+The following defines and displays an inverse grid for 
+latitudes 40&deg;S, 30&deg;S, 25&deg;S 
+and longitudes 150&deg;E, 160&deg;E, 170&deg;E, 180&deg;E:
+
+<pre>
+nap "line = {40 50 60}"
+nap "pixel = {1 11 21}"
+nap "lat_grid = {{-40 -50 _}{-30 -40 -50}{-20 -30 -40}}"
+$lat_grid set coo line pixel
+nap "lon_grid = {{200 180 _}{180 160 140}{160 140 120}}"
+$lon_grid set coo line pixel
+nap "lat_cv = {-40 -30 -25}"
+$lat_cv set unit degrees_north
+nap "lon_cv = 150 .. 180 ... 10"
+$lon_cv set unit degrees_east
+nap "ig = invert_grid(lat_grid, lat_cv, lon_grid, lon_cv)"
+$ig all
+</pre>
+
+This displays the following inverse grid:
+
+<pre>
+::NAP::46-46  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Link: ::NAP::47-47
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: ::NAP::36-36
+Dimension 1   Size: 4      Name: (NULL)    Coordinate-variable: ::NAP::39-39
+Dimension 2   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+52.5 13.5
+50.0 11.0
+47.5  8.5
+45.0  6.0
+
+57.5  8.5
+55.0  6.0
+52.5  3.5
+50.0  1.0
+
+60.0  6.0
+57.5  3.5
+55.0  1.0
+   _    _
+</pre>
+
+The following displays the coordinate variables of this inverse grid <code>ig</code>:
+
+<pre>
+% [$ig coo 0] all
+::NAP::36-36  f32  MissingValue: NaN  References: 1  Unit: degrees_north
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-40 -30 -25
+% [$ig coo 1] all
+::NAP::39-39  f32  MissingValue: NaN  References: 1  Unit: degrees_east
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+150 160 170 180
+</pre>
+
+The first row of <code>ig</code> is
+<pre>
+52.5 13.5
+</pre>
+Let us use these values as indirect indices of the original latitude and longitude grids:
+<pre>
+% [nap "lat_grid(@52.5, @13.5)"]
+-40
+% [nap "lon_grid(@52.5, @13.5)"]
+150
+</pre>
+Note that these results correspond to the initial values of the coordinate variables of 
+<code>ig</code>.
+
+<p>
+Now let us define a small extract from a raw satellite image:
+<pre>
+nap "raw = {
+{99 91 91 90}
+{95 95 92 91}
+{90 89 88 88}
+}"
+nap "line = 50 .. 52"
+nap "pixel = 1 .. 4"
+$raw set coo line pixel
+</pre>
+
+<p>
+The latitudes and longitudes at these points are given by
+<pre>
+% [nap "lat_grid(@line, @pixel)"]
+-30 -31 -32 -33
+-29 -30 -31 -32
+-28 -29 -30 -31
+% [nap "lon_grid(@line, @pixel)"]
+180 178 176 174
+178 176 174 172
+176 174 172 170
+</pre>
+
+<p>
+We can map this image to a <em>Cylindrical Equidistant</em> projection as follows:
+<pre>
+% nap "latitude = f32(-29 .. -33)"
+::NAP::135-135
+% nap "longitude = f32(170 .. 180)"
+::NAP::142-142
+% nap "cyl_eq = raw(@ig(@latitude, @longitude, ))"
+::NAP::166-166
+% $cyl_eq all -f %.1f -col 11
+::NAP::166-166  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: ::NAP::152-152
+Dimension 1   Size: 11     Name: (NULL)    Coordinate-variable: ::NAP::153-153
+Value:
+91.0    _    _    _    _    _    _    _    _    _    _
+89.2 88.7 88.0 89.4 91.0 92.9 95.0 94.5 95.0 96.5 99.0
+88.0 88.8 89.8 90.8 92.0 92.3 92.2 91.8 91.0 92.1 92.2
+91.0 91.1 91.0 91.0 91.0 91.0 91.0 90.3 89.8 89.3 89.0
+95.0 94.7 93.8 92.2 90.0 89.7 89.2 88.7 88.0 89.4 91.0
+% [$cyl_eq coo 0] all
+::NAP::152-152  f32  MissingValue: NaN  References: 1  Unit: degrees_north
+Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-29 -30 -31 -32 -33
+% [$cyl_eq coo 1] all -col 11
+::NAP::153-153  f32  MissingValue: NaN  References: 1  Unit: degrees_east
+Dimension 0   Size: 11     Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+170 171 172 173 174 175 176 177 178 179 180
+</pre>
 
 <h3><a name=Special_Data_types>Functions related to Special Data-types</h3>
 
@@ -935,7 +1073,7 @@ Value:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: function.html,v 1.3 2003/03/17 03:10:03 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: function.html,v 1.4 2003/08/25 07:28:01 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

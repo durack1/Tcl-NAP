@@ -5,7 +5,7 @@ $headers = getallheaders();
 ?>
 <HTML>
 
-<!-- $Id: index.php,v 1.11 2002/10/14 05:21:37 dav480 Exp $ -->
+<!-- $Id: index.php,v 1.12 2003/05/20 05:28:44 dav480 Exp $ -->
 
 <HEAD>
 <TITLE>Tcl-nap Project</TITLE>
@@ -24,7 +24,6 @@ width="125" height="37" border="0" alt="SourceForge.net Logo"></a>
 
 | <A class=maintitlebar href="http://sourceforge.net/projects/tcl/"><B>SF Tcl</B></A>
 | <A class=maintitlebar href="http://sourceforge.net/projects/tktoolkit/"><B>SF Tk</B></A>
-| <A class=maintitlebar href="http://sourceforge.net/projects/blt/"><B>SF BLT</B></A>
 | <A class=maintitlebar href="http://sourceforge.net/projects/tcl-nap/"><B>SF NAP</B></A>
     </TD>
   </TR>
@@ -100,7 +99,7 @@ width="125" height="37" border="0" alt="SourceForge.net Logo"></a>
 	<a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
 	<br>
 
-	<b>CVS Version Details:</b> $Id: index.php,v 1.11 2002/10/14 05:21:37 dav480 Exp $
+	<b>CVS Version Details:</b> $Id: index.php,v 1.12 2003/05/20 05:28:44 dav480 Exp $
 
         </SPAN></FONT>
     </TD>

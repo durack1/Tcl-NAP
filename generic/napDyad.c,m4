@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.133 2002/10/10 09:00:20 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.136 2003/06/13 06:45:26 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -251,7 +251,7 @@ m4arith(`Sub', `$1 - $2')
 m4arith(`Mul', `$1 * $2')
 m4arith(`LesserOf', `Min($1, $2)')
 m4arith(`GreaterOf', `Max($1, $2)')
-m4arith(`Div', `$2?$1/$2:$3', `$1 / $2')
+m4arith(`Div', `$2?$1/$2:$3', `$1/$2', `$1/$2')
 m4arith(`Rem', `Nap_mod($1,$2)', `Nap_fmod_f32($1, $2)', `Nap_fmod($1, $2)')
 
 m4begin
@@ -650,7 +650,9 @@ Nap_AP(
 	CHECK2NULL(naoPtr1->rank == 1, "m4NAME: Left boxed argument of .. is not vector");
 	CHECK2NULL(naoPtr1->nels == 2, "m4NAME: Left boxed argument of .. does not have shape {2}");
 	naoN    = Nap_AP_arg(nap_cd, naoPtr1, 0, "n");
-	naoFrom = Nap_AP_arg(nap_cd, naoPtr1, 1, "n");
+	CHECK1NULL(naoN);
+	naoFrom = Nap_AP_arg(nap_cd, naoPtr1, 1, "from");
+	CHECK1NULL(naoFrom);
     } else {
 	naoFrom = naoPtr1;
 	status = Nap_AP_check(nap_cd, naoFrom, "from");
@@ -987,15 +989,16 @@ Nap_Reshape(
 	for (i = 0; i < naoPtr3->nels; i++) {
 	    shape[i] = naoPtr3->data.I32[i];
 	}
-	new = Nap_ReshapeNAO(nap_cd, naoPtr1, naoPtr1->dataType, naoPtr3->nels, shape);
+	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, naoPtr3->nels, shape, 1, 0);
 	Nap_IncrRefCount(nap_cd, new);
 	Nap_DecrRefCount(nap_cd, naoPtr3);
-	CHECK2NULL(new, "m4NAME: error calling Nap_ReshapeNAO");
+	CHECK2NULL(new, "m4NAME: error calling Nap_ReshapeNAO2");
 	Nap_DecrRefCount(nap_cd, naoPtr2);
     } else {
 	shape[0] = naoPtr1->nels;
-	new = Nap_ReshapeNAO(nap_cd, naoPtr1, naoPtr1->dataType, 1, shape);
+	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, 1, shape, 1, 0);
 	Nap_IncrRefCount(nap_cd, new);
+	CHECK2NULL(new, "m4NAME: error calling Nap_ReshapeNAO2");
     }
     Nap_DecrRefCount(nap_cd, naoPtr1);
     --new->count;

@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_proc_lib.tcl,v 1.3 2001/11/15 23:27:14 dav480 Exp $
+# $Id: nap_proc_lib.tcl,v 1.7 2003/07/24 06:26:33 dav480 Exp $
 
 
 # compare --
@@ -81,6 +81,56 @@ proc l0 {
 proc list_naos_compare {nao1 nao2} {expr "[$nao1 sequence -keep] - [$nao2 sequence -keep]"}
 proc list_naos {} {
     lsort -command list_naos_compare [info commands {::NAP::*-*}]
+}
+
+
+# list_non_cv_vars --
+#
+# List of all netcdf/hdf variables/SDSs in file which are not coordinate variables
+#
+# Note that algorithm assumes that coord. var. has dimension name same as var/sds name.
+# This is always valid for netCDF files but is not the case for some HDF files.
+
+proc list_non_cv_vars {
+    filename
+} {
+    if {[file extension $filename] eq ".hdf"} {
+	set type hdf
+    } else {
+	set type netcdf
+    }
+    foreach var [nap_get $type -list $filename {^[^:]*$}] {
+	if {[nap_get $type -dimension $filename $var] ne $var} {
+	    lappend result $var
+	}
+    }
+    return $result
+}
+
+
+# nao2image --
+#
+# Convert NAO to image file.
+#
+# NAO is defined by evaluating expression 'expr' in caller's namespace. It is automatically
+# cast to type u8.
+# format defaults to extension of filename, or if no extension, then "gif".
+
+proc nao2image {
+    expr
+    filename
+    {format ""}
+} {
+    catch "package require Img"
+    nap "nao = [uplevel nap "\"$expr\""]"
+    if {$format eq ""} {
+	set format [string trimleft [file extension $filename] .]
+	if {$format eq ""} {
+	    set format gif
+	}
+    }
+    set img [image create photo -format NAO -data $nao]
+    $img write $filename -format $format 
 }
 
 

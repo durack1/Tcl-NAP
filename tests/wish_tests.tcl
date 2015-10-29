@@ -4,9 +4,9 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.15 2002/11/29 06:28:46 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.19 2003/07/21 23:51:10 dav480 Exp $
 
-puts "\n******* At end click on 'cancel' button in window .win6 *******\n"
+puts "\n******* At end click on 'cancel' button in window .win7 *******\n"
 
 # if no nap then load nap shared lib from current working directory
 if {![info exists nap_version]} {
@@ -73,6 +73,7 @@ source $env(LIBRARY_DIR)/print_gui.tcl
 # xy vector
 
 nap "x = -2p1 .. 2p1 ... 0.01"
+$x set unit radians
 nap "y = sin x"
 $y set coo x
 set window [plot_nao y]
@@ -80,8 +81,8 @@ set window [plot_nao y]
 # xy matrix
 
 nap "y = y /// 1.0 / cosh x"
-$y set coo x
-set window [plot_nao y]
+$y set coo "" x
+set window [plot_nao y -xlabel angle]
 
 # bar vector
 
@@ -93,7 +94,7 @@ set window [plot_nao y -type bar]
 # bar matrix
 
 nap "y = y /// 10 * x"
-$y set coo x
+$y set coo "" x
 set window [plot_nao y -type bar]
 
 # small z matrix
@@ -103,17 +104,24 @@ set window [plot_nao "reshape(0..9, 2#10)"]
 # z matrix (function F10 comes from Renka: ACM Algorithm 792)
 
 nap "n = 201"
-nap "x = y = ap_n(0f32, 1f32, n)"
+nap "x = +y = n ... 0f32 .. 1f32"
+$x set unit metres
+$y set unit seconds
 nap "X = reshape(x, 2 # n)"
 nap "Y = transpose X"
 nap "tmp = sqrt((80f32 * X - 40f32)**2 + (90f32 * Y - 45f32)**2)"
 nap "F10 = exp(-0.04f32 * tmp) * cos(0.15f32 * tmp)"
-$F10 set coo x y
+nap "z = F10 /// X // Y"
+$F10 set coo y x
 set window [plot_nao F10 -palette ""]
 
-# z 3D
+# tile 3D z
 
-set window [plot_nao "F10 /// X // Y"]
+set window [plot_nao z -type t]
+
+# treat 3D z as RGB layers
+
+set window [plot_nao z]
 
 tkwait window $window
 

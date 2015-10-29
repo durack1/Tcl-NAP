@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.124 2002/10/18 05:37:44 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.128 2003/10/28 00:38:41 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -116,13 +116,13 @@ OBJS = \
 
 PACKAGE = nap
 MAJOR_VERSION = 3
-MINOR_VERSION = 1
-PATCHLEVEL = .0
-VERSION = 3.1
-NODOT_VERSION = 31
-NODOT_PATCHLEVEL = 0
-USE_VERSION = 3.1
-USE_PATCHLEVEL = .0
+MINOR_VERSION = 3
+PATCHLEVEL = .1
+VERSION = 3.3
+NODOT_VERSION = 33
+NODOT_PATCHLEVEL = 1
+USE_VERSION = 3.3
+USE_PATCHLEVEL = .1
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -148,6 +148,7 @@ system = Linux-2.2.16-22smp
 #------------------------------------------------------------------------------
 
 CP = cp -f
+DEBUGGER = xxgdb
 ECHO = printf '%s\n'
 M4 = /usr/bin/m4 -s -B999000
 NATIVE_PATH = echo
@@ -184,7 +185,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.1\" -DPATCHLEVEL=\".0\"  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.3\" -DPATCHLEVEL=\".1\"  $(INCLUDES)
 HDF_HEADER_DIR = /home/dav480/hdf/use/include
 NC_HEADER_DIR = /home/dav480/nc/use/include
 TCL_HEADER_DIR = /home/dav480/tcl/include
@@ -223,7 +224,6 @@ TCL_LIB_PATH = /home/dav480/tcl/lib/libtcl8.4$(DBGX).so
 TCL_STUB_LIB_PATH = /home/dav480/tcl/lib/libtclstub8.4$(DBGX).a
 TK_LIB_PATH = /home/dav480/tcl/lib/libtk8.4$(DBGX).so
 TK_STUB_LIB_PATH = /home/dav480/tcl/lib/libtkstub8.4$(DBGX).a
-BLT_LIB_PATH = /home/dav480/tcl/lib/libBLT.a
 HDF_LIB_PATH = /home/dav480/hdf/use/lib/libdf.a /home/dav480/hdf/use/lib/libjpeg.a /home/dav480/hdf/use/lib/libmfhdf.a /home/dav480/hdf/use/lib/libz.a
 NC_LIB_PATH = /home/dav480/nc/use/lib/libnetcdf.a
 
@@ -235,7 +235,7 @@ LIBS =
 SYS_LIBS =  -lieee -lm -L/usr/X11R6/lib -lX11
 LINK_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(SYS_LIBS)
 SHLIB_LD_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(SYS_LIBS)
-EXTRA_LIBS = -L/home/dav480/nc/use/lib -lnetcdf -L/home/dav480/hdf/use/lib -lmfhdf -ldf -ljpeg -lz -L/home/dav480/tcl/lib -lBLT
+EXTRA_LIBS = -L/home/dav480/nc/use/lib -lnetcdf -L/home/dav480/hdf/use/lib -lmfhdf -ldf -ljpeg -lz
 
 #------------------------------------------------------------------------------
 # Tcl directories and files
@@ -314,6 +314,9 @@ upload: $(INSTALL_TAR)
 
 lib: $(PACKAGE_SHLIB)
 
+debug: $(PACKAGE_SHELL)
+	$(DEBUGGER) $(PACKAGE_SHELL)
+
 shell: $(PACKAGE_SHELL)
 
 #------------------------------------------------------------------------------
@@ -338,6 +341,7 @@ install-doc:
 # C header files
 install-headers: \
 	$(includedir)/linsys.h \
+	$(includedir)/napInt.h \
 	$(includedir)/nap_check.h \
 	$(includedir)/nap_hdf.h \
 	$(includedir)/nap_netcdf.h \
@@ -346,6 +350,10 @@ install-headers: \
 $(includedir)/linsys.h: $(GENERIC_DIR)/linsys.h
 	if test ! -d $(includedir) ; then mkdir $(includedir); fi
 	$(CP) $(GENERIC_DIR)/linsys.h $@
+
+$(includedir)/napInt.h: $(GENERIC_DIR)/napInt.h
+	if test ! -d $(includedir) ; then mkdir $(includedir); fi
+	$(CP) $(GENERIC_DIR)/napInt.h $@
 
 $(includedir)/nap_check.h: $(GENERIC_DIR)/nap_check.h
 	if test ! -d $(includedir) ; then mkdir $(includedir); fi
@@ -400,7 +408,6 @@ LIB_PATHS = \
 	$(TCL_STUB_LIB_PATH) \
 	$(TK_LIB_PATH) \
 	$(TK_STUB_LIB_PATH) \
-	$(BLT_LIB_PATH) \
 	$(NC_LIB_PATH) \
 	$(HDF_LIB_PATH)
 
@@ -409,13 +416,6 @@ $(PACKAGE_SHLIB): $(OBJS) $(LIB_PATHS)
 
 $(PACKAGE_SHELL): $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LIB_PATHS)
 	$(LINK) $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LINK_LIBS)
-
-#------------------------------------------------------------------------------
-# Rules for doc files
-#------------------------------------------------------------------------------
-
-blt_graph_manual.html: $(mandir)/mann/graph.n
-	groff -mandoc -Thtml $(mandir)/mann/graph.n > $@
 
 #------------------------------------------------------------------------------
 # Rules for distribution tar files
@@ -469,6 +469,7 @@ clean:
 		config.cache \
 		config.log \
 		config.status \
+		autom4te.cache/* \
 		so_locations \
 		vc50.pch
 

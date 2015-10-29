@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.22 2003/03/14 01:08:57 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.34 2003/10/28 23:11:05 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -208,6 +208,48 @@ namespace eval ::NAP {
     }
 
 
+    # get_gridascii --
+    #
+    # Read a file in ARC/INFO GRIDASCII format
+
+    proc get_gridascii {
+	filename
+    } {
+	set f [open [$filename value]]
+	foreach var_name {ncols nrows xllcorner yllcorner cellsize nodata_value} {
+	    if {[gets $f line] <= 0} {
+		error "Empty header record"
+	    }
+	    if {$var_name ne [string tolower [lindex $line 0]]} {
+		error "Wrong name in header line"
+	    }
+	    set $var_name [lindex $line 1]
+	}
+	nap "z = f32{}"
+	while {[gets $f line] > 0} {
+	    nap "z = z // f32{$line}"
+	}
+	close $f
+	set ne [expr $nrows * $ncols]
+	set na [$z nels]
+	if {$na != $ne} {
+	    error "Expected to read $ne values, but actually read $na values"
+	}
+	nap "z = reshape(z, nrows // ncols)"
+	nap "xmin = xllcorner + 0.5 * cellsize"
+	nap "xmax = xmin + (ncols - 1) * cellsize"
+	nap "ymin = yllcorner + 0.5 * cellsize"
+	nap "ymax = ymin + (nrows - 1) * cellsize"
+	nap "longitude = ncols ... xmin .. xmax"
+	nap "latitude  = nrows ... ymax .. ymin"
+	$longitude set unit degrees_east
+	$latitude  set unit degrees_north
+	$z set coo latitude longitude
+	$z set miss $nodata_value
+	nap "z"
+    }
+
+
     # gets_matrix --
     #
     # Read text file and return NAO f64 matrix whose rows correspond to the lines in the file.
@@ -304,6 +346,78 @@ namespace eval ::NAP {
     }
 
 
+    # isInsidePolygon --
+    #
+    # Usage: isInsidePolygon(x, y, poly)
+    # Tests whether points defined by x & y are inside polygon defined by poly.
+    #
+    # poly is normally matrix with 2 columns.  Each row corresponds to a point.
+    # Column 0 contains x values & column 1 contains y values.
+    # If poly is a vector then it will be reshaped to a matrix with same number of elements.
+    #
+    # x & y must have shapes which are compatible with each other.
+    # Result has the same shape as x or y (whichever has the higher rank)
+    #
+    # Based on function 'pnpoly' by Randolph Franklin at URL
+    # http://astronomy.swin.edu.au/~pbourke/geometry/insidepoly/
+    # This page was written by Paul Bourke in November 1987 & is titled
+    # 'Determining if a point lies on the interior of a polygon'.
+    #
+    # Note that we loop for each vertex of the polygon, so this function is only suitable for
+    # polygons consisting of fairly small numbers of vertices. But it is efficient if x & y
+    # are large arrays.
+
+    proc isInsidePolygon {
+	x
+	y
+	poly
+    } {
+	if {[$poly rank] == 1} {
+	    nap "poly = reshape(poly, (nels(poly) / 2) // 2)"
+	}
+	if {[[nap "rank(poly) != 2  ||  (shape(poly))(1) != 2"]]} {
+	    error "isInsidePolygon: poly has illegal shape"
+	}
+	set vars {x y poly}
+	foreach var $vars {
+	    lappend types [eval $$var datatype]
+	}
+	if {[lsearch $types f32] >= 0  &&  [lsearch $types f64] < 0} {
+	    set type f32
+	} else {
+	    set type f64
+	}
+	foreach var $vars {
+	    nap "$var = type($var)"
+	}
+	nap "c = 0"
+	set n [lindex [$poly shape] 0]
+	for {set i 0} {$i < $n} {incr i} {
+	    nap "j = i - 1"
+	    nap "xpi = poly(i,0)"
+	    nap "ypi = poly(i,1)"
+	    nap "xpj = poly(j,0)"
+	    nap "ypj = poly(j,1)"
+	    nap "c = c != ((((ypi <= y) && (y < ypj)) || ((ypj <= y) && (y < ypi)))
+		    && (x < (xpj - xpi) * (y - ypi) / (ypj - ypi) + xpi))"
+	}
+	nap "c"
+    }
+
+
+    # isMember --
+    #
+    # isMember(a,v) tests whether elements of array a are members of vector v.
+    # Result has shape of a.
+
+    proc isMember {
+	a
+	v
+    } {
+	nap "count(v @@@ a, 0)"
+    }
+
+
     # isMissing --
     #
     # nap function giving 1 if element is missing, 0 if present.
@@ -350,7 +464,7 @@ namespace eval ::NAP {
 	    nap "new_cv$d = (coordinate_variable(x, d))(s)"
 	    lappend cv_list [set new_cv$d]
 	    if {$want_nearest} {
-		nap "s = nint(s)"
+		nap "s = i32(nint(s))"
 	    }
 	    nap "i = i , s"
 	}
@@ -383,6 +497,7 @@ namespace eval ::NAP {
     # Border elements magnify only inwards not outwards.
     # mag_factor is either scalar or vector with element for each dimension.
     # Use nearest neigbours to define new values.
+    # Define CVs of result using interpolation.
 
     proc magnify_nearest {
 	x
@@ -434,6 +549,69 @@ namespace eval ::NAP {
     }
 
 
+    # moving_average --
+    #
+    # Move window of specified shape by specified step (can vary for each dimension).
+    # Result is arithmetic mean of values in each window.
+    # x is array (ranks > 2 not supported yet)
+    # Both shape_window & step are vectors with an element for each dimension (after
+    # reshaping if necessary).
+    # Missing values in x are treated as 0 (which is probably not desired!).
+
+    proc moving_average {
+	x
+	shape_window
+	{step 1}
+    } {
+	set r [$x rank]
+	nap "w = i32(reshape(shape_window, r))"
+	nap "s = i32(reshape(step, r))"
+	switch $r {
+	    0 {
+		nap "result = x"
+	    }
+	    1 {
+		nap "w = w(0)"
+		nap "s = s(0)"
+		nap "n = nels(x) / s * s"
+		nap "p = 0 // psum(x)"
+		nap "result = f64(p(w .. n ... s) - p(0 .. (n-w) ... s)) / w"
+	    }
+	    2 {
+		nap "n = shape(x) / s * s"
+		nap "p = 0 // transpose(0 // transpose(psum(x)))"
+		nap "i0 = 0 .. (n(0) - w(0)) ... s(0)"
+		nap "j0 = 0 .. (n(1) - w(1)) ... s(1)"
+		nap "i1 = w(0) .. n(0) ... s(0)"
+		nap "j1 = w(1) .. n(1) ... s(1)"
+		nap "result = f64(p(i1,j1) + p(i0,j0) - p(i0,j1) - p(i1,j0)) / w(0) / w(1)"
+	    }
+	    default {
+		error "moving_average: Not implemented for rank > 2"
+	    }
+	}
+	nap "result"
+    }
+
+
+    # nub --
+    #
+    # Result is vector of distinct values in argument (in same order)
+
+    proc nub {
+	x
+    } {
+	nap "v = reshape(x)"
+	nap "v = isPresent(v) # v"
+	nap "result = v{}"
+	while {[$v nels] > 0} {
+	    nap "result = result // v(0)"
+	    nap "v = (v != v(0)) # v"
+	}
+	nap "result"
+    }
+
+
     # outer --
     #
     # tensor outer-product
@@ -475,32 +653,33 @@ namespace eval ::NAP {
 	    nap "x"
 	} else {
 	    set vr [[nap "1 + (vr - 1) % r"]]
-	    nap "n = (shape x) ($r - $vr)"
-	    nap "i = ap(n - 1, 0, -1)"
-	    nap "x([commas "$r - $vr"]i[commas "$vr - 1"])"
+	    nap "x([commas "$r - $vr"]-[commas "$vr - 1"])"
 	}
     }
 
 
     # scaleAxis --
-
+    #
     #   Find suitable values for axis.
-    #   Result is the arithmetic progression which:
-    #   - is within interval from XSTART to XEND
+    #   Normal result is the arithmetic progression (AP) which:
+    #   - has increment equal to an element of NICE times a power (-30 .. 30) of 10
+    #   - has elements equal to integer multiple of this increment
     #   - has same order (ascending/descending) as {XSTART, XEND}
-    #   - has increment equal to element of NICE times a power (-30 .. 30) of 10
-    #   - has at least two elements
-    #   - has no more than NMAX elements if possible
-    #   - has as many elements as possible (Ties are resolved by choosing earlier
-    #     element in NICE.)
-
+    #   - has as many elements as possible, but no more than NMAX
+    #   - is within the interval from XSTART to XEND if MODE is 0
+    #   - contains  the interval from XSTART to XEND if MODE is 1
+    #	If no such AP exists but one or more exist for N > NMAX, then the one with minimum
+    #	N is selected and the result is the 2-element vector containing its range.
+    #   If no such AP with at least 2 elements exists, then the result is set to an empty vector.
+    #
     # Usage
-    #   scaleAxis XSTART XEND ?NMAX? ?NICE?
+    #   scaleAxis(XSTART, XEND ?,NMAX? ?,NICE? ?,MODE?)
     #       XSTART: 1st data value
     #       XEND: Final data value
     #       NMAX: Max. allowable number of elements in result (Default: 10)
     #       NICE: Allowable increments (Default: {1 2 5})
-
+    #       MODE: Want axis to contain START & XEND? (Default: 0)
+    #
     # Example
     #   nap "axis = scaleAxis(-370, 580, 10, {10 20 25 50})"
     # This sets axis to vector {-300 -200 -100 0 100 200 300 400 500}
@@ -510,41 +689,60 @@ namespace eval ::NAP {
 	xend
 	{nmax 10}
 	{nice "{1 2 5}"}
+	{mode 0}
     } {
-	nap "nice = f64(nice)"
-	nap "xmin = f64(xstart <<< xend)"
-	nap "xmax = f64(xstart >>> xend)"
-	nap "nice = reshape(nice,61*shape(nice)) * (shape(nice)#(10.0 ** (-30 .. 30)))"
-	nap "nv = 1.0 + (fuzzy_floor(xmax/nice) - fuzzy_ceil(xmin/nice))"
-	nap "nv = (nv > 1.0) # nv"
-	nap "n = 2 >>> max((nv <= (nmax >>> min(nv))) # nv)"
-	nap "d = nice(nv @@ n)"
-	nap "d = isnan(d) ? 1.0 : d"
-	nap "xmin = d * fuzzy_ceil(xmin/d)"
-	nap "xmax = xmin + (n-1) * d"
-	nap "xstart < xend ? (xmin .. xmax ... d) : (xmax .. xmin ... -d)"
+	if {[[nap "xstart == xend"]]} {
+	    if {[[nap "mode"]]} {
+		nap "x = sort(0 // (xstart == 0 ? 1 : xstart))"
+		nap "result = scaleAxis(x(0), x(1), nmax, nice, mode)"
+	    } else {
+		nap "result = reshape(xstart)"
+	    }
+	} else {
+	    if {[[nap "mode"]]} {
+		set f0 fuzzy_floor
+		set f1 fuzzy_ceil
+	    } else {
+		set f0 fuzzy_ceil
+		set f1 fuzzy_floor
+	    }
+	    nap "xmin = f64(xstart <<< xend)"
+	    nap "xmax = f64(xstart >>> xend)"
+	    nap "p = 10.0 ** (-30 .. 30)"
+	    nap "nn = nels(nice)"
+	    nap "nice_vec = sort(reshape(f64(nice), nels(p) * nn) * (nn # p))"
+	    nap "nv0 =  f0(xmin/nice_vec)"
+	    nap "nv1 =  f1(xmax/nice_vec)"
+	    nap "nv = 1.0 + (nv1 - nv0)"
+	    nap "max32 = 2e9"; # near limit for i32 number
+	    nap "mask = abs(nv0) < max32  &&  abs(nv1) < max32"
+	    nap "mask = mask  &&  nv > 1.5  &&  nv <= (nmax >>> min(nv))"
+	    nap "j = mask @@@ 1"
+	    if {[[nap "isMissing(j)"]]} {
+		nap "result = xstart // xend"
+	    } else {
+		nap "d = nice_vec(j)"
+		nap "n = i32(nv(j))"
+		nap "i = i32(nv0(j) + (0 // (n-1)))"
+		nap "n = n > nmax ? 2 : n"
+		nap "result = d * (n ... i(xstart > xend) .. i(xstart < xend))"
+	    }
+	}
+	nap "result"
     }
 
 
     # scaleAxisSpan --
-
-    #   Find suitable values for axis.
-    #   Result is the arithmetic progression which:
-    #   - includes the interval from XSTART to XEND
-    #   - has same order (ascending/descending) as {XSTART, XEND}
-    #   - has increment equal to element of NICE times a power (-30 .. 30) of 10
-    #   - has at least two elements 
-    #   - has no more than NMAX elements if possible
-    #   - has as many elements as possible (Ties are resolved by choosing earlier
-    #     element in NICE.)
-
+    #
+    #   Find suitable values for axis which includes XSTART & XEND
+    #
     # Usage
-    #   scaleAxisSpan XSTART XEND ?NMAX? ?NICE?
+    #   scaleAxisSpan(XSTART, XEND ?,NMAX? ?,NICE?)
     #       XSTART: 1st data value
     #       XEND: Final data value
     #       NMAX: Max. allowable number of elements in result (Default: 10)
     #       NICE: Allowable increments (Default: {1 2 5})
-
+    #
     # Example
     #   nap "axis = scaleAxisSpan(-370, 580, 10, {10 20 25 50})"
     # This sets axis to vector {-400 -200 0 200 400 600}
@@ -555,18 +753,7 @@ namespace eval ::NAP {
 	{nmax 10}
 	{nice "{1 2 5}"}
     } {
-	nap "nice = f64(nice)"
-	nap "xmin = f64(xstart <<< xend)"
-	nap "xmax = f64(xstart >>> xend)"
-	nap "nice = reshape(nice,61*shape(nice)) * (shape(nice)#(10.0 ** (-30 .. 30)))"
-	nap "nv = 1.0 + (fuzzy_ceil(xmax/nice) - fuzzy_floor(xmin/nice))"
-	nap "nv = (nv > 1.0) # nv"
-	nap "n = 2 >>> max((nv <= (nmax >>> min(nv))) # nv)"
-	nap "d = nice(nv @@ n)"
-	nap "d = isnan(d) ? 1.0 : d"
-	nap "xmin = d * fuzzy_floor(xmin/d)"
-	nap "xmax = xmin + (n-1) * d"
-	nap "xstart < xend ? (xmin .. xmax ... d) : (xmax .. xmin ... -d)"
+	nap "scaleAxis(xstart, xend, nmax, nice, 1)"
     }
 
 
@@ -581,6 +768,35 @@ namespace eval ::NAP {
 	    nap "minValue = min(minValue)"
 	}
 	nap "minValue // maxValue"
+    }
+
+
+    # regression --
+    #
+    # Multiple regression (predicting y from x)
+    # If x & y are both vectors (of same length) then result is 2-element vector b which defines
+    # predictive equation  y = b(0) + b(1) * x
+    # 
+    # x & y can be matrices (with columns corresponding to variables)
+    # If y is vector then result is vector b which defines
+    # predictive equation  y = b(0) + b(1) * x0 + b(2) * x1 + b(3) * x2 + ...
+    # If y is matrix then result is matrix with same number of columns (corresponding to variables)
+
+    proc regression {
+	x
+	y
+    } {
+	switch [$x rank] {
+	    1 {nap "A = transpose(1f32 /// x)"}
+	    2 {nap "A = transpose(1f32 // transpose(x))"}
+	    default {error "regression: rank of x is not 1 or 2"}
+	}
+	switch [$y rank] {
+	    1 {}
+	    2 {}
+	    default {error "regression: rank of y is not 1 or 2"}
+	}
+	nap "solve_linear(A, y)"
     }
 
 
@@ -606,7 +822,8 @@ namespace eval ::NAP {
 	nap "s = sin(latitude / 180p-1)"
 	nap "n = nels(s)"
 	nap "mid = s(0 .. (n-2)) + s(1 .. (n-1))"
-	nap "1r4 * ((mid // 2.0) - (-2.0 // mid))"
+        nap "c = 2.0 * sign(latitude(1) - latitude(0))"
+	nap "0.25 * abs((mid // c) - (-c // mid))"
     }
 
 

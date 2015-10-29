@@ -1,0 +1,37 @@
+# text_io.test --
+# 
+# Test text I/O functions defined in file $env(LIBRARY_DIR)/text_io.tcl
+#
+# Copyright (c) 2003, CSIRO Australia
+# Author: Harvey Davies, CSIRO Atmospheric Research
+# $Id: text_io.test,v 1.1 2003/10/31 00:54:21 dav480 Exp $
+
+proc put_info text {
+    # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+}
+
+source $env(LIBRARY_DIR)/text_io.tcl
+
+Test text_io-1.1 {put_text_surfer} {
+    nap "z = {
+	{91.03 60.55}
+	{96.04 62.38}
+	{92.10 65.09}
+    }"
+    nap "y = 3 ...  0.0 .. 7.0"
+    nap "x = {0.0 9.0}"
+    $z set coo y x
+    put_text_surfer z surfer.txt
+    unset x y z
+    gets_file surfer.txt
+} {DSAA
+2 3
+0 9
+0 7
+60.55 96.04
+91.03 60.55
+96.04 62.38
+ 92.1 65.09
+}
+
+file delete surfer.txt

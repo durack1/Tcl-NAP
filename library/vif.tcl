@@ -7,7 +7,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: vif.tcl,v 1.7 2002/11/04 00:12:52 dav480 Exp $
+# $Id: vif.tcl,v 1.10 2003/07/25 01:50:37 dav480 Exp $
 
 
 # vif --
@@ -25,6 +25,8 @@ proc vif {
 }
 
 namespace eval View_image_file {
+
+    variable format gif;	# format of output image file
 
     variable help_usage \
 	    "Usage:\
@@ -45,6 +47,51 @@ namespace eval View_image_file {
 	    \n\
 	    \n Example:\
 	    \n   vif abc.gif -g +0+0 -pr colour1"
+
+    proc create_nao {
+	parent
+	img
+	infile
+    } {
+	set nao_name "::[get_entry "name of new NAO" -parent $parent \
+		-text [file rootname [file tail $infile]]]"
+	$img write $nao_name -format NAO
+	message_window "Created NAO named '$nao_name'" -parent $parent
+    }
+
+    proc write_image_file {
+	parent
+	img
+	infile
+    } {
+	global ::View_image_file::format
+	set formats "ppm pgm gif"
+	if {[catch "package require Img"] == 0} {
+	    lappend formats bmp xbm xpm png jpeg tiff
+	}
+	set formats [lsort $formats]
+	set top .vif_tmp_top
+	toplevel $top
+	wm geometry $top "+[winfo x $parent]+[winfo y $parent]"
+	wm title $top "Select format"
+	label $top.label -text "Select format of output image file"
+	pack $top.label
+	foreach fmt $formats {
+	    radiobutton $top.$fmt -text $fmt -value $fmt \
+		    -variable ::View_image_file::format
+	    pack $top.$fmt -anchor w
+	}
+	button $top.ok -text OK -command "destroy $top"
+	pack $top.ok
+	tkwait window $top
+	set filename "[file rootname [file tail $infile]].$format"
+	set filename [tk_getSaveFile -initialfile $filename -title "Image Filename"]
+	if {$filename ne ""} {
+	    if [catch "$img write $filename -format $format" msg] {
+		error "Error writing image file $filename\n$msg"
+	    }
+	}
+    }
 
     proc view_image_file {
 	{infile ""}
@@ -88,18 +135,24 @@ namespace eval View_image_file {
 		    set img [image create photo -file $infile]
 		    set image_width  "[image width $img].0"
 		    set image_height "[image height $img].0"
-		    set can [canvas $all.canvas -width $image_width -height $image_height]
+		    set can [canvas $all.canvas -width $image_width -height $image_height \
+			     -highlightthickness 0]
 		    $can create image 0 0 -image $img -anchor nw
 		    set frame $all.frame
 		    frame $frame
 		    set command "::Print_gui::canvas2ps $can $border $image_height $image_width"
 		    button $frame.print -text print \
 			    -command [list ::Print_gui::widget $command $parent]
+		    button $frame.nao -text "create NAO" \
+			    -command [list ::View_image_file::create_nao $parent $img $infile]
+		    button $frame.write -text "write image file" \
+			    -command [list ::View_image_file::write_image_file $parent $img $infile]
 		    button $frame.cancel -text cancel -command "destroy $all"
 		    set help_command \
 			{message_window $::View_image_file::help_usage -geometry +0+0 -parent ""}
 		    button $frame.help -text help -command $help_command
-		    pack $frame.print $frame.cancel $frame.help -side left
+		    pack $frame.print $frame.write $frame.nao \
+			    $frame.cancel $frame.help -side left
 		    pack $frame $can
 		    if {$auto_print} {
 			update idletasks

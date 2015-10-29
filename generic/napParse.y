@@ -13,7 +13,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParse.y,v 1.59 2002/12/20 01:42:42 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParse.y,v 1.60 2003/07/19 14:19:35 dav480 Exp $";
 #endif /* not lint */
 
 #ifdef WIN32
@@ -149,7 +149,8 @@ expr	: naoID
 	| MATCH expr %prec '!'		{$$ = Nap_Indirect(Nap_param, 3,$2);}
 	| ',' expr %prec ','		{$$ = Nap_Link(Nap_param, NULL, $2);}
 	| expr ',' %prec ','		{$$ = Nap_Link(Nap_param, $1, NULL);}
-	| ','				{$$ = Nap_Link(Nap_param, NULL, NULL);}
+	| ','				{$$ = Nap_Niladic(Nap_param, ",");}
+	| '-'	   %prec '!'		{$$ = Nap_Niladic(Nap_param, "-");}
 	| '(' expr ')'			{$$ = $2;}
 	| NAME NAME %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}
 	| NAME FuncArg2 %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}

@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.50 2003/03/13 03:39:28 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.52 2003/09/17 00:20:44 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -172,6 +172,7 @@ Nap_NetcdfCheck(
  * Nap_NetcdfVarGetInfo --
  *
  *	Get rank, shape & netCDF (external) data-type
+ *	Determine whether dimension 0 is unlimited. (If rank is 0 then false.)
  */
 
 m4define(`m4NAME', `Nap_NetcdfVarGetInfo')
@@ -207,9 +208,13 @@ Nap_NetcdfVarGetInfo(
     status = nc_inq_vartype(ncid, varid, xtype);
     CHECK2NC(status, "m4NAME: Error calling nc_inq_vartype");
     if (isRecord) {
-	status = nc_inq_unlimdim(ncid, &dimid_unlim);
-	CHECK2NC(status, "m4NAME: Error calling nc_inq_unlimdim");
-	*isRecord = dimids[0] == dimid_unlim;
+	if (*rank > 0) {
+	    status = nc_inq_unlimdim(ncid, &dimid_unlim);
+	    CHECK2NC(status, "m4NAME: Error calling nc_inq_unlimdim");
+	    *isRecord = dimids[0] == dimid_unlim;
+	} else {
+	    *isRecord = 0;
+	}
     }
     return TCL_OK;
 }
@@ -1213,30 +1218,35 @@ Nap_NetcdfDefineSubscript(
 		    subscript_ptr[i][j] = Nap_mod(sub_NAO->data.I32[j], shape_t[i]);
 		}
 	    }
-	    if (cv_nc_NAO  &&	mode == 'r') {
-		++cv_nc_NAO->count;
-		++sub_NAO->count;
-		str = Nap_Func(nap_cd, cv_nc_NAO->id , sub_NAO->id);
-		CHECK2(str,
-			"m4NAME: Error defining new coordinate variable");
-		--cv_nc_NAO->count;
-		--sub_NAO->count;
-		tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
-		CHECK2(tmp_NAO,
-			"m4NAME: Error calling Nap_GetNumericNaoFromId");
-		if (tmp_NAO->rank == 0) {
-		    tmp_NAO2 = tmp_NAO;
-		    j = shape1[0];
-		    shape1[0] = 1;
-		    tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1, shape1);
-		    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
-		    Nap_FreeNAO(nap_cd, tmp_NAO2);
-		    shape1[0] = j;
+	    if (mode == 'r') {
+		if (cv_nc_NAO) {
+		    ++cv_nc_NAO->count;
+		    ++sub_NAO->count;
+		    str = Nap_Func(nap_cd, cv_nc_NAO->id , sub_NAO->id);
+		    CHECK2(str,
+			    "m4NAME: Error defining new coordinate variable");
+		    --cv_nc_NAO->count;
+		    --sub_NAO->count;
+		    tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
+		    CHECK2(tmp_NAO,
+			    "m4NAME: Error calling Nap_GetNumericNaoFromId");
+		    if (tmp_NAO->rank == 0) {
+			tmp_NAO2 = tmp_NAO;
+			j = shape1[0];
+			shape1[0] = 1;
+			tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1, shape1);
+			CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
+			Nap_FreeNAO(nap_cd, tmp_NAO2);
+			shape1[0] = j;
+		    }
+		    tmp_NAO->unit = Nap_StrDup(cv_nc_NAO->unit);
+		    status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
+		    CHECK(status == TCL_OK);
+		    Nap_FreeNAO(nap_cd, tmp_NAO);
+		} else {
+		    status = Nap_AttachCoordVar(nap_cd, main_NAO, NULL, name, i);
+		    CHECK(status == TCL_OK);
 		}
-		tmp_NAO->unit = Nap_StrDup(cv_nc_NAO->unit);
-		status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
-		CHECK(status == TCL_OK);
-		Nap_FreeNAO(nap_cd, tmp_NAO);
 	    }
 	    Nap_FreeNAO(nap_cd, cv_nc_NAO);
 	    Nap_FreeNAO(nap_cd, el_NAO);

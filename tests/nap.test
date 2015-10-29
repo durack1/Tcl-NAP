@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: nap.test,v 1.157 2003/03/13 07:45:28 dav480 Exp $
+# $Id: nap.test,v 1.167 2003/07/21 05:03:37 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
@@ -80,10 +80,9 @@ Test nap-1.29 {u8  cast} {[nap "u8{-1 0 1 255 256}"]} {255 0 1 255 255}
 Test nap-1.30 {i16 cast} {[nap "i16{-32769.0 -32768 -32767 32767 32768}"]} {_ _ -32767 32767 _}
 Test nap-1.31 {u16 cast} {[nap "u16{-1f 0f 1f 65534f 65535f}"]} {_ 0 1 65534 _}
 Test nap-1.32 {i32 cast} {
-    [nap "i32{-2147483649.0 -2147483648.0 -2147483647.0 2147483647.0 2147483648.0}"] -format %0.0f
+    [nap "i32{-2147483649.0 -2147483648.0 -2147483647.0 2147483647.0 2147483648.0}"]
 } {_ _ -2147483647 2147483647 _}
-Test nap-1.33 {u32 cast} {
-    [nap "u32{-1 0 1 4294967294.0 4294967295.0}"] -format %0.0f} {_ 0 1 4294967294 _}
+Test nap-1.33 {u32 cast} {[nap "u32{-1 0 1 4294967294.0 4294967295.0}"]} {_ 0 1 4294967294 _}
 Test nap-1.34 {f32 cast} {[nap "f32{-1.0 0 _}"]} {-1 0 _}
 Test nap-1.35 {f64 cast} {[nap "f64{-1 0 _ 99}"]} {-1 0 _ 99}
 
@@ -166,6 +165,8 @@ Test nap-4.27 {?: with missing values} {
     $t set miss
     [nap "{1 1 0 0 _} ? t : {6 7 _ 8 9}"]
 } {2 2.5 _ 8 _}
+Test nap-4.28 {f32 divide by 0.0} { [nap "f32{0 9}/0f32"]} {_ Inf}
+Test nap-4.29 {f64 divide by 0.0} { [nap "f64{0 9}/0f64"]} {_ Inf}
 
 Test nap-5.1 {rank of scalar} { [nap 2] rank } {0}
 Test nap-5.2 {rank of vector} { [nap "{5#0}"] rank } {1}
@@ -647,9 +648,47 @@ Test nap-14.90 {subscript is missing value} {[nap "{1 4}(f32{_})"]} {_}
 Test nap-14.91 {subscript is missing value} {[nap "{{1 4}{8 2}}(i32{1 _},0)"]} {8 _}
 Test nap-14.92 {subscript is missing value} {[nap "{{1 4}{8 2}}(f32{1 _},0)"]} {8 _}
 
+Test nap-14.93 {subscripted var containing expr} {
+    set v "{3 8}"
+    [nap "v(0)"]
+} {3}
+
+Test nap-14.94 {index: vector(-)} {[nap "{9 1}(-)"]} {1 9}
+Test nap-14.95 {index: matrix with -} {[nap "{{1 4}{8 2}}(-,0)"]} {8 1}
+Test nap-14.96 {index: matrix with -} {[nap "{{1 4}{8 2}}(1f32,-)"]} {2 8}
+Test nap-14.97 {index: matrix with -} {[nap "{{1 4}{8 2}}(-,)"]} {8 2
+1 4}
+Test nap-14.98 {index: matrix with -} {[nap "{{1 4}{8 2}}(,-)"]} {4 1
+2 8}
+Test nap-14.99 {index: matrix with -} {[nap "{{1 4}{8 2}}(-,-)"]} {2 8
+4 1}
+Test nap-14.100 {index: matrix with -} {[nap "{{1 4}{8 2}}(1r2,-)"]} {3 4.5}
+
+Test nap-14.101 {index: matrix with -} {[nap "tmp = mat(-,)"]} {1 0 3
+2 4 8}
+Test nap-14.102 {index: cv} {[nap "cv(tmp,0)"]} {0 -30}
+Test nap-14.103 {index: cv} {[nap "cv(tmp,1)"]} {90 180 270}
+
+Test nap-14.104 {index: matrix with -} {[nap "tmp = mat(,-)"]} {8 4 2
+3 0 1}
+Test nap-14.105 {index: cv} {[nap "cv(tmp,0)"]} {-30 0}
+Test nap-14.106 {index: cv} {[nap "cv(tmp,1)"]} {270 180 90}
+
+Test nap-14.107 {index: matrix with -} {[nap "tmp = mat(-,-)"]} {3 0 1
+8 4 2}
+Test nap-14.108 {index: cv} {[nap "cv(tmp,0)"]} {0 -30}
+Test nap-14.109 {index: cv} {[nap "cv(tmp,1)"]} {270 180 90}
+
+Test nap-14.110 {index: vector(-) with cv} {
+    nap "tmp = {9.2 1.0 7.5}"
+    $tmp set coo lon
+    [nap "tmp = tmp(-)"]
+} {7.5 1 9.2}
+Test nap-14.111 {index: cv} {[nap "cv(tmp)"]} {270 180 90}
+
 unset closest in02 in_closest lat lon mat tmp v
 # keep c in(+2) a i j m
-put_info "nap-14.92 19"
+put_info "nap-14.93 19"
 
 Test nap-15.1 {ap using ..} { [nap 3 .. 5] v } {3 4 5}
 Test nap-15.2 {f64 ap using ..} { [nap -2.7 .. 1] v} {-2.7 -1.7 -0.7 0.3 1}
@@ -833,6 +872,12 @@ Test nap-19.3 {display matrix defined above} { $m -f %g} { 2  4  0
 Test nap-19.4 {display matrix using "value <FORMAT>"} {
 $m value -f %4.0f} {   2    4    0
   -3    8    9}
+
+Test nap-19.5 {display ISO-8859 code} {[nap "c8(176)"]} {°}
+
+Test nap-19.6 {display using format containing ISO-8859 code} {
+[nap "3 .. 4"] -f "%d\xb0"
+} {3° 4°}
 
 # keep a3d in(+2) a i j m
 put_info "nap-19.4  20"
@@ -1930,6 +1975,18 @@ Test nap-45.17 {string subscripting with float subscript} {
 } {cd
 ab}
 
+Test nap-45.18 {{} @@@ scalar} {
+    [nap "{} @@@ 5"]
+} {_}
+
+Test nap-45.19 {single_el_vector @@@ vector} {
+    [nap "{3} @@@ {5 3}"]
+} {_ 0}
+
+Test nap-45.20 {sorted_vector_with_repeats @@@ vector} {
+    [nap "{3#4 5#0 2#-9 -20} @@@ {-9 5 -20 0 4}"]
+} {8 _ 10 3 0}
+
 # keep s
 
 Test nap-46.1 {set link} {
@@ -2030,21 +2087,6 @@ Test nap-50.4 {subscripting boxed nao} {
 } {3 abc}
 
 unset b b1 s
-
-Test nap-51.1 {OOC blt_vector} {
-    package require BLT
-    nap "v = {-2.0 4.5}"
-    $v blt_vector bltv
-    list [$v count] [set bltv(:)]
-} {2 {-2.0 4.5}}
-
-blt::vector destroy bltv; # must be done outside test (else can get segmentation fault)
-
-Test nap-51.2 {OOC blt_vector} {
-    $v count
-} 1
-
-unset v
 # keep z(+2)
 put_info "nap-51.2 15"
 

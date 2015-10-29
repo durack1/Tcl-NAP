@@ -51,19 +51,6 @@ NAP since most CAPS data are stored as NAOs.
 </p>
 
 <p>
-NAP includes an interface to the
-<a href="http://sourceforge.net/projects/blt/">BLT</a> 
-vector facility which is used by the NAP graphing procedure
-<a href="plot_nao.html"><code>plot_nao</code></a>
-to provide fast transfer of data to the BLT <code>graph</code> and
-<code>barchart</code> commands.
-Thus NAP must be linked with the binary libraries for
-<a href="http://sourceforge.net/projects/blt/">BLT</a>,
-<a href="http://hdf.ncsa.uiuc.edu">HDF</a> and
-<a href="http://www.unidata.ucar.edu/packages/netcdf/index.html">netCDF</a>.
-</p>
-
-<p>
 Data are stored in memory as <em>n-dimensional array objects (NAOs)</em>,
 which include information such as:
 <ul>
@@ -110,7 +97,6 @@ This is used to:
     <li>display other information about the NAO such as its data-type and dimensions
     <li>change data and other details
     <li>write data from the NAO to a binary,  HDF or netCDF file
-    <li>write data from the NAO to a BLT vector
 </ul>
 <p></p>
 
@@ -136,7 +122,7 @@ It is also possible to call functions written in C and Fortran.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: overview.html,v 1.6 2002/08/07 08:07:56 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: overview.html,v 1.7 2003/05/20 05:31:36 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.20 2003/03/13 03:39:28 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.21 2003/04/15 02:18:43 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -318,7 +318,6 @@ Nap_GetHDF(
 	status = Nap_HdfInfo(nap_cd, fileName, sds_name, raw, &rank,
 		hdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
-	Nap_IncrRefCount(nap_cd, subscript_NAO);
 	if (subscript_NAO) {
 	    if (subscript_NAO->dataType != NAP_BOXED) {
 		tmp_NAO = subscript_NAO;
@@ -585,7 +584,6 @@ Nap_GetNetcdf(
 	status = Nap_NetcdfInfo(nap_cd, fileName, var_name, raw,
 		&rank, netcdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
-	Nap_IncrRefCount(nap_cd, subscript_NAO);
 	if (subscript_NAO) {
 	    if (subscript_NAO->dataType != NAP_BOXED) {
 		tmp_NAO = subscript_NAO;

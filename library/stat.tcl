@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: stat.tcl,v 1.14 2002/06/05 00:44:07 dav480 Exp $
+# $Id: stat.tcl,v 1.15 2003/10/10 01:44:46 dav480 Exp $
 #
 # Statistics functions
 
@@ -77,7 +77,7 @@ namespace eval ::NAP {
 		    nap "result = transpose(STAT::var01(transpose(X), r, delta))"
 		}
 	    } else {
-		nap "result = [STAT::define_stat $X $vr {nap "1nf64 * X"} \
+		nap "result = [::NAP::STAT::define_stat $X $vr {nap "1nf64 * X"} \
 		    "nap n = count(X); nap sum((X - sum(X) / n)**2) / (n-$delta)"]"
 	    }
 	    nap "result"
@@ -156,7 +156,7 @@ namespace eval ::NAP {
 	} elseif {$r == 1} {
 	    nap "result = (sort(count(X,0) # X)) (0.5 * (count(X) - 1))"
 	} else {
-	    nap "result = [STAT::define_stat $X $vr {nap "X"} {
+	    nap "result = [::NAP::STAT::define_stat $X $vr {nap "X"} {
 		nap "(sort(count(X,0) # X)) (0.5 * (count(X) - 1))"}]"
 	}
 	$result set unit [$X unit]
