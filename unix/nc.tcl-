@@ -1,0 +1,9 @@
+package require nap
+namespace import ::NAP::*
+set ext nc
+set hdf_nc netcdf
+
+    file delete test.$ext
+    [nap "{1 42}"] $hdf_nc test.$ext abc
+    [nap_get $hdf_nc test.$ext abc "0 .. 1"] v
+

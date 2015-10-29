@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.19 2005/01/20 03:33:45 dav480 Exp $
+dnl	$Id: configure.m4,v 1.20 2005/01/20 07:50:55 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -222,7 +222,7 @@ AC_EGREP_HEADER(_isnan, float.h, AC_DEFINE(ISNAN64, _isnan),
 
 VERSION=${MAJOR_VERSION}.${MINOR_VERSION}
 NODOT_VERSION=${MAJOR_VERSION}_${MINOR_VERSION}
-NODOT_PATCHLEVEL=`echo ${PATCHLEVEL} | tr . _`
+NODOT_PATCHLEVEL=`echo ${PATCHLEVEL} | tr -d .`
 
 AC_SUBST(PACKAGE)
 AC_SUBST(MAJOR_VERSION)

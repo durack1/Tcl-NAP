@@ -22,8 +22,8 @@
 package ifneeded nap 4.0 [subst {
     [list load [file join \
 	[file dirname [file dirname $dir]] \
-	bin \
-	nap4_0.dll]]
+	lib \
+	libnap4.0.so]]
     set dir {$dir}
     [list source [file join $dir tclIndex]]
     unset dir

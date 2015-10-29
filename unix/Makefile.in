@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.149 2005/01/19 07:15:19 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.151 2005/01/21 03:06:18 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -320,7 +320,7 @@ upload_src: $(SRC_TAR)
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
-PDF = $(TOP_DIR)/$(PACKAGE)$(NODOT_VERSION)$(NODOT_PATCHLEVEL).pdf
+PDF = $(TOP_DIR)/$(PACKAGE)$(NODOT_VERSION)_$(NODOT_PATCHLEVEL).pdf
 
 upload_pdf: $(PDF)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl
@@ -458,6 +458,7 @@ $(PACKAGE_SHELL): $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LIB_PATHS)
 SRC_MANIFEST = \
 generic \
 html \
+installer \
 library \
 tests \
 unix
@@ -761,7 +762,7 @@ test0: $(PACKAGE_SHELL) test0.tcl
 # Installer (tcl starpack)
 #------------------------------------------------------------------------------
 
-INSTALLER_NAME = $(PACKAGE)$(NODOT_VERSION)$(NODOT_PATCHLEVEL)$(PLATFORM)_install
+INSTALLER_NAME = $(PACKAGE)$(NODOT_VERSION)_$(NODOT_PATCHLEVEL)$(PLATFORM)_install
 INSTALLER = $(TOP_DIR)/$(INSTALLER_NAME)$(EXEEXT)
 INSTALLER_TCL = $(INSTALLER_DIR)/$(PACKAGE)_install.tcl
 LOCAL_INSTALLER_TCL = $(INSTALLER_NAME).tcl
