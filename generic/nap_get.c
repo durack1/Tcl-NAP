@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.25 2005/06/23 08:37:24 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.26 2005/07/13 01:52:11 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -318,7 +318,7 @@ Nap_GetHDF(
 	CHECK(status == TCL_OK);
 	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
 	    status = Nap_HdfOpenFile(nap_cd, fileName, 'r', &sd_id);
-	    CHECK(status == TCL_OK);
+	    CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	    status = Nap_HdfOpenSDS(nap_cd, sd_id, sds_name, &exists, &sds_id);
 	    CHECK3(exists, "m4NAME: SDS %s not found", sds_name);
 	    status = nap_HdfGetIndex(nap_cd, sds_id, objv[4], &subscript_NAO);
@@ -350,7 +350,7 @@ Nap_GetHDF(
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
 	status = Nap_HdfOpenFile(nap_cd, fileName, 'r', &sd_id);
-	CHECK(status == TCL_OK);
+	CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	status = Nap_HdfGet(nap_cd, sd_id, sds_name, subscript_NAO, raw, naoPtr);
 	status2 = Nap_HdfCloseFile(nap_cd, sd_id);
 	CHECK2(status == 0, TEXT0 "Error calling Nap_HdfGet");
@@ -590,7 +590,7 @@ Nap_GetNetcdf(
 	CHECK(status == TCL_OK);
 	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
 	    status = Nap_NetcdfOpenFile(nap_cd, fileName, 'r', &ncid);
-	    CHECK(status == TCL_OK);
+	    CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	    status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, &varid);
 	    CHECK3(exists, "m4NAME: Variable %s not found", var_name);
 	    status = nap_NetcdfGetIndex(nap_cd, ncid, varid, objv[4], &subscript_NAO);
@@ -619,7 +619,7 @@ Nap_GetNetcdf(
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
-	status = Nap_NetcdfOpenFile(nap_cd, fileName, 'w', &ncid);
+	status = Nap_NetcdfOpenFile(nap_cd, fileName, 'r', &ncid);
 	CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	status = Nap_NetcdfGet(nap_cd, ncid, var_name, subscript_NAO, raw, naoPtr);
 	status2 = Nap_NetcdfCloseFile(nap_cd, ncid);

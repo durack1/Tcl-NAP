@@ -758,13 +758,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SHLIB_SUFFIX=".so"
 	    SYS_LIBS="-lpthread -lssl -lstdc++"
 
-	    if test "`uname -m`" = "ia64" ; then
-		AC_PATH_PROGS(ICC_PROG, icc, :, ${PATH})
-		if test "${ICC_PROG}" != ":" ; then
-		    CC='icc -w'
-		fi
-	    fi
-
 	    # egcs-2.91.66 on Redhat Linux 6.0 generates lots of warnings 
 	    # when you inline the string and math operations.  Turn this off to
 	    # get rid of the warnings.

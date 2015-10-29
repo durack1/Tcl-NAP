@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.164 2005/07/04 07:30:36 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.165 2005/07/13 02:47:04 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -500,7 +500,6 @@ clean:
 		$(PACKAGE_SHELL_PROD) $(PACKAGE_SHELL_DEBUG) \
 		*.kit *.vfs $(LOCAL_INSTALLER_TCL) $(STARPACK) \
 		*.bat \
-		*.exe \
 		*.exp \
 		*.ilk \
 		*.lib \

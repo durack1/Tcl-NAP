@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.164 2005/07/04 07:30:36 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.165 2005/07/13 02:47:04 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -131,12 +131,12 @@ OBJS = \
 PACKAGE = nap
 MAJOR_VERSION = 5
 MINOR_VERSION = 0
-PATCHLEVEL = .0
+PATCHLEVEL = .1
 VERSION = 5.0
 NODOT_VERSION = 5_0
-NODOT_PATCHLEVEL = 0
+NODOT_PATCHLEVEL = 1
 USE_VERSION = 5_0
-USE_PATCHLEVEL = 0
+USE_PATCHLEVEL = 1
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -205,7 +205,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".0\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".1\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
 HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
 NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
 TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include8.4
@@ -500,7 +500,6 @@ clean:
 		$(PACKAGE_SHELL_PROD) $(PACKAGE_SHELL_DEBUG) \
 		*.kit *.vfs $(LOCAL_INSTALLER_TCL) $(STARPACK) \
 		*.bat \
-		*.exe \
 		*.exp \
 		*.ilk \
 		*.lib \

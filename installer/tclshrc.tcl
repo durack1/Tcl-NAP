@@ -7,7 +7,7 @@
 #
 # Copyright (c) 1999-2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: tclshrc.tcl,v 1.3 2005/02/09 04:23:11 dav480 Exp $
+# $Id: tclshrc.tcl,v 1.4 2005/07/13 02:24:11 dav480 Exp $
 #
 # Increase size of history list to 999 (instead of default of 20).
 # Load package 'nap'.
@@ -30,11 +30,11 @@ if {![info exists ::tclshrc_done]} {
 	if {[catch "package require nap" msg]} {
 	    puts $msg
 	} else {
-	    puts "loaded nap$msg"
+	    puts "loaded nap$::nap_patchLevel"
 	}
 	if {[catch "package require caps" msg]} {
 	} else {
-	    puts "loaded caps$msg"
+	    puts "loaded caps$::caps_patchLevel"
 	    if {[info exists ::env(CAPS)]} {
 		set ::caps_directory $::env(CAPS)
 	    } else {

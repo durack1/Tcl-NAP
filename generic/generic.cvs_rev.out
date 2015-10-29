@@ -1,0 +1,373 @@
+cvs_rev 2005-03-23
+
+eval_tree.c
+----------------------------
+revision 1.5
+date: 2005/06/23 08:21:29;  author: dav480;  state: Exp;  lines: +2 -3
+Nap_SetParseResult: Do not set actual Tcl result
+----------------------------
+revision 1.4
+date: 2005/06/20 00:18:13;  author: dav480;  state: Exp;  lines: +7 -4
+eval_index: assert -> if
+----------------------------
+revision 1.3
+date: 2005/05/27 01:12:52;  author: dav480;  state: Exp;  lines: +109 -62
+Major mods incl. Nap_EvalTree -> eval_tree
+----------------------------
+revision 1.2
+date: 2005/04/22 12:48:55;  author: dav480;  state: Exp;  lines: +55 -7
+eval_index: new. Various other stuff related to indexing, unary @ @@ @@@
+----------------------------
+revision 1.1
+date: 2005/04/19 13:58:52;  author: dav480;  state: Exp;
+major mods, including use of parse tree
+=============================================================================
+function.c,m4
+----------------------------
+revision 1.4
+date: 2005/06/23 08:23:31;  author: dav480;  state: Exp;  lines: +1 -2
+Nap_Func: rm call to Tcl_SetResult
+----------------------------
+revision 1.3
+date: 2005/06/16 02:40:08;  author: dav480;  state: Exp;  lines: +22 -12
+Nap_pad & Nap_prune: handling of missing values
+----------------------------
+revision 1.2
+date: 2005/05/27 01:15:53;  author: dav480;  state: Exp;  lines: +2 -2
+Nap_Transpose: Nap_GetNaoFromSlot -> Nap_GetCoordVar
+----------------------------
+revision 1.1
+date: 2005/04/20 03:40:52;  author: dav480;  state: Exp;
+add
+=============================================================================
+land_flag.c
+----------------------------
+revision 1.2
+date: 2005/06/15 23:20:54;  author: dav480;  state: Exp;  lines: +2 -10
+land_flag -> nap_land_flag
+=============================================================================
+land_flag_i.c
+----------------------------
+revision 1.5
+date: 2005/06/15 23:20:54;  author: dav480;  state: Exp;  lines: +14 -14
+land_flag -> nap_land_flag
+=============================================================================
+nap.c,m4
+----------------------------
+revision 1.218
+date: 2005/06/23 08:45:55;  author: dav480;  state: Exp;  lines: +16 -9
+Nap_expression, Nap_Cmd, Nap_InfoCmd: New conventions for Tcl result & errors
+----------------------------
+revision 1.217
+date: 2005/05/27 01:07:59;  author: dav480;  state: Exp;  lines: +28 -34
+various mods to Nap_Cmd & Nap_expression (previously Nap_expr)
+----------------------------
+revision 1.216
+date: 2005/04/23 12:48:29;  author: dav480;  state: Exp;  lines: +42 -18
+Nap_expr: new
+----------------------------
+revision 1.215
+date: 2005/04/22 12:44:20;  author: dav480;  state: Exp;  lines: +12 -7
+Nap_Cmd: Malloc new NapClientData fields
+----------------------------
+revision 1.214
+date: 2005/04/19 13:58:52;  author: dav480;  state: Exp;  lines: +11 -4
+major mods, including use of parse tree
+=============================================================================
+nap.h,m4
+----------------------------
+revision 1.203
+date: 2005/06/23 08:39:49;  author: dav480;  state: Exp;  lines: +2 -2
+NapClientData_struct: replace message by errorCode
+----------------------------
+revision 1.202
+date: 2005/05/27 00:35:41;  author: dav480;  state: Exp;  lines: +23 -14
+various including: coordVarSlot -> boxedCV in NAO, indexBase -> indexBaseCV in NapClientData
+----------------------------
+revision 1.201
+date: 2005/04/23 12:48:34;  author: dav480;  state: Exp;  lines: +2 -1
+Nap_expr: new
+----------------------------
+revision 1.200
+date: 2005/04/22 12:41:17;  author: dav480;  state: Exp;  lines: +5 -7
+New fields for NapClientData: token indexBase indexDimNum. Also scanPtr for Pnode
+----------------------------
+revision 1.199
+date: 2005/04/20 02:43:43;  author: dav480;  state: Exp;  lines: +2 -1
+Nap_FreePNodeTree
+----------------------------
+revision 1.198
+date: 2005/04/19 13:58:53;  author: dav480;  state: Exp;  lines: +39 -15
+major mods, including use of parse tree
+----------------------------
+revision 1.197
+date: 2005/04/04 13:08:18;  author: dav480;  state: Exp;  lines: +4 -1
+new functions: Nap_Ceil, Nap_Floor, Nap_Round
+=============================================================================
+napChoice.c,m4
+----------------------------
+revision 1.37
+date: 2005/06/23 08:24:52;  author: dav480;  state: Exp;  lines: +1 -2
+Nap_Choice: rm call to Tcl_SetResult
+----------------------------
+revision 1.36
+date: 2005/04/19 13:58:54;  author: dav480;  state: Exp;  lines: +12 -6
+major mods, including use of parse tree
+=============================================================================
+napDyad.c,m4
+----------------------------
+revision 1.142
+date: 2005/06/23 08:25:53;  author: dav480;  state: Exp;  lines: +1 -7
+rm various calls to Tcl_SetResult
+----------------------------
+revision 1.141
+date: 2005/04/22 12:51:37;  author: dav480;  state: Exp;  lines: +16 -15
+Nap_DyadArg: New arg "side"
+----------------------------
+revision 1.140
+date: 2005/04/19 13:58:54;  author: dav480;  state: Exp;  lines: +2 -575
+major mods, including use of parse tree
+=============================================================================
+napDyadLib.c,m4
+----------------------------
+revision 1.82
+date: 2005/06/23 09:19:54;  author: dav480;  state: Exp;  lines: +84 -59
+Nap_SubscriptCrossProduct, Nap_SubscriptOfVector: If rank(link) = 1 then use as CV
+various: Do not call Tcl_SetResult
+Nap_IndexOf2, Nap_Match, Nap_Closest: If rank(right operand) = 1 then attach as link
+----------------------------
+revision 1.81
+date: 2005/05/27 01:28:29;  author: dav480;  state: Exp;  lines: +32 -18
+Nap_SubscriptCrossProduct, Nap_SubscriptOfVector, Nap_Cat, Nap_Laminate: New CV stuff
+----------------------------
+revision 1.80
+date: 2005/04/19 13:58:54;  author: dav480;  state: Exp;  lines: +66 -4
+major mods, including use of parse tree
+=============================================================================
+napImgNAO.c
+Image display for NAO's
+=============================================================================
+napLib.c,m4
+----------------------------
+revision 1.205
+date: 2005/06/23 09:29:14;  author: dav480;  state: Exp;  lines: +19 -18
+Nap_CheckAppendLine: Set Tcl result directly rather than via nap_cd->message
+Nap_Check: Set nap_cd->errorCode = 1. Do not call Tcl_SetResult.
+----------------------------
+revision 1.204
+date: 2005/06/16 02:42:13;  author: dav480;  state: Exp;  lines: +2 -1
+Nap_NewNAO: no missing value for ragged case
+----------------------------
+revision 1.203
+date: 2005/05/27 08:26:52;  author: dav480;  state: Exp;  lines: +34 -37
+Nap_Check: rewrite to make more robust & improve handling of long lines
+----------------------------
+revision 1.202
+date: 2005/05/27 01:52:40;  author: dav480;  state: Exp;  lines: +78 -116
+Mods (for CV stuff etc.) to: Nap_Substitute, Nap_GetNaoFromObj, Nap_GetCoordVar, Nap_FreeNAO, Nap_Delete, Nap_NewNAO4, Nap_AttachCV
+----------------------------
+revision 1.201
+date: 2005/04/23 12:55:49;  author: dav480;  state: Exp;  lines: +11 -3
+Nap_GetNaoFromObj: Use Nap_expr
+----------------------------
+revision 1.200
+date: 2005/04/22 13:12:31;  author: dav480;  state: Exp;  lines: +4 -2
+Nap_Check: fix error message pointer. Nap_CreateClientData: new fields
+----------------------------
+revision 1.199
+date: 2005/04/19 13:58:54;  author: dav480;  state: Exp;  lines: +70 -47
+major mods, including use of parse tree
+=============================================================================
+napMonad.c,m4
+----------------------------
+revision 1.209
+date: 2005/06/23 08:28:26;  author: dav480;  state: Exp;  lines: +1 -2
+Nap_Niladic: rm call to Tcl_SetResult
+----------------------------
+revision 1.208
+date: 2005/06/22 08:49:47;  author: dav480;  state: Exp;  lines: +1 -7
+Nap_Indirect: Do not attach CV
+----------------------------
+revision 1.207
+date: 2005/05/27 01:57:41;  author: dav480;  state: Exp;  lines: +24 -7
+Nap_Indirect: Use new CV stuff, etc.
+----------------------------
+revision 1.206
+date: 2005/04/25 10:21:20;  author: dav480;  state: Exp;  lines: +10 -2
+Nap_Indirect: Better err. msg.  Check cv exists
+----------------------------
+revision 1.205
+date: 2005/04/22 12:57:14;  author: dav480;  state: Exp;  lines: +24 -20
+Nap_Indirect: Use base nao & dim. num. in NapClientData
+----------------------------
+revision 1.204
+date: 2005/04/19 13:58:54;  author: dav480;  state: Exp;  lines: +15 -2199
+major mods, including use of parse tree
+----------------------------
+revision 1.203
+date: 2005/04/04 13:10:02;  author: dav480;  state: Exp;  lines: +160 -1
+new functions: Nap_Ceil, Nap_Floor, Nap_Round
+=============================================================================
+napParse.y
+----------------------------
+revision 1.64
+date: 2005/05/26 23:36:34;  author: dav480;  state: Exp;  lines: +3 -2
+allow empty expression
+----------------------------
+revision 1.63
+date: 2005/04/19 13:58:55;  author: dav480;  state: Exp;  lines: +106 -95
+major mods, including use of parse tree
+----------------------------
+revision 1.62
+date: 2005/04/04 13:11:42;  author: dav480;  state: Exp;  lines: +5 -1
+define unary operators: ^ < > |
+=============================================================================
+napParseLib.c,m4
+----------------------------
+revision 1.58
+date: 2005/06/23 08:29:56;  author: dav480;  state: Exp;  lines: +1 -4
+rm various calls to Tcl_SetResult
+----------------------------
+revision 1.57
+date: 2005/04/22 13:16:49;  author: dav480;  state: Exp;  lines: +7 -1
+Nap_NewPNode: set scanPtr.  Nap_lex: Define token field
+----------------------------
+revision 1.56
+date: 2005/04/20 02:42:25;  author: dav480;  state: Exp;  lines: +2 -2
+EXTERN
+----------------------------
+revision 1.55
+date: 2005/04/19 13:58:55;  author: dav480;  state: Exp;  lines: +98 -42
+major mods, including use of parse tree
+=============================================================================
+nap_check.h
+created from part of nap.h,m4
+----------------------------
+revision 1.19
+date: 2005/06/23 08:33:59;  author: dav480;  state: Exp;  lines: +2 -2
+Nap_CheckAppendLine
+=============================================================================
+nap_get.c
+----------------------------
+revision 1.25
+date: 2005/06/23 08:37:24;  author: dav480;  state: Exp;  lines: +2 -2
+Nap_GetCmd: Set nap_cd->errorCode in place of nap_cd->message[0]
+----------------------------
+revision 1.24
+date: 2005/05/27 02:03:13;  author: dav480;  state: Exp;  lines: +43 -31
+Nap_GetHDF & Nap_GetNetcdf: Mainly new CV & indirect indexing stuff
+=============================================================================
+nap_hdf.c,m4
+----------------------------
+revision 1.149
+date: 2005/07/08 01:57:08;  author: dav480;  state: Exp;  lines: +2 -4
+Nap_HdfPutAttribute: proper check for empty att
+----------------------------
+revision 1.148
+date: 2005/07/08 01:27:03;  author: dav480;  state: Exp;  lines: +3 -2
+Nap_OOC_hdf: error handling
+----------------------------
+revision 1.147
+date: 2005/06/27 04:39:21;  author: dav480;  state: Exp;  lines: +69 -36
+nap_HdfGetIndex, Nap_HdfDefineSubscript, Nap_HdfPutSubscripting: shape1, etc.
+----------------------------
+revision 1.146
+date: 2005/06/23 08:47:51;  author: dav480;  state: Exp;  lines: +2 -2
+minor formatting only
+----------------------------
+revision 1.145
+date: 2005/06/22 08:46:05;  author: dav480;  state: Exp;  lines: +1 -2
+Nap_HdfDefineSubscript: rm assert that no link nao
+----------------------------
+revision 1.144
+date: 2005/06/16 02:49:33;  author: dav480;  state: Exp;  lines: +24 -29
+Nap_HdfCreateSDS: less args, ragged MV. Nap_HdfPut: simpler
+----------------------------
+revision 1.143
+date: 2005/06/14 02:06:37;  author: dav480;  state: Exp;  lines: +2 -2
+Nap_HdfScaleBeforePut: assert -> CHECK2
+----------------------------
+revision 1.142
+date: 2005/05/27 02:15:52;  author: dav480;  state: Exp;  lines: +120 -92
+nap_HdfGetIndex: new. Mods (mainly indirect indexing) to: Nap_HdfDefineSubscript, Nap_HdfPut, Nap_HdfGet, Nap_OOC_hdf
+----------------------------
+revision 1.141
+date: 2005/04/19 13:58:55;  author: dav480;  state: Exp;  lines: +2 -2
+major mods, including use of parse tree
+=============================================================================
+nap_hdf.h
+----------------------------
+revision 1.14
+date: 2005/05/27 02:19:11;  author: dav480;  state: Exp;  lines: +26 -3
+Nap_HdfOpenSDS, Nap_HdfCloseSDS, nap_HdfGetIndex, Nap_HdfGet, Nap_HdfPut
+=============================================================================
+nap_netcdf.c,m4
+----------------------------
+revision 1.69
+date: 2005/07/08 01:27:52;  author: dav480;  state: Exp;  lines: +3 -2
+Nap_OOC_hdf: error handling
+----------------------------
+revision 1.68
+date: 2005/07/07 07:02:25;  author: dav480;  state: Exp;  lines: +1 -4
+Nap_NetcdfPutAttribute: allow nels == 0
+----------------------------
+revision 1.67
+date: 2005/06/27 04:43:53;  author: dav480;  state: Exp;  lines: +48 -17
+nap_NetcdfGetIndex,Nap_NetcdfDefineSubscript: shape1, etc.
+----------------------------
+revision 1.66
+date: 2005/06/23 08:48:48;  author: dav480;  state: Exp;  lines: +2 -2
+minor formatting only
+----------------------------
+revision 1.65
+date: 2005/06/22 08:47:45;  author: dav480;  state: Exp;  lines: +1 -2
+Nap_NetcdfDefineSubscript: rm assert that no link nao
+----------------------------
+revision 1.64
+date: 2005/06/16 02:53:29;  author: dav480;  state: Exp;  lines: +35 -99
+Nap_NetcdfCreateVar: less args, ragged MV. Nap_CreateVar: rm. Nap_NetcdfPut: simpler
+----------------------------
+revision 1.63
+date: 2005/05/27 06:08:21;  author: dav480;  state: Exp;  lines: +17 -16
+Nap_NetcdfGetDim: Handle apparent CV with rank not 1
+----------------------------
+revision 1.62
+date: 2005/05/27 03:16:47;  author: dav480;  state: Exp;  lines: +146 -101
+nap_NetcdfGetIndex: new. Mods (mainly indirect indexing) to: Nap_NetcdfDefineSubscript, Nap_NetcdfPut, Nap_NetcdfGet, Nap_OOC_netcdf
+----------------------------
+revision 1.61
+date: 2005/04/19 13:58:56;  author: dav480;  state: Exp;  lines: +2 -2
+major mods, including use of parse tree
+=============================================================================
+nap_netcdf.h
+----------------------------
+revision 1.10
+date: 2005/05/27 02:22:46;  author: dav480;  state: Exp;  lines: +38 -6
+Nap_NetcdfOpenFile, Nap_NetcdfCloseFile, Nap_NetcdfOpenVar, nap_NetcdfGetIndex, Nap_NetcdfGet
+=============================================================================
+nap_ooc.c,m4
+----------------------------
+revision 1.50
+date: 2005/06/27 06:48:10;  author: dav480;  state: Exp;  lines: +4 -6
+Nap_ObjectCommand: Better error handling
+----------------------------
+revision 1.49
+date: 2005/06/24 02:05:31;  author: dav480;  state: Exp;  lines: +3 -1
+Nap_ObjectCommand: If no link print (NULL)
+----------------------------
+revision 1.48
+date: 2005/06/23 08:52:45;  author: dav480;  state: Exp;  lines: +4 -45
+Nap_SetValue: rm obsolete indirect indexing stuff. Nap_ObjectCommand: set errorCode in place of message[0]
+----------------------------
+revision 1.47
+date: 2005/06/16 03:03:02;  author: dav480;  state: Exp;  lines: +15 -10
+Nap_AppendNAOValue: ragged. Nap_OOC_set: ragged mv.
+----------------------------
+revision 1.46
+date: 2005/05/27 04:16:54;  author: dav480;  state: Exp;  lines: +8 -12
+Mods (mainly indirect indexing) to: Nap_AppendNAOHeader, Nap_SetValue, Nap_OOC_coord
+----------------------------
+revision 1.45
+date: 2005/04/23 12:50:45;  author: dav480;  state: Exp;  lines: +2 -2
+Nap_SetValue: CHECK
+=============================================================================
