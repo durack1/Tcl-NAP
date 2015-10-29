@@ -7,7 +7,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napsh.c,v 1.6 2002/06/03 06:54:19 dav480 Exp $";
+static char *rcsid="@(#) $Id: napsh.c,v 1.7 2005/11/30 06:09:34 dav480 Exp $";
 #endif /* not lint */
 
 #if defined(USE_TCL_STUBS) && ! defined(MAKE_DEPEND)
@@ -37,6 +37,7 @@ Tcl_AppInit(
     if (status != TCL_OK) {
         return status;
     }
+    Tcl_StaticPackage(interp, "Nap", Nap_Init, NULL);
     return TCL_OK;
 }
 

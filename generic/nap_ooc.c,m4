@@ -14,9 +14,10 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.50 2005/06/27 06:48:10 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.61 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
+#include "nap.h"
 #include "nap_hdf.h"
 #include "nap_netcdf.h"
 #include "napPolygon.h"
@@ -116,8 +117,9 @@ Nap_AppendNAOHeader(
     int			j;
     char		null_str[20];
     int                 status;			/* # bytes to write from text */
+    char		*str;
 
-    dataTypeText = Nap_DataTypeToText(naoPtr->dataType);
+    dataTypeText = Nap_DataTypeToText(nap_cd, naoPtr->dataType);
     CHECK2(dataTypeText, "m4NAME: error calling Nap_DataTypeToText");
     if (naoPtr->missingValueSlot) {
 	status = Nap_F64ToText(nap_cd, Nap_GetF64MissingValue(nap_cd, naoPtr->slot),
@@ -133,7 +135,7 @@ Nap_AppendNAOHeader(
 	    null_str,
 	    naoPtr->count - 1);
     CHECK2(status > 0, "m4NAME: error calling sprintf");
-    FREE(dataTypeText);
+    NAP_FREE(nap_cd, dataTypeText);
     if (naoPtr->unit) {
 	status = sprintf(s + strlen(s), "  Unit: %s", naoPtr->unit);
 	CHECK2(status > 0, "m4NAME: error calling sprintf");
@@ -223,6 +225,7 @@ Nap_AppendNAOValue(
 
     Tcl_DStringInit(&ds);
     if (naoPtr) {
+	assert(Nap_IsNAO(nap_cd, naoPtr));
 	if (naoPtr->format) {
 	    format = naoPtr->format;
 	} else if (Nap_TypeIsC8(naoPtr->dataType)) {
@@ -582,14 +585,18 @@ Nap_SetValueCopy(
     long		shape0;		/* divisor for subscripts */
     int			status;
     Nap_NAO		*subscriptNAO;	/* high-order subscript */
+    Nap_NAO		*tmpNAO;
 
     s = prodShape[n > 0];
     if (prodShape[0] > 0) {
 	shape0 = prodShape[0] / s;
 	if (n > 0  &&  naoBoxed[0]) {
-	    subscriptNAO = Nap_GetNaoFromSlot(naoBoxed[0]);
+	    tmpNAO = Nap_GetNaoFromSlot(naoBoxed[0]);
+	    Nap_IncrRefCount(nap_cd, tmpNAO);
+	    subscriptNAO = Nap_CastNAO(nap_cd, tmpNAO, NAP_I32);
+	    CHECK2(subscriptNAO, "m4NAME: error calling Nap_CastNAO");
 	    Nap_IncrRefCount(nap_cd, subscriptNAO);
-	    assert(subscriptNAO->dataType == NAP_I32);
+	    Nap_DecrRefCount(nap_cd, tmpNAO);
 	    if (n == 1) {
 		for (k = 0; k < subscriptNAO->nels; k++) {
 		    j = Nap_lmod(subscriptNAO->data.I32[k], shape0);
@@ -864,23 +871,23 @@ Nap_OOC_set(
 	break;
     case 3:  		/* format */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
-	FREE(naoPtr->format);
+	NAP_FREE(nap_cd, naoPtr->format);
 	if (objc == 3) {
 	    naoPtr->format = NULL;
 	} else {
 	    str = Tcl_GetStringFromObj(objv[3], NULL);
-	    naoPtr->format = Nap_StrDup(str);
+	    naoPtr->format = Nap_StrDup(nap_cd, str);
 	    CHECK2(naoPtr->format, "m4NAME: Error calling Nap_StrDup");
 	}
 	break;
     case 4:  		/* label */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
-	FREE(naoPtr->label);
+	NAP_FREE(nap_cd, naoPtr->label);
 	if (objc == 3) {
 	    naoPtr->label = NULL;
 	} else {
 	    str = Tcl_GetStringFromObj(objv[3], NULL);
-	    naoPtr->label = Nap_StrDup(str);
+	    naoPtr->label = Nap_StrDup(nap_cd, str);
 	    CHECK2(naoPtr->label, "m4NAME: Error calling Nap_StrDup");
 	}
 	break;
@@ -931,15 +938,13 @@ Nap_OOC_set(
 	break;
     case 7:	/* unit */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
-	FREE(naoPtr->unit);
-	if (objc == 3) {
-	    naoPtr->unit = NULL;
-	} else {
+	NAP_FREE(nap_cd, naoPtr->unit);
+	naoPtr->unit = NULL;
+	if (objc > 3) {
 	    str = Tcl_GetStringFromObj(objv[3], NULL);
-	    if (strcmp(str, "(NULL)") == 0) {
-		naoPtr->unit = NULL;
-	    } else {
-		naoPtr->unit = Nap_StrDup(str);
+	    CHECK2(str, "m4NAME: Error calling Tcl_GetStringFromObj");
+	    if (strcmp(str, "(NULL)") != 0) {
+		naoPtr->unit = Nap_StrDup(nap_cd, str);
 		CHECK2(naoPtr->unit, "m4NAME: Error calling Nap_StrDup");
 	    }
 	}
@@ -985,13 +990,13 @@ Nap_PutRaw(
     size = Nap_SizeOf(naoPtr->dataType);
     nbytes = naoPtr->nels * size;
     if (swap_bytes) {
-	buffer = MALLOC(nbytes);
+	buffer = NAP_ALLOC(nap_cd, nbytes);
 	(void) memcpy(buffer, naoPtr->data.c, nbytes);
 	status = Nap_swap_bytes(nap_cd, buffer, naoPtr->nels, size);
 	CHECK2(status == TCL_OK, "m4NAME: error calling Nap_swap_bytes");
 	status = Tcl_Write(channel, buffer, nbytes);
 	CHECK2(status == nbytes, "m4NAME: error calling Tcl_Write");
-	FREE(buffer);
+	NAP_FREE(nap_cd, buffer);
     } else {
 	buffer = naoPtr->data.c;
 	status = Tcl_Write(channel, buffer, nbytes);
@@ -1210,7 +1215,7 @@ Nap_ObjectCommand(
     NapClientData	*nap_cd;
     char                s[999];
     int			status;
-    char		*str = NULL;
+    char		*str;
     Nap_NAO		*tmpNao;
 
     CONST char		*switches[] = {
@@ -1249,6 +1254,7 @@ Nap_ObjectCommand(
     naoPtr = (Nap_NAO *) clientData;
     assert(naoPtr);
     nap_cd = naoPtr->nap_cd;
+    assert(Nap_IsNAO(nap_cd, naoPtr));
     Nap_IncrRefCount(nap_cd, naoPtr);
     Nap_InitTclResult(nap_cd);
     maxLines = 20;
@@ -1273,12 +1279,12 @@ Nap_ObjectCommand(
 	    status = Nap_AppendLines(nap_cd, "Value:");
 	    CHECK(status == 0);
 	    Nap_AppendLines(nap_cd, "");
-	    status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, maxLines,
-		    maxColumns, &keep);
+	    status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, maxLines, maxColumns,
+		    &keep);
 	    if (status != TCL_OK) {
 		nap_cd->errorCode = 0;
-		status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2,
-			maxLines, maxColumns, &keep);
+		status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, maxLines, maxColumns,
+			&keep);
 		CHECK(FALSE);
 	    }
 	    break;
@@ -1299,10 +1305,10 @@ Nap_ObjectCommand(
 	    status = Nap_AppendLines(nap_cd, s);
 	    break;
 	case 5:	/* datatype */
-	    str = Nap_DataTypeToText(naoPtr->dataType);
+	    str = Nap_DataTypeToText(nap_cd, naoPtr->dataType);
 	    CHECK2(str, "m4NAME: error calling Nap_DataTypeToText");
 	    status = Nap_AppendLines(nap_cd, str);
-	    FREE(str);
+	    NAP_FREE(nap_cd, str);
 	    break;
 	case 6:	/* dimension names */
 	    status = Nap_AppendLines(nap_cd, "");
@@ -1444,7 +1450,8 @@ Nap_ObjectCommand(
 	    break;
 	case 27:		/* value */
 	    Nap_AppendLines(nap_cd, "");
-	    status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, -1, -1, &keep);
+	    status = Nap_AppendNAOValue(nap_cd, naoPtr, objc-2, objv+2, -1, -1,
+		    &keep);
 	    CHECK(status == TCL_OK);
 	    break;
 	case 28:		/* write */

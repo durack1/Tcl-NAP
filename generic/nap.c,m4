@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap.c,m4,v 1.218 2005/06/23 08:45:55 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap.c,m4,v 1.223 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include <time.h>
@@ -59,17 +59,21 @@ Nap_expression(
     rl = Tcl_SetRecursionLimit(nap_cd->interp, 0);
     assert(nap_cd->parseLevel >= -1);
     if (nap_cd->recursionLimit == 0) {
-	nap_cd->scanString    = (char **)    MALLOC(rl * sizeof(char **));
-	nap_cd->token	      = (char **)    MALLOC(rl * sizeof(char **));
-	nap_cd->commandLength = (size_t *)   MALLOC(rl * sizeof(size_t *));
-	nap_cd->indexBaseCV   = (Nap_NAO **) MALLOC(rl * sizeof(Nap_NAO **));
-	nap_cd->indexDimNum   = (int *)      MALLOC(rl * sizeof(int *));
+	nap_cd->scanString    = (char **)    NAP_ALLOC(nap_cd, rl * sizeof(char **));
+	nap_cd->token	      = (char **)    NAP_ALLOC(nap_cd, rl * sizeof(char **));
+	nap_cd->commandLength = (size_t *)   NAP_ALLOC(nap_cd, rl * sizeof(size_t *));
+	nap_cd->indexBaseCV   = (Nap_NAO **) NAP_ALLOC(nap_cd, rl * sizeof(Nap_NAO **));
+	nap_cd->indexDimNum   = (int *)      NAP_ALLOC(nap_cd, rl * sizeof(int *));
+	nap_cd->braceLevel    = (int *)      NAP_ALLOC(nap_cd, rl * sizeof(int *));
     } else if (nap_cd->recursionLimit < rl) {
-	nap_cd->scanString    = (char **)    REALLOC(nap_cd->scanString,   rl * sizeof(char **));
-	nap_cd->token         = (char **)    REALLOC(nap_cd->token,        rl * sizeof(char **));
-	nap_cd->commandLength = (size_t *)   REALLOC(nap_cd->commandLength,rl * sizeof(size_t *));
-	nap_cd->indexBaseCV   = (Nap_NAO **) REALLOC(nap_cd->indexBaseCV,  rl * sizeof(Nap_NAO **));
-	nap_cd->indexDimNum   = (int *)      REALLOC(nap_cd->indexDimNum,  rl * sizeof(int *));
+	nap_cd->scanString = (char **) NAP_REALLOC(nap_cd, nap_cd->scanString, rl * sizeof(char **));
+	nap_cd->token = (char **) NAP_REALLOC(nap_cd, nap_cd->token, rl * sizeof(char **));
+	nap_cd->commandLength =
+		(size_t *) NAP_REALLOC(nap_cd, nap_cd->commandLength,rl * sizeof(size_t *));
+	nap_cd->indexBaseCV =
+		(Nap_NAO **) NAP_REALLOC(nap_cd, nap_cd->indexBaseCV, rl * sizeof(Nap_NAO **));
+	nap_cd->indexDimNum = (int *) NAP_REALLOC(nap_cd, nap_cd->indexDimNum, rl * sizeof(int *));
+	nap_cd->braceLevel = (int *) NAP_REALLOC(nap_cd, nap_cd->braceLevel, rl * sizeof(int *));
     }
     nap_cd->recursionLimit = rl;
     ++nap_cd->parseLevel;
@@ -79,6 +83,7 @@ Nap_expression(
     assert(obj_expr);
     nap_cd->indexBaseCV[nap_cd->parseLevel] = indexBaseCV;
     nap_cd->indexDimNum[nap_cd->parseLevel] = 0;
+    nap_cd->braceLevel[nap_cd->parseLevel] = 0;
     nap_cd->resultNao = NULL;
     Nap_InitTclResult(nap_cd);
     objNapCommand = Tcl_NewStringObj("\n", -1);
@@ -88,7 +93,7 @@ Nap_expression(
     str = Tcl_GetStringFromObj(objNapCommand, NULL);
     assert(str);
     nap_cd->commandLength[nap_cd->parseLevel] = strlen(str);
-    str = Nap_StrCat(str, " ", str, NULL); /* 2nd copy for lex tokens */
+    str = Nap_StrCat(nap_cd, str, " ", str, NULL); /* 2nd copy for lex tokens */
     assert(str);
     str[nap_cd->commandLength[nap_cd->parseLevel]] = '\0';
     Tcl_DecrRefCount(objNapCommand);
@@ -109,7 +114,7 @@ Nap_expression(
     }
     Tcl_DecrRefCount(obj_str_auto_noexec);
     --nap_cd->parseLevel;
-    FREE(str);
+    NAP_FREE(nap_cd, str);
     if (nap_cd->errorCode) {
 	nap_cd->resultNao = NULL;
     }
@@ -160,9 +165,11 @@ Nap_Cmd(
  *
  *  Usage:
  *	nap_info bytes
- *	    Return following two values:
+ *	    Return following four values:
  *		(a) current number of bytes allocated to NAOs
  *		(b) maximum (so far) number of bytes allocated to NAOs
+ *		(c) current number of bytes allocated by NAP_ALLOC (excludes (a) above)
+ *		(d) maximum (so far) number of bytes allocated by NAP_ALLOC
  *
  *	nap_info nodes
  *	    Return number of parse-nodes (should be 0)
@@ -207,9 +214,11 @@ Nap_InfoCmd(
     }
     switch (index) {
     case 0: /* bytes */
-	sprintf(tmp_str, "%u %u",
+	sprintf(tmp_str, "%u %u %u %u",
 		(unsigned int) nap_cd->totalBytesNAO,
-		(unsigned int) nap_cd->maxTotalBytesNAO);
+		(unsigned int) nap_cd->maxTotalBytesNAO,
+		(unsigned int) nap_cd->otherBytes,
+		(unsigned int) nap_cd->maxOtherBytes);
 	break;
     case 1: /* nodes */
 	sprintf(tmp_str, "%u", (unsigned int) nap_cd->numberPNodes);

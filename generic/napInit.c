@@ -7,10 +7,11 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napInit.c,v 1.17 2005/02/22 01:39:44 dav480 Exp $";
+static char *rcsid="@(#) $Id: napInit.c,v 1.27 2006/06/29 05:08:57 dav480 Exp $";
 #endif /* not lint */
 
 #include <signal.h>
+#include <tk.h>
 #include "nap.h"
 #include "nap_check.h"
 #include "napInt.h"
@@ -51,6 +52,7 @@ Nap_Init(
     NapClientData	*nap_cd;
     int			status;
     CONST char		*str;
+    Tcl_Obj		*tcl_result;
 
     if (Tcl_InitStubs(interp, "8.0", 0) == NULL) {
 	return TCL_ERROR;
@@ -80,19 +82,32 @@ Nap_Init(
     assert(str);
 
     /*
-     *      Tk stuff
+     * Tk stuff
      */
 
     if (Tcl_GetVar(interp, "tk_version", 0)) {
+	if (Tk_InitStubs(interp, "8.0", 0) == NULL) {
+	    return TCL_ERROR;
+	}
         Nap_CreatePhotoImageFormat();
     }
 
     /*
-     *      land_flag stuff
+     * Initialize land_flag
      */
 
     status = Land_flag_Init(interp);
     assert(status == TCL_OK);
+
+    /*
+     * Initialize proj.4
+     */
+
+    if (! getenv("PROJ_LIB")) {
+	status = Tcl_Eval(interp,
+	    "set env(PROJ_LIB) [file join [file dirname $tcl_library] nap$nap_version data proj]");
+	assert(status == TCL_OK);
+    }
 
     return TCL_OK;
 }

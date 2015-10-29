@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.46 2005/07/20 01:57:37 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.53 2006/09/19 02:28:52 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -74,10 +74,67 @@ namespace eval ::NAP {
     }
 
 
+    # cpi --
+    #
+    # Nap function for cross-product indexing without the need to specify trailing
+    # dimensions that are to be fully selected.
+    # This is useful when the rank of the array can vary.
+    #
+    # Usage:
+    #	cpi(array [,i [,j [,k ... ]]])
+    #
+    # Examples:
+    #
+    # % [nap "m = {{1 3 5}{6 8 9}}"]
+    # 1 3 5
+    # 6 8 9
+    # % [nap "cpi(m, {1 0})"]
+    # 6 8 9
+    # 1 3 5
+    # % [nap "cpi(m, 1, {2 0})"]
+    # 9 6
+    # % [nap "cpi(m, , 1)"]
+    # 3 8
+    # % [nap "cpi(m,0,)"]
+    # 1 3 5
+    # % [nap "cpi(m,0)"]
+    # 1 3 5
+    # % [nap "cpi(m)"]
+    # 1 3 5
+    # 6 8 9
+    # % [nap "cpi(m,)"]
+    # 1 3 5
+    # 6 8 9
+    # % [nap "cpi(m,,)"]
+    # 1 3 5
+    # 6 8 9
+
+    proc cpi {
+	array
+	args
+    } {
+	nap "index = (,){}"; # empty boxed vector
+	foreach i $args {
+	    if {$i eq "NULL"} {
+		nap "index = index ,"
+	    } else {
+		nap "index = index , i"
+	    }
+	}
+	set n [$index nels]
+	if {$n > 0} {
+	    set nc [[nap "rank(array) - $n"]]; # number commas needed
+	    nap "result = array(index [string repeat , $nc])"
+	} else {
+	    nap "result = array"
+	}
+	nap "result"
+    }
+
+
     # cv --
     #
-    # Gives coordinate variable of specified dimension (default is 0).
-    # Mainly just alias for long word 'coordinate_variable', but also allows d to be name.
+    # Alias for long word 'coordinate_variable'
     #
     # Usage:
     #	cv(x, d)
@@ -94,7 +151,7 @@ namespace eval ::NAP {
 	x
 	{d 0}
     } {
-	nap "coordinate_variable(x, dimension_number(x, d))"
+	nap "coordinate_variable(x, d)"
     }
 
 
@@ -374,6 +431,37 @@ namespace eval ::NAP {
 	     i == 3 ? (p /// q // v) :
 	     i == 4 ? (t /// p // v) :
 		      (v /// p // q)"
+    }
+
+
+    # IBMfp32tof32 --
+    #
+    # Converts a single-precision IBM floating point to an f32
+    #
+    #
+    #   1    7              24                width in bits
+    #  +-+-------+------------------------+
+    #  |S| Exp   |   Mantissa             |
+    #  +-+-------+------------------------+
+    #  31 30   24 23                     0    bit index (0 on right)
+    #    bias +70
+    #
+    # The exponent is to the base 16 (16**(Exp - 70))
+    # The mantissa is unsigned integer (binary point on right)
+    #
+    # Test input 3259367424u32  and get back -70.0
+    #
+    # input u32 containing the IBM float in appropriate byte order
+    #
+    # output f32
+    #
+    # P.J. Turner CMAR March 2006
+
+    proc IBMfp32tof32 {ibm} {
+	nap "sign = 1 - 2 * (ibm >> 31)"; # -1 or +1
+	nap "exp = i32((ibm & 0x7F000000) >> 24) - 70"
+	nap "mantissa = i32(ibm & 0x00FFFFFF)"
+	nap "f32((sign * mantissa) * 16f64 ** exp)"
     }
 
 
@@ -784,35 +872,6 @@ namespace eval ::NAP {
 	    nap "minValue = min(minValue)"
 	}
 	nap "minValue // maxValue"
-    }
-
-
-    # regression --
-    #
-    # Multiple regression (predicting y from x)
-    # If x & y are both vectors (of same length) then result is 2-element vector b which defines
-    # predictive equation  y = b(0) + b(1) * x
-    # 
-    # x & y can be matrices (with columns corresponding to variables)
-    # If y is vector then result is vector b which defines
-    # predictive equation  y = b(0) + b(1) * x0 + b(2) * x1 + b(3) * x2 + ...
-    # If y is matrix then result is matrix with same number of columns (corresponding to variables)
-
-    proc regression {
-	x
-	y
-    } {
-	switch [$x rank] {
-	    1 {nap "A = transpose(1f32 /// x)"}
-	    2 {nap "A = transpose(1f32 // transpose(x))"}
-	    default {error "regression: rank of x is not 1 or 2"}
-	}
-	switch [$y rank] {
-	    1 {}
-	    2 {}
-	    default {error "regression: rank of y is not 1 or 2"}
-	}
-	nap "solve_linear(A, y)"
     }
 
 

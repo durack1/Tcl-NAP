@@ -2,7 +2,7 @@
 #
 # Copyright (c) 1998-2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: caps_nap_menu.tcl,v 1.15 2005/07/08 00:06:00 dav480 Exp $
+# $Id: caps_nap_menu.tcl,v 1.19 2006/09/29 12:12:14 dav480 Exp $
 
 
 # caps_nap_menu --
@@ -17,7 +17,7 @@ proc caps_nap_menu {
 namespace eval NAP {
 
     proc create_main_menu {
-	{geometry +0+0}
+	{geometry +0+20}
 	{parent "."}
         {font {-family Helvetica -size 10}}
     } {
@@ -76,8 +76,8 @@ namespace eval NAP {
 	    pack $canvas
 	    bind $canvas <Button-1> {
 		::NAP::display_help \
-			$::caps_www_command \
-			"CAPS/NAP Web documentation"
+			http://www.eoc.csiro.au/cats/caps/capshome.html \
+			"CAPS Web documentation"
 	    }
 	}
     }
@@ -129,57 +129,46 @@ namespace eval NAP {
 	menu_name
     } {
 	set help [menu $menu_name]
+	#
 	$help add command \
 		-label "Help for Main CAPS/NAP Menu" \
-		-command ::NAP::help_menu
-	set label "Tcl/Tk Local documentation"
+		-command ::NAP::help_caps_nap_menu
+	#
+	set doc_dir "[file dirname [file dirname $::tcl_library]]/doc"
 	if {$::tcl_platform(platform) eq "windows"} {
-	    set hh {C:/WINDOWS/hh.exe}
-	    set doc_dir "[file dirname [file dirname $::tcl_library]]/doc"
-	    set files [glob -nocomplain $doc_dir/ActiveTclHelp*.chm]
-	    set file [lindex $files end]
-	    if {[file readable $file]  &&  [file readable $hh]} {
-		set command [list exec $hh $file &]
-		$help add command -label $label \
-			-command "[list ::NAP::display_help $command $label]"
-	    }
+	    set file [lindex [glob -nocomplain $doc_dir/ActiveTclHelp*.chm] end]
 	} else {
-	    set file "[file dirname [file dirname $::tcl_library]]/doc/html/index.html"
-	    if {[file readable $file]  &&  [info exists ::tcl_www_command]} {
-		set command [list exec $::caps_www_browser file://localhost/$file &]
-		$help add command -label $label \
-			-command "[list ::NAP::display_help $command $label]"
-	    }
+	    set file "$doc_dir/html/index.html"
 	}
-	if {[info exists ::tcl_www_command]} {
-	    set label "Tcl/Tk Web documentation"
-	    $help add command -label $label \
-		    -command "[list ::NAP::display_help $::tcl_www_command $label]"
+	set label "Tcl/Tk Local documentation"
+	if {[file readable $file]} {
+	    $help add command -label $label -command [list ::NAP::display_help $file $label]
 	}
-	set file [file dirname $::tcl_library]/nap$::nap_version/html/contents.html
+	#
+	set file http://aspn.activestate.com/ASPN/Tcl/Reference/
+	set label "Tcl/Tk Web documentation"
+	$help add command -label $label -command [list ::NAP::display_help $file $label]
+	#
+	set file [file dirname $::tcl_library]/nap$::nap_version/nap_users_guide.pdf
 	if {[file readable $file]} {
 	    set label "NAP Local documentation"
-	    set command [list exec $::caps_www_browser file://localhost/$file &]
-	    $help add command -label $label \
-		    -command "[list ::NAP::display_help $command $label]"
+	    $help add command -label $label -command [list ::NAP::display_help $file $label]
 	}
-	if {[info exists ::nap_www_command]} {
-	    set label "NAP Web documentation"
-	    $help add command -label $label \
-		    -command "[list ::NAP::display_help $::nap_www_command $label]"
-	}
-	if {[info exists ::caps_www_command]} {
-	    set label "CAPS Web documentation"
-	    $help add command -label $label \
-		    -command "[list ::NAP::display_help $::caps_www_command $label]"
-	}
+	#
+	set file http://tcl-nap.sourceforge.net/nap_users_guide.pdf
+	set label "NAP Web documentation"
+	$help add command -label $label -command [list ::NAP::display_help $file $label]
+	#
+	set file http://www.eoc.csiro.au/cats/caps/capshome.html
+	set label "CAPS Web documentation"
+	$help add command -label $label -command [list ::NAP::display_help $file $label]
     }
 
 
-    proc help_menu {} {
-	set file [file dirname $::tcl_library]/nap$::nap_version/html/caps_nap_menu.html
+    proc help_caps_nap_menu {} {
+	set file [file dirname $::tcl_library]/nap$::nap_version/help_caps_nap_menu.pdf
 	if {[file readable $file]} {
-	    exec $::caps_www_browser file://localhost/$file &
+	    ::NAP::display_help $file "Help on CAPS/NAP Main Menu"
 	} else {
 	    message_window \
 		"The buttons have the following functions:\
@@ -201,13 +190,11 @@ namespace eval NAP {
 
 
     proc display_help {
-	command
+	file
 	description
     } {
-	if [catch $command] {
-	    message_window \
-		"Unable to access $description using following command:\
-		\n$command"
+	if [catch {auto_open $file}] {
+	    message_window "Unable to access $file ($description)"
 	}
     }
 

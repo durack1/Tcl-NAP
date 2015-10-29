@@ -9,7 +9,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napPolygon.c,v 1.27 2002/05/14 00:32:03 dav480 Exp $";
+static char *rcsid="@(#) $Id: napPolygon.c,v 1.29 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 /*
@@ -320,8 +320,8 @@ Nap_Polyfill(
     status = Nap_InitFill(fill,fill,dataPtr,x_dim,y_dim);
     CHECK2(status == TCL_OK, "Nap_Polyfill: error calling Nap_InitFill");
 
-    xyPtr = (point *)MALLOC(sizeof(point)*n);
-    Polygon = (polygon *)MALLOC(sizeof(polygon));
+    xyPtr = (point *)NAP_ALLOC(nap_cd, sizeof(point)*n);
+    Polygon = (polygon *)NAP_ALLOC(nap_cd, sizeof(polygon));
 
     for(i=0; i < n; i++) {
         xyPtr[i].X = px[i];
@@ -333,8 +333,8 @@ Nap_Polyfill(
     status = napFillPolygon(nap_cd, Polygon,0,0);
     CHECK(status == TCL_OK);
 
-    FREE(xyPtr);
-    FREE(Polygon);
+    NAP_FREE(nap_cd, xyPtr);
+    NAP_FREE(nap_cd, Polygon);
 
     return(TCL_OK);
 }
@@ -380,7 +380,7 @@ static int napFillPolygon(
  */
 
     if((EdgeTableBuffer =
-        (struct EdgeState *) (MALLOC(sizeof(struct EdgeState) *
+        (struct EdgeState *) (NAP_ALLOC(nap_cd, sizeof(struct EdgeState) *
         VertexList->Length))) == NULL) {
         CHECK2(0, "napFillPolygon: Couldn't get memory for the edge table");
     }
@@ -411,7 +411,7 @@ static int napFillPolygon(
  * Release the memory we've allocated and we're done
  */
 
-    FREE(EdgeTableBuffer);
+    NAP_FREE(nap_cd, EdgeTableBuffer);
     return TCL_OK;
 }
 

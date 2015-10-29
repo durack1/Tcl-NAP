@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.122 2005/07/07 08:10:52 dav480 Exp $
+# $Id: hdf.tcl,v 1.123 2006/06/27 05:26:31 dav480 Exp $
 
 
 # hdf --
@@ -623,9 +623,9 @@ namespace eval ::Hdf {
 
     proc hdf_help {
     } {
-	set file [file dirname $::tcl_library]/nap$::nap_version/html/hdf.html
+	set file [file dirname $::tcl_library]/nap$::nap_version/help_hdf.pdf
 	if {[file readable $file]} {
-	    exec $::caps_www_browser file://localhost/$file &
+	    auto_open $file
 	} else {
 	    ::Hdf::hdf_warn "Unable to read file $file"
 	}

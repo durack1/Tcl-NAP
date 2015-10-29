@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.84 2005/08/04 07:41:33 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.101 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -687,7 +687,7 @@ Nap_SubscriptCrossProduct(
 		    case 1:
 			newCV[d] = linkNao;
 			if (oldCV[d]  &&  oldCV[d]->unit  &&  !newCV[d]->unit) {
-			    newCV[d]->unit = Nap_StrDup(oldCV[d]->unit);
+			    newCV[d]->unit = Nap_StrDup(nap_cd, oldCV[d]->unit);
 			}
 			break;
 		}
@@ -727,7 +727,8 @@ Nap_SubscriptCrossProduct(
 		    if (naoSubOldEl[d]  &&  naoSubOldEl[d]->rank == 1  &&  code[d] > 0) {
 			newCV[rank] = Nap_DupNAO(nap_cd, naoSubOldEl[d]);
 			naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
-			newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
+			NAP_FREE(nap_cd, newCV[rank]->unit);
+			newCV[rank]->unit = Nap_StrDup(nap_cd, naoTmp ? naoTmp->unit : NULL);
 		    } else if (naoArray->boxedCV) {
 			naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
 			if (naoTmp) {
@@ -800,7 +801,8 @@ Nap_SubscriptCrossProduct(
     for (d = 0; d < n; d++) {
 	Nap_DecrRefCount(nap_cd, naoSubNewEl[d]);
     }
-    naoResult->unit = Nap_StrDup(naoArray->unit);
+    NAP_FREE(nap_cd, naoResult->unit);
+    naoResult->unit = Nap_StrDup(nap_cd, naoArray->unit);
     *naoResultPtr = naoResult;
     return TCL_OK;
 }
@@ -915,7 +917,8 @@ Nap_SubscriptFull(
 	status = Nap_SetMissing(nap_cd, naoResult, naoArray->missingValueSlot);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
     }
-    naoResult->unit = Nap_StrDup(naoArray->unit);
+    NAP_FREE(nap_cd, naoResult->unit);
+    naoResult->unit = Nap_StrDup(nap_cd, naoArray->unit);
     if (Nap_TypeIsInteger(naoIndex[0]->dataType)) {
 	mv_nao = Nap_GetMissingValueNAO(nap_cd, naoResult);
 	CHECK2(mv_nao, "m4NAME: Error calling Nap_GetMissingValueNAO");
@@ -1043,7 +1046,7 @@ Nap_SubscriptOfVector(
 	    case 1:
 		newCV = linkNao;
 		if (oldCV[0]  &&  oldCV[0]->unit  &&  !newCV->unit) {
-		    newCV->unit = Nap_StrDup(oldCV[0]->unit);
+		    newCV->unit = Nap_StrDup(nap_cd, oldCV[0]->unit);
 		}
 		break;
 	}
@@ -1067,7 +1070,8 @@ Nap_SubscriptOfVector(
 	status = Nap_SetMissing(nap_cd, naoResult, naoArray->missingValueSlot);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
     }
-    naoResult->unit = Nap_StrDup(naoArray->unit);
+    NAP_FREE(nap_cd, naoResult->unit);
+    naoResult->unit = Nap_StrDup(nap_cd, naoArray->unit);
     if (naoSub->rank == 1) {
 	if (!newCV) {
 	    if (code[0] > 0) {
@@ -1135,7 +1139,8 @@ Nap_SubscriptOfVector(
  *	where <array> is <var_name>, <nao_ID>, {array_constant} or (<expr>)
  *	and <subscript> is (<expr>) or {array_constant}.
  *
- *	If <subscript> is type character then treat as <array> // <subscript>.
+ *	If <array>  & <subscript> both type character then treat as <array> // <subscript>.
+ *	If <subscript> (but not <array>) is type character then treat <subscript> as unit.
  *
  *	Examples
  *	    <var_name>(<expr>):			abc(3)
@@ -1143,6 +1148,7 @@ Nap_SubscriptOfVector(
  *	    {array_constant}{array_constant}	{2 9 -1}{0.5 -1 3 0}
  *	    (<expr>)(<expr>):			(abc+3)(3)
  *	    <string><string>:			'hello' ' world'
+ *	    (<expr>)(<string>):			3 'metres'
  *
  *	Subscript origin is 0.
  *
@@ -1219,13 +1225,13 @@ Nap_Subscript(
     Nap_NAO		*naoSubEl;	/* subscript */
     Nap_NAO		*naoResult;	/* for final result */
     Nap_NAO		*naoTmp;	/* temporary NAO */
+    Nap_dataType        resultDataType;
     int			status;
     char		*str;
 
     naoArray = Nap_GetNumericNaoFromId(nap_cd, str1);
     CHECK2NULL(naoArray, "m4NAME: Undefined array operand");
     Nap_IncrRefCount(nap_cd, naoArray);
-    CHECK2NULL(naoArray->rank > 0, "m4NAME: array operand is scalar");
     naoSub = Nap_GetNaoFromId(nap_cd, str2);
     CHECK2NULL(naoSub, "m4NAME: Undefined subscript operand");
     CHECK2NULL(naoSub->dataType == NAP_BOXED, "m4NAME: Subscript operand should be boxed");
@@ -1236,6 +1242,8 @@ Nap_Subscript(
 	naoSubEl = Nap_GetNaoFromSlot(naoSub->data.Boxed[0]);
 	CHECK2NULL(naoSubEl, "m4NAME: Error calling Nap_GetNaoFromSlot");
 	Nap_IncrRefCount(nap_cd, naoSubEl);
+	CHECK2NULL(naoArray->rank > 0  ||  naoSubEl->dataType == NAP_C8,
+		"m4NAME: array operand is scalar");
 	if (naoSubEl->dataType == NAP_RAGGED) {
 	    naoTmp = Nap_GetNumericNaoFromId(nap_cd, naoSubEl->id);
 	    CHECK2NULL(naoTmp, "m4NAME: Error calling Nap_GetNumericNaoFromId");
@@ -1251,8 +1259,20 @@ Nap_Subscript(
 	    naoSubEl = naoTmp;
 	}
 	if (naoSubEl->dataType == NAP_C8) {
-	    str = Nap_Cat(nap_cd, naoArray->id, naoSubEl->id);
-	    naoResult = Nap_GetNumericNaoFromId(nap_cd, str);
+	    if (naoArray->dataType == NAP_C8) {
+		str = Nap_Cat(nap_cd, naoArray->id, naoSubEl->id);
+		naoResult = Nap_GetNumericNaoFromId(nap_cd, str);
+		CHECK1NULL(naoResult);
+	    } else {
+		resultDataType = Nap_DataType2(naoArray->dataType, NAP_F32);
+		if (resultDataType == naoArray->dataType) {
+		    naoResult = Nap_DupNAO(nap_cd, naoArray);
+		    CHECK2NULL(naoResult, "m4NAME: Error calling Nap_DupNAO");
+		} else {
+		    naoResult = Nap_CastNAO(nap_cd, naoArray, resultDataType);
+		    CHECK2NULL(naoResult, "m4NAME: Error calling Nap_CastNAO");
+		}
+	    }
 	} else if (naoArray->rank == 1) {
 	    switch (SubscriptType(naoSubEl)) {
 	    case -1:
@@ -1278,6 +1298,7 @@ Nap_Subscript(
 	status = Nap_SubscriptCrossProduct(nap_cd, naoArray, naoSub, &naoResult);
 	CHECK1NULL(status == TCL_OK);
     }
+    assert(naoResult);
     if (naoResult->dataType == NAP_BOXED) {
 	for (j = 0; j < naoResult->nels; j++) {
 	    naoTmp = Nap_GetNaoFromSlot(naoResult->data.Boxed[j]);
@@ -1288,7 +1309,6 @@ Nap_Subscript(
     }
     assert(naoArray);
     assert(naoSub);
-    assert(naoResult);
     Nap_DecrRefCount(nap_cd, naoSub);
     if (naoResult == naoArray) {
 	--(naoArray->count);
@@ -1337,20 +1357,18 @@ Nap_Index(
 	boxed = NULL;
     }
     CHECK2NULL(str1, "m4NAME: Left argument is NULL");
-    str1 = Nap_StrDup(str1);
+    str1 = Nap_StrDup(nap_cd, str1);
     assert(str1);
     naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
     CHECK3NULL(naoPtr1, "m4NAME: Left argument is unknown NAO ID %s", str1);
     if (boxed) {
-	Nap_IncrRefCount(nap_cd, naoPtr1);
 	result = Nap_Subscript(nap_cd, naoPtr1->id, boxed->id);
-	Nap_DecrRefCount(nap_cd, naoPtr1);
     } else {
 	result = naoPtr1->id;
     }
     CHECK3NULL(result, "m4NAME: Undefined result for sub-array %s()", str1);
     assert(naoPtr1);
-    FREE(str1);
+    NAP_FREE(nap_cd, str1);
     result_NAO = Nap_GetNaoFromId(nap_cd, result);
     CHECK2NULL(result_NAO, "m4NAME: Error calling Nap_GetNaoFromId");
     Nap_IncrRefCount(nap_cd, result_NAO);
@@ -1647,10 +1665,11 @@ Nap_Cat(
     nbytes2 = Nap_SizeOf(dataType) * naoPtr2->nels;
     memcpy(result->data.c, naoPtr1->data.c, nbytes1);
     memcpy(result->data.c + nbytes1, naoPtr2->data.c, nbytes2);
+    NAP_FREE(nap_cd, result->unit);
     if (naoPtr1->unit) {
-	result->unit = Nap_StrDup(naoPtr1->unit);
+	result->unit = Nap_StrDup(nap_cd, naoPtr1->unit);
     } else if (naoPtr2->unit) {
-	result->unit = Nap_StrDup(naoPtr2->unit);
+	result->unit = Nap_StrDup(nap_cd, naoPtr2->unit);
     }
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);

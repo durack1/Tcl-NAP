@@ -13,7 +13,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParse.y,v 1.64 2005/05/26 23:36:34 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParse.y,v 1.69 2005/11/26 11:20:10 dav480 Exp $";
 #endif /* not lint */
 
 #ifdef WIN32
@@ -27,6 +27,9 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.64 2005/05/26 23:36:34 dav480 Exp $
 #define YYSTYPE Nap_stype
 #define YYPARSE_PARAM Nap_param
 #define YYLEX_PARAM Nap_param
+#undef  YYSTACK_USE_ALLOCA
+#define malloc(N)	ckalloc(N)
+#define free(P)		if (P) ckfree((char *) P)
 
 %}
 
@@ -36,7 +39,7 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.64 2005/05/26 23:36:34 dav480 Exp $
 %token <str>	ID			/* ID of nao  e.g. "nao.42" */
 %token <str>	NAME			/* of nao or function */
 %token <str>	STRING			/* e.g. 'hello world', `abc` */
-%token <str>	UNUMBER			/* unsigned double */
+%token <str>	UNUMBER			/* unsigned float */
 %token <op>	CAT			/* // */
 %token <op>	LAMINATE		/* /// */
 %token <op>	CLOSEST			/* @@ */
@@ -157,6 +160,8 @@ expr	: naoID				{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| '@' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
 	| CLOSEST expr %prec '!'	{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
 	| MATCH expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| LE expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| GE expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
 	| ',' expr %prec ','		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
 	| expr ',' %prec ','		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, NULL);}
 	| ','				{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, NULL);}
@@ -177,6 +182,8 @@ FuncArg1: arrayConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| stringConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| naoID				{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| '(' expr ')'			{$$ = $2;}
+	| usnv				{$$ = Nap_NewNaoPNode(Nap_param,
+					    Nap_ScalarConstant(Nap_param, $1));}
 	;
 
 FuncArg2: arrayConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
@@ -203,6 +210,7 @@ encList : '{' list '}'			{$$ = $2 ? $2 :
 
 list	: /* empty */			{$$ = NULL;}
 	| list element			{$$ = Nap_AppendToPNodeList(Nap_param, $1, $2);}
+	| list ',' element		{$$ = Nap_AppendToPNodeList(Nap_param, $1, $3);}
 	;
 
 element : ssnv				{$$ = Nap_NewValuePNode(Nap_param, "1", $1);}

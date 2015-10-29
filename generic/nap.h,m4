@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.204 2005/07/13 07:51:26 dav480 Exp $
+ * $Id: nap.h,m4,v 1.213 2006/09/26 12:36:06 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -363,7 +363,7 @@ typedef struct Nao {			/* numeric array object */
     char		mortal;		/* FALSE = do not delete */
     char		*format;	/* C format for printing */
     char		*label;		/* title, description of data, etc. */
-    char		*unit;		/* unit of measure */
+    char		*unit;		/* unit of measure in string form */
     int			rank;		/* # dimensions */
     size_t		nels;		/* product(shape) */
     size_t		nbytes;		/* size of nao. Mainly for debugging */
@@ -431,7 +431,9 @@ typedef struct NapClientData_struct {
     char 			**scanString;	/* flex input stream */
     size_t			*commandLength; /* # characters in command */
     int				errorCode;	/* 0 = OK, 1 = error */
-    size_t			totalBytesNAO;	/* total # bytes in NAOs */
+    size_t			otherBytes;	/* total # bytes currently allocated */
+    size_t			maxOtherBytes;	/* max. so far */
+    size_t			totalBytesNAO;	/* total # bytes currently in NAOs */
     size_t			maxTotalBytesNAO; /* max. so far */
     size_t			numberPNodes;	/* total # PNodes */
     Nap_NAO			*resultNao;	/* most recent NAO result of Nap_expression */
@@ -441,13 +443,12 @@ typedef struct NapClientData_struct {
     size_t			seqNum;		/* sequence # of most recently created NAO */
     int				slotList;	/* slot of head of internal "death list" of NAOs */
     Nap_NAO			**lookup;	/* NAO lookup table */
-    size_t			lookupN;	/* current # entries in lookup table */
     size_t			lookupSize;	/* size of lookup table */
     size_t			*free;		/* Free stack */
     size_t			freeN;		/* current # entries in Free stack */
-    size_t			freeSize;	/* current size of Free stack */
     Nap_NAO			**indexBaseCV;	/* CVs of NAO being indexed (NULL if none) */
     int				*indexDimNum;	/* dimension number of indexing */
+    int				*braceLevel;	/* nesting level within array constant */
     struct NapClientData_struct	*next;		/* next element in list of these structures */
     m4ForAllDataType(`Nap_NAO	*', `MissingValueNao;') /* standard missing value NAOs */
 } NapClientData;
@@ -487,11 +488,14 @@ EXTERN int		Nap_AttachLink(NapClientData *nap_cd, Nap_NAO *mainNaoPtr,
 EXTERN char		*Nap_BitAnd(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_BitOr(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_BitXor(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN char		*Nap_cart_proj_fwd(NapClientData *nap_cd, Nap_NAO *box_nao);
+EXTERN char		*Nap_cart_proj_inv(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN Nap_NAO		*Nap_CastNAO(NapClientData *nap_cd, Nap_NAO *old, Nap_dataType dataType);
 EXTERN char		*Nap_Cat(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Ceil(NapClientData *nap_cd, char *str);
 EXTERN char		*Nap_Choice(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Closest(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN void		Nap_CmdDelete(NapClientData *nap_cd);
 EXTERN char		*Nap_Complement(NapClientData *nap_cd, char *str);
 EXTERN char		*Nap_Copy(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_CopyDims(NapClientData *nap_cd, Nap_NAO *srcPtr, Nap_NAO *dstPtr);
@@ -502,7 +506,7 @@ EXTERN void		Nap_CreatePhotoImageFormat(void);
 EXTERN NapClientData	*Nap_CreateClientData(Tcl_Interp *interp);
 EXTERN void		Nap_CreateStandardMissingValues(NapClientData *nap_cd);
 EXTERN Nap_dataType	Nap_DataType2(Nap_dataType t1, Nap_dataType t2);
-EXTERN char		*Nap_DataTypeToText(Nap_dataType dataType);
+EXTERN char		*Nap_DataTypeToText(NapClientData *nap_cd, Nap_dataType dataType);
 EXTERN void		Nap_DecrRefCount(NapClientData *nap_cd, Nap_NAO *naoPtr);
 EXTERN char		*Nap_dilate(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN char		*Nap_Div(NapClientData *nap_cd, char *str1, char *str2);
@@ -549,6 +553,7 @@ EXTERN char		*Nap_InnerProd(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_inPolygon(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN void		Nap_InterpDeleteProc(ClientData clientData, Tcl_Interp *interp);
 EXTERN int		Nap_IsNAO(NapClientData *nap_cd, Nap_NAO *naoPtr);
+EXTERN char 		*Nap_isort(NapClientData *nap_cd, char *str1, int is_ascending);
 EXTERN char		*Nap_Laminate(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Le(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_LesserOf(NapClientData *nap_cd, char *str1, char *str2);
@@ -615,8 +620,9 @@ EXTERN char		*Nap_ShiftLeft(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_ShiftRight(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_SizeOf(Nap_dataType dataType);
 EXTERN Nap_NAO		*Nap_StandardMissingValueNAO(NapClientData *nap_cd, Nap_dataType dataType);
-EXTERN char		*Nap_StrCat(char *str1, ...);
-EXTERN char		*Nap_StrDup(CONST char *str);
+EXTERN char		*Nap_StrCat(NapClientData *nap_cd, char *str1, ...);
+EXTERN char		*Nap_StrDup0(NapClientData *nap_cd, const char *file, const int line, 
+				CONST char *str);
 EXTERN char		Nap_StrTail(char *string);
 EXTERN int		Nap_StrTailMatch(char *string, char *tail);
 EXTERN int		Nap_StrToDimNum(NapClientData *nap_cd, Nap_NAO *naoPtr, char *str);

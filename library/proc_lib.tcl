@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: proc_lib.tcl,v 1.105 2004/12/16 05:46:01 dav480 Exp $
+# $Id: proc_lib.tcl,v 1.117 2006/09/22 07:49:37 dav480 Exp $
 
 
 # aeq --
@@ -20,6 +20,46 @@ proc aeq {
     {r 1e-5}
 } {
     expr "abs($x-$y) <= [LargerOf $a [expr $r*[LargerOf [expr abs($x)] [expr abs($y)]]]]"
+}
+
+
+# auto_open --
+#
+# Open file/URL using application defined by prefix "http:" or its filename extension
+
+proc auto_open {
+    file_url
+} {
+    switch $::tcl_platform(platform) {
+	windows {
+	    set command "[auto_execok start] \"\""
+	}
+	default {
+	    set ext [file extension $file_url]
+	    set progs {firefox mozilla netscape}
+	    if {[regexp {^http:|^file:} $file_url]} {
+	    } elseif {$ext eq ".pdf"} {
+		set progs "acroread xpdf gv $progs"
+	    } else {
+		if {![regexp {^/} $file_url]} {
+		    set file_url "[pwd]/$file_url"
+		}
+		set file_url "file:///$file_url"
+	    }
+	    foreach prog $progs {
+		set command [auto_execok $prog]
+		if {$command ne ""} {
+		    break
+		}
+	    }
+	}
+    }
+    if {$command eq ""} {
+	error "auto_open: no command defined to open $file_url"
+    } else {
+	eval exec $command [list $file_url] &
+	return
+    }
 }
 
 
@@ -97,8 +137,8 @@ proc create_window {
     {label ""}
     {relief raised}
     {borderwidth 4}
-    {extra_x 0}
-    {extra_y 0}
+    {xshift ""}
+    {yshift ""}
 } {
     set parent [string trim $parent]
     set geometry [string tolower $geometry]
@@ -124,8 +164,21 @@ proc create_window {
 	if {$is_corner} {
 	    set x(w) [winfo rootx $parent]
 	    set y(n) [winfo rooty $parent]
-	    set x(e) [expr $x(w) + [winfo width  $parent] + $extra_x]
-	    set y(s) [expr $y(n) + [winfo height $parent] + $extra_y]
+	    # if shifts not specified then find right shifts by trial & error
+	    if {$xshift eq ""  ||  $yshift eq ""} {
+		set trial [create_window trial $parent NW "" raised 4 0 0]
+		if {$xshift eq ""} {
+		    set xshift [expr {$x(w)} - [winfo rootx $trial]]
+		}
+		if {$yshift eq ""} {
+		    set yshift [expr {$y(n)} - [winfo rooty $trial]]
+		}
+		destroy $trial
+	    }
+	    set x(e) [expr $x(w) + [winfo width  $parent]]
+	    set y(s) [expr $y(n) + [winfo height $parent]]
+	    incr x(w) $xshift
+	    incr y(n) $yshift
 	    set geometry "+$x([string index $geometry 1])+$y([string index $geometry 0])"
 	}
 	if {$geometry ne ""} {
@@ -138,6 +191,7 @@ proc create_window {
 	}
     }
     incr Create_window::frame_id
+    update
     return $all
 }
 
@@ -1088,16 +1142,7 @@ proc yes_no {
         error "Illegal option"
     }
     if [info exists ::tk_version] {
-	if {$geometry == ""} {
-	    set all $parent.yes_no
-	    frame $all -relief ridge -borderwidth 4
-	    pack $all
-	} else {
-	    set all .yes_no
-	    destroy $all
-	    toplevel $all
-	    wm geometry $all $geometry
-	}
+	set all [create_window yes_no $parent $geometry]
 	label $all.label -font $font -text $text -justify left
 	button $all.yes  -font $font -text Yes -command {set Yes_no::reply 1}
 	button $all.no   -font $font -text No  -command {set Yes_no::reply 0}

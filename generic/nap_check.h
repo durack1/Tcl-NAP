@@ -2,13 +2,13 @@
  * nap_check.h --
  *
  * Define macros for error handling using macros CHECK, CHECK2, CHECK3, ...
- * Also define memory allocation macros MALLOC, MALLOC0, REALLOC, FREE.
+ * Also define memory allocation macros NAP_ALLOC, NAP_ALLOC0, NAP_REALLOC, NAP_FREE.
  *
  * Copyright (c) 1997, CSIRO Australia
  *
  * Author: Harvey Davies, CSIRO Mathematical and Information Sciences
  *
- * $Id: nap_check.h,v 1.20 2005/07/29 05:30:22 dav480 Exp $
+ * $Id: nap_check.h,v 1.24 2006/09/29 12:38:29 dav480 Exp $
  */
 
 #include <tcl.h>
@@ -33,21 +33,25 @@
 #define TCL_ERROR 1
 #endif /* TCL_ERROR */
 
-#ifndef MALLOC
-#define MALLOC(n) Nap_Alloc(n)
-#endif /* MALLOC */
+#ifndef NAP_ALLOC
+#define NAP_ALLOC(nap_cd, n) Nap_Alloc(nap_cd, __FILE__, __LINE__, n)
+#endif /* NAP_ALLOC */
 
-#ifndef MALLOC0
-#define MALLOC0(n) Nap_Alloc0(n)
-#endif /* MALLOC0 */
+#ifndef NAP_ALLOC0
+#define NAP_ALLOC0(nap_cd, n) Nap_Alloc0(nap_cd, __FILE__, __LINE__, n)
+#endif /* NAP_ALLOC0 */
 
-#ifndef REALLOC
-#define REALLOC(p, n)	Nap_Realloc((void *) p, n)
-#endif /* REALLOC */
+#ifndef NAP_REALLOC
+#define NAP_REALLOC(nap_cd, p, n) Nap_Realloc(nap_cd, __FILE__, __LINE__, (void *) p, n)
+#endif /* NAP_REALLOC */
 
-#ifndef FREE
-#define FREE(p) Nap_Free((void *) p)
-#endif /* FREE */
+#ifndef NAP_FREE
+#define NAP_FREE(nap_cd, p) Nap_Free(nap_cd, __FILE__, __LINE__, (void *) p)
+#endif /* NAP_FREE */
+
+#ifndef Nap_StrDup
+#define Nap_StrDup(nap_cd, src) Nap_StrDup0(nap_cd, __FILE__, __LINE__, src)
+#endif /* Nap_StrDup */
 
 /*
  *  CHECK_PRE & CHECK_POST can be defined to do error handling, etc.
@@ -212,9 +216,10 @@
 EXTERN void	Nap_Check(NapClientData *nap_cd, const char *file, const int line,
 			const char *format, ...);
 EXTERN void	Nap_CheckAppendLine(NapClientData *nap_cd, char *str);
-EXTERN void	*Nap_Alloc(size_t size);
-EXTERN void	*Nap_Alloc0(size_t size);
-EXTERN void	Nap_Free(void *p);
-EXTERN void	*Nap_Realloc(void *p, size_t size);
+EXTERN void	*Nap_Alloc(NapClientData *nap_cd, const char *file, const int line, size_t size);
+EXTERN void	*Nap_Alloc0(NapClientData *nap_cd, const char *file, const int line, size_t size);
+EXTERN void	Nap_Free(NapClientData *nap_cd, const char *file, const int line, void *p);
+EXTERN void	*Nap_Realloc(NapClientData *nap_cd, const char *file, const int line, void *p,
+	size_t size);
 
 #endif /* _NAP_CHECK */

@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.27 2005/08/01 04:52:07 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.29 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -150,11 +150,11 @@ Nap_GetHDF_metaVar(
     CHECK(status == TCL_OK);
     switch (index) {
     case 1: /* -datatype */
-	str = Nap_DataTypeToText(externalDataType);
+	str = Nap_DataTypeToText(nap_cd, externalDataType);
 	CHECK2(str, TEXT0 "error calling Nap_DataTypeToText");
 	status = Nap_AppendLines(nap_cd, str);
 	CHECK(status == 0);
-	FREE(str);
+	NAP_FREE(nap_cd, str);
 	break;
     case 2: /* -dimension */
 	status = Nap_HdfDimNames(nap_cd, fileName, name);
@@ -426,11 +426,11 @@ Nap_GetNetcdf_metaVar(
     CHECK(status == TCL_OK);
     switch (index) {
     case 1: /* -datatype */
-	str = Nap_DataTypeToText(externalDataType);
+	str = Nap_DataTypeToText(nap_cd, externalDataType);
 	CHECK2(str, TEXT0 "error calling Nap_DataTypeToText");
 	status = Nap_AppendLines(nap_cd, str);
 	CHECK(status == 0);
-	FREE(str);
+	NAP_FREE(nap_cd, str);
 	break;
     case 2: /* -dimension */
 	status = Nap_NetcdfDimNames(nap_cd, fileName, name);

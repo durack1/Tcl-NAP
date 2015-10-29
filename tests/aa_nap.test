@@ -4,18 +4,22 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: aa_nap.test,v 1.23 2005/08/04 07:35:54 dav480 Exp $
+# $Id: aa_nap.test,v 1.33 2006/06/29 04:49:17 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
 proc put_info text {
-    # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+    set b [nap_info bytes]
+    # puts "${text}: [llength [list_naos]] NAOs using [lindex $b 0] bytes.\
+	    Other use: [lindex $b 2] bytes"
 }
 
 proc rm_nao_id text {
     regsub -all -line " *(${::NAO_PREFIX}\[0-9\]*-\[0-9\]*)?$" $text "" var
     return $var
 }
+
+put_info "before nap-1.1"
 
 Test nap-1.1 {assign scalar u8 constant} {
     nap {A = 9}
@@ -144,8 +148,11 @@ Test nap-4.1 {+} {aeq [expr $i+$r] [[nap $i+$r] v] } 1
 Test nap-4.2 {-} {aeq [expr $i-$r] [[nap $i-$r] v] } 1
 Test nap-4.3 {*} {aeq [expr $i*$r] [[nap $i*$r] v] } 1
 Test nap-4.4 {/} {aeq [expr $i/$r] [[nap $i/$r] v] } 1
-Test nap-4.5 {%} {[nap 42%{10 0}]} {2 0}
-Test nap-4.6 {% f32} {[nap 4.2%{0 1}]} {0 0.2}
+Test nap-4.5 {%} {[nap "42%{42 10 0 -10 _}"]} {0 2 0 -8 _}
+Test nap-4.6.1 {% f64} {[nap "4.2%{4.2 0 1 -1 1if64 -1if64 _}"] v} {0 0 0.2 -0.8 4.2 -Inf _}
+Test nap-4.6.2 {% f32} {[nap "(-4.2f32) % f32{-4.2 0 1 -1 1i -1i _}"] v} {0 0 0.8 -0.2 Inf -4.2 _}
+Test nap-4.6.3 {i32(_) % y} {[nap "_ % 1"]} {_}
+Test nap-4.6.4 {f64(_) % y} {[nap "f64(_) % 1f64"]} {_}
 Test nap-4.7 {0?:} {aeq [[nap {0 ? 8 : 9}] v] 9} 1
 Test nap-4.8 {1?:} {aeq [[nap 1?8:9] v] 8} 1
 Test nap-4.9 {>>>} { [nap $r >>> 0.5] v } 0.5
@@ -2786,6 +2793,27 @@ Test nap-60.16 {precedence = +} {$b} 2
 Test nap-60.17 {precedence , ?:} {[nap "open_box((0 ? (,2,3) : (4,5))1)"]} 5
 Test nap-60.18 {precedence , ?:} {[nap "open_box((1 ? (,2,3) : (4,5))1)"]} 2
 
-unset a b
+Test nap-61.1 {unary <=} {[nap "<= 'zonal'"] v} {3 4 2 1 0}
+Test nap-61.2 {unary >=} {[nap ">= {0 _ 9 7 -2 1}"] v} {2 3 5 0 4 1}
+Test nap-61.3 {unary <=} {
+    nap "a = {1.5 -1i 0 _ 9 _ 0 1i -2 1}"
+    [nap "a(<=a)"] v
+} {_ _ -Inf -2 0 0 1 1.5 9 Inf}
+Test nap-61.4 {unary >=} {[nap "a(>=a)"] v} {Inf 9 1.5 1 0 0 -2 -Inf _ _}
 
-put_info "nap-60.16 12"
+Test nap-62.1 {?: dim. names} {
+    nap "a3 = reshape(0, {2 3 4})"
+    nap "m = reshape(4, {3 4})"
+    nap "a = 3 .. 5"
+    nap "b = 11 .. 14"
+    $m set coo a b
+    nap "y = a3 < m ? m : -1"
+    $y dim
+} {(NULL) a b}
+Test nap-62.2 {?: coord. var 0} {$y coo 0} {(NULL)}
+Test nap-62.2 {?: coord. var 1} {[$y coo 1]} {3 4 5}
+Test nap-62.3 {?: coord. var 2} {[$y coo 2]} {11 12 13 14}
+
+unset a b m a3 y
+
+put_info "nap-62.1 12"

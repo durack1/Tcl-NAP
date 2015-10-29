@@ -5,7 +5,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: hdf_netcdf.tcl,v 1.26 2005/08/02 23:42:22 dav480 Exp $
+# $Id: hdf_netcdf.tcl,v 1.27 2006/09/20 05:09:58 dav480 Exp $
 
 switch $hdf_nc {
     hdf		{set ext hdf; set ishdf 1}
@@ -103,11 +103,11 @@ Test $hdf_nc-2.5 "read $hdf_nc variable with coordinate variables using @@" {
 
 Test $hdf_nc-2.6 "check coordinate variable read from $hdf_nc file" {
     [$in coo lat] v
-} {6 4}
+} {9.3 4}
 
 Test $hdf_nc-2.7 "check coordinate variable read from $hdf_nc file" {
     [$in coo lon] v
-} {9 9.3}
+} {8.6 9.2}
 
 Test $hdf_nc-2.8 "read $hdf_nc variable with coordinate variables" {
     nap in = [nap_get $hdf_nc geog.$ext mat]
@@ -530,7 +530,7 @@ Test $hdf_nc-16.3 "check cv0" {
 
 Test $hdf_nc-16.4 "check cv1" {
     [$in coo 1]
-} {-2 -0.5 0}
+} {-9 -0.4 9}
 
 unset in
 put_info "after $hdf_nc-16.4 21"

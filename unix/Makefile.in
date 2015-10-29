@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.169 2005/08/05 05:30:40 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.192 2006/10/02 02:03:31 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -57,6 +57,7 @@ GENERIC_M4_C_TARGETS = \
 	$(GENERIC_DIR)/nap_hdf.c
 
 GENERIC_PERM_C = \
+	$(GENERIC_DIR)/cart_proj.c \
 	$(GENERIC_DIR)/eval_tree.c \
 	$(GENERIC_DIR)/land_flag.c \
 	$(GENERIC_DIR)/land_flag_i.c \
@@ -84,6 +85,7 @@ SRCS = $(GENERIC_SRCS) $(UNIX_SRCS)
 #------------------------------------------------------------------------------
 
 OBJS = \
+	cart_proj$(OBJEXT) \
 	eval_tree$(OBJEXT) \
 	function$(OBJEXT) \
 	geometry$(OBJEXT) \
@@ -106,7 +108,7 @@ OBJS = \
 	nap_hdf$(OBJEXT) \
 	nap_netcdf$(OBJEXT) \
 	nap_ooc$(OBJEXT) \
-	triangulate$(OBJEXT)
+	triangulate$(OBJEXT) \
 
 #------------------------------------------------------------------------------
 # Package name and version numbers.
@@ -147,12 +149,15 @@ TOP_DIR = @TOP_DIR@
 TOP_DIR_TAIL = `basename $(TOP_DIR)`
 ROOT = @ROOT@
 DATA_DIR = $(TOP_DIR)/data
+GSHHS_DATA_DIR = $(DATA_DIR)/gshhs
 LAND_FLAG_DATA_DIR = $(DATA_DIR)/land_flag
+PROJ_DATA_DIR = @PROJ_DATA_DIR@
 GENERIC_DIR = $(TOP_DIR)/generic
 HTML_DIR = $(TOP_DIR)/html
 INSTALLER_DIR = $(TOP_DIR)/installer
 LIBRARY_DIR = $(TOP_DIR)/library
 TEST_DIR = $(TOP_DIR)/tests
+TEX_DIR = $(TOP_DIR)/tex
 
 #------------------------------------------------------------------------------
 # Operating system name and version
@@ -168,6 +173,7 @@ system = @system@
 
 CP = @CP@
 DEBUGGER = @DEBUGGER@
+XDEBUGGER = @XDEBUGGER@
 ECHO = @ECHO@
 M4 = @M4PROG@ @M4FLAGS@
 MKDIR = mkdir -p
@@ -205,14 +211,17 @@ DBGX = @DBGX@
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = @CC_MAKEDEPEND@ -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS = @CPPFLAGS@ @DEFS@ $(INCLUDES)
+CPPFLAGS = @CPPFLAGS@ $(DEFS) $(INCLUDES)
 HDF_HEADER_DIR = @HDF_HEADER_DIR@
 NC_HEADER_DIR = @NC_HEADER_DIR@
+PROJ_HEADER_DIR = @PROJ_HEADER_DIR@
 TCL_HEADER_DIR = @TCL_HEADER_DIR@
+DEFS = @DEFS@
 INCLUDES = \
 	-I`$(NATIVE_PATH) $(GENERIC_DIR)` \
 	-I`$(NATIVE_PATH) $(NC_HEADER_DIR)` \
 	-I`$(NATIVE_PATH) $(HDF_HEADER_DIR)` \
+	-I`$(NATIVE_PATH) $(PROJ_HEADER_DIR)` \
 	-I`$(NATIVE_PATH) $(TCL_HEADER_DIR)`
 
 #------------------------------------------------------------------------------
@@ -248,6 +257,8 @@ HDF_LIB_PATH = @HDF_LIB_PATH@
 HDF_LIB_SPEC = @HDF_LIB_SPEC@
 NC_LIB_PATH = @NC_LIB_PATH@
 NC_LIB_SPEC = @NC_LIB_SPEC@
+PROJ_LIB_PATH = @PROJ_LIB_PATH@
+PROJ_LIB_SPEC = @PROJ_LIB_SPEC@
 
 TK_LIB_SPEC = @TK_LIB_SPEC@
 TCL_LINK_SPEC = @TCL_LINK_SPEC@
@@ -258,8 +269,9 @@ MATH_LIBS = @MATH_LIBS@
 XLIBSW = @XLIBSW@
 SYS_LIBS = @SYS_LIBS@
 STD_LIBS = $(MATH_LIBS) $(XLIBSW) $(SYS_LIBS)
-LINK_LIBS     = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
-SHLIB_LD_LIBS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
+MISC_LIB_SPECS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(PROJ_LIB_SPEC)
+LINK_LIBS     = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
+SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
 
 #------------------------------------------------------------------------------
 # Tcl directories and files
@@ -291,7 +303,6 @@ BINARIES = $(PACKAGE_SHLIB)
 
 LOG = $(TOP_DIR)/change.log
 NOTES = $(TOP_DIR)/release_notes.txt
-PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
 
 #------------------------------------------------------------------------------
 # distribution tar files
@@ -318,10 +329,7 @@ binaries: $(BINARIES)
 
 libraries:
 
-doc: \
-    $(LOG) \
-    $(PDF) \
-    $(NOTES)
+doc:
 
 install: install-binaries install-headers install-libraries install-doc install-data
 
@@ -336,11 +344,6 @@ upload_src: $(SRC_TAR)
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
-upload_pdf: $(PDF)
-	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
-	$(RM) tmp.tcl
-
 upload: $(INSTALL_TAR)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(INSTALL_TAR)`" > tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
@@ -349,7 +352,10 @@ upload: $(INSTALL_TAR)
 lib: $(PACKAGE_SHLIB)
 
 debug: $(PACKAGE_SHELL)
-	$(DEBUGGER) $(PACKAGE_SHELL)
+	$(ENV) $(DEBUGGER) $(PACKAGE_SHELL)
+
+xdebug: $(PACKAGE_SHELL)
+	$(ENV) $(XDEBUGGER) $(PACKAGE_SHELL)
 
 shell: $(PACKAGE_SHELL)
 
@@ -365,20 +371,17 @@ libdir = @libdir@
 mandir = @mandir@
 includedir = $(TCL_HEADER_DIR)
 PACKAGE_LIBRARY_DIR = $(libdir)/$(PACKAGE)$(VERSION)
-PACKAGE_HTML_DIR = $(PACKAGE_LIBRARY_DIR)/html
 SHLIB_DIR = @SHLIB_DIR@
 SHLIB_DIR_BASE = @SHLIB_DIR_BASE@
 DATA_INSTALL_DIR = $(PACKAGE_LIBRARY_DIR)/data
+GSHHS_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/gshhs
 LAND_FLAG_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/land_flag
+PROJ_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/proj
 
 install-binaries: install-lib-binaries install-bin-binaries
 
-$(PACKAGE_HTML_DIR):
-	$(MKDIR) $@
-
-install-doc: $(PACKAGE_HTML_DIR)
-	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap_paper2002.pdf $(HTML_DIR)/*.html \
-		$(PACKAGE_HTML_DIR)
+install-doc:
+	cd $(TEX_DIR); $(MAKE) all; $(CP) *.pdf $(PACKAGE_LIBRARY_DIR)
 
 # C header files
 install-headers: \
@@ -386,7 +389,7 @@ install-headers: \
 	$(includedir)/nap_check.h \
 	$(includedir)/nap_hdf.h \
 	$(includedir)/nap_netcdf.h \
-	$(includedir)/nap.h
+	$(includedir)/nap.h \
 
 $(includedir):
 	$(MKDIR) $@
@@ -411,7 +414,8 @@ $(includedir)/nap.h: $(GENERIC_DIR)/nap.h $(includedir)
 $(PACKAGE_LIBRARY_DIR):
 	$(MKDIR) $@
 
-install-libraries: libraries $(PACKAGE_LIBRARY_DIR)
+install-libraries: libraries $(PACKAGE_LIBRARY_DIR) pkgIndex.tcl
+	cd $(PACKAGE_LIBRARY_DIR); $(RM) *.tcl tclIndex
 	$(CP) $(LIBRARY_DIR)/*.tcl $(PACKAGE_LIBRARY_DIR)
 	$(CP) pkgIndex.tcl $(PACKAGE_LIBRARY_DIR)
 	$(ECHO) "auto_mkindex `$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` *.tcl" > tmp.tcl
@@ -420,7 +424,11 @@ install-libraries: libraries $(PACKAGE_LIBRARY_DIR)
 
 install-lib-binaries: $(SHLIB_DIR)/$(PACKAGE_SHLIB)
 
-$(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB)
+$(libdir):
+	$(MKDIR) $@
+
+$(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB) $(SHLIB_DIR)
+	$(RM) $(SHLIB_DIR)/$(PACKAGE_SHLIB)
 	$(CP) $(PACKAGE_SHLIB) $(SHLIB_DIR)
 	if test -f $(PACKAGE_IMPORT_LIB) ; then \
 	    $(CP) $(PACKAGE_IMPORT_LIB) $(libdir); fi
@@ -437,6 +445,9 @@ install-bin-binaries: $(bindir)
 	if test -n "$(NC_DLL_DIR)" -a "$(NC_DLL_DIR)" != "$(bindir)"; then \
 	    $(CP) $(NC_DLL_DIR)/*.dll $(bindir); chmod +x $(bindir)/*.dll; fi
 
+$(GSHHS_DATA_INSTALL_DIR):
+	$(MKDIR) $@
+
 LAND_FLAG_DATA_FILES = \
 	$(LAND_FLAG_DATA_DIR)/sfa_degrees.landsea \
 	$(LAND_FLAG_DATA_DIR)/sfa_tenths.landsea \
@@ -445,20 +456,32 @@ LAND_FLAG_DATA_FILES = \
 $(LAND_FLAG_DATA_INSTALL_DIR):
 	$(MKDIR) $@
 
-install-data: $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
+$(PROJ_DATA_INSTALL_DIR):
+	$(MKDIR) $@
+
+install-data-gshhs: $(GSHHS_DATA_INSTALL_DIR)
+	$(CP) $(GSHHS_DATA_DIR)/gshhs_?.b $(GSHHS_DATA_INSTALL_DIR)
+
+install-data-land-flag: $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
 	$(CP) $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
+
+install-data-proj: $(PROJ_DATA_INSTALL_DIR)
+	$(CP) $(PROJ_DATA_DIR)/* $(PROJ_DATA_INSTALL_DIR)
+
+install-data: install-data-gshhs install-data-land-flag install-data-proj
 
 #------------------------------------------------------------------------------
 # Rules for Binaries
 #------------------------------------------------------------------------------
 
 LIB_PATHS = \
+	$(HDF_LIB_PATH) \
+	$(NC_LIB_PATH) \
+	$(PROJ_LIB_PATH) \
 	$(TCL_LIB_PATH) \
 	$(TCL_STUB_LIB_PATH) \
 	$(TK_LIB_PATH) \
-	$(TK_STUB_LIB_PATH) \
-	$(NC_LIB_PATH) \
-	$(HDF_LIB_PATH)
+	$(TK_STUB_LIB_PATH)
 
 $(PACKAGE_SHLIB): $(OBJS) $(LIB_PATHS)
 	$(SHLIB_LD) $(OBJS) $(SHLIB_LD_LIBS)
@@ -473,7 +496,6 @@ $(PACKAGE_SHELL): $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LIB_PATHS)
 SRC_MANIFEST = \
 $(TOP_DIR_TAIL)/data \
 $(TOP_DIR_TAIL)/generic \
-$(TOP_DIR_TAIL)/html \
 $(TOP_DIR_TAIL)/installer \
 $(TOP_DIR_TAIL)/library \
 $(TOP_DIR_TAIL)/tests \
@@ -544,6 +566,7 @@ depend:
 		-e 's!${GENERIC_DIR}!$${GENERIC_DIR}!g' \
 		-e 's!${HDF_HEADER_DIR}!$${HDF_HEADER_DIR}!g' \
 		-e 's!${NC_HEADER_DIR}!$${NC_HEADER_DIR}!g' \
+		-e 's!${PROJ_HEADER_DIR}!$${PROJ_HEADER_DIR}!g' \
 		-e 's!${TCL_HEADER_DIR}!$${TCL_HEADER_DIR}!g' \
 		-e 's!${includedir}!$${includedir}!g' \
 		-e 's!${ROOT}!$${ROOT}!g' \
@@ -663,6 +686,9 @@ $(GENERIC_DIR)/nap_ooc.c: $(GENERIC_DIR)/nap_ooc.c,m4 $(M4INCLUDE_FILES)
 $(PACKAGE)sh$(OBJEXT):	$(GENERIC_DIR)/$(PACKAGE)sh.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/$(PACKAGE)sh.c`
 
+cart_proj$(OBJEXT):	$(GENERIC_DIR)/cart_proj.c
+	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/cart_proj.c`
+
 eval_tree$(OBJEXT):		$(GENERIC_DIR)/eval_tree.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/eval_tree.c`
 
@@ -741,12 +767,17 @@ TEST_COMMAND = ::NAP::nap 2+2
 
 TEST_SCRIPT = $(TEST_DIR)/all.tcl
 
+ENV = \
+	DATA_DIR="`$(NATIVE_PATH) $(DATA_DIR)`" \
+	GSHHS_DATA_DIR="`$(NATIVE_PATH) $(GSHHS_DATA_DIR)`" \
+	LAND_FLAG_DATA_DIR="`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`" \
+	PROJ_LIB="`$(NATIVE_PATH) $(PROJ_DATA_DIR)`" \
+	TEST_DATA_DIR="`$(NATIVE_PATH) $(TEST_DIR)/data`" \
+	LIBRARY_DIR="`$(NATIVE_PATH) $(LIBRARY_DIR)`" \
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR)
+
 test0.tcl:
 	$(RM) $@
-	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
-	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_SCRIPT)`'}' >> $@
 
 test1.tcl:
@@ -772,30 +803,22 @@ test2.tcl:
 
 test3.tcl:
 	$(RM) $@
-	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
-	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'set env(PACKAGE_SHLIB) {'`$(NATIVE_PATH) $(PACKAGE_SHLIB)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_DIR)/wish_tests.tcl`'}' >> $@
 
 test: test1 test2 test3
 
 test1: $(PACKAGE_SHLIB) test1.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(TCLSH_PROG) test1.tcl
+	$(ENV) $(TCLSH_PROG) test1.tcl
 
 test2: $(PACKAGE_SHLIB) test0.tcl test2.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(TCLSH_PROG) test2.tcl
+	$(ENV) $(TCLSH_PROG) test2.tcl
 
 test3: $(PACKAGE_SHLIB) test3.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(WISH_PROG) test3.tcl
+	$(ENV) $(WISH_PROG) test3.tcl
 
 test0: $(PACKAGE_SHELL) test0.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(PACKAGE_SHELL) test0.tcl
+	$(ENV) $(PACKAGE_SHELL) test0.tcl
 
 #------------------------------------------------------------------------------
 # Installer (tcl starpack)

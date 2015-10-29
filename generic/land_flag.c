@@ -24,7 +24,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: land_flag.c,v 1.2 2005/06/15 23:20:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: land_flag.c,v 1.3 2005/11/06 05:45:15 dav480 Exp $";
 #endif /* not lint */
 
 #include <stdlib.h>
@@ -34,6 +34,7 @@ static char *rcsid="@(#) $Id: land_flag.c,v 1.2 2005/06/15 23:20:54 dav480 Exp $
 #include <fcntl.h>
 #include <math.h>
 #include <errno.h>
+#include <tcl.h>
 
 #ifdef _WIN32
     #include <io.h>		/* declares lseek on MS Windows */
@@ -44,6 +45,9 @@ static char *rcsid="@(#) $Id: land_flag.c,v 1.2 2005/06/15 23:20:54 dav480 Exp $
 #ifndef O_BINARY
 #  define O_BINARY 0
 #endif
+
+#define malloc(N)	ckalloc(N)
+#define free(P)		if (P) ckfree((char *) P)
 
 #include "land_flag.h"
 

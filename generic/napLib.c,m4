@@ -13,20 +13,26 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.206 2005/07/29 05:31:16 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.232 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
+#include <time.h>
 #include "nap_hdf.h"
 
-#define PR_MALLOC       /*  Do   print MALLOC info */
-#undef  PR_MALLOC       /* Don't print MALLOC info */
+#define PR_NAP_ALLOC       /*  Do   print NAP_ALLOC info */
+#undef  PR_NAP_ALLOC       /* Don't print NAP_ALLOC info */
 
 #define PR_NAO_ALLOC    /*  Do   print info on creation/deletion of NAOs */
 #undef  PR_NAO_ALLOC    /* Don't print info on creation/deletion of NAOs */
 
-#define CKALLOC(N) ckalloc(N)
-#define CKFREE(P) if (P) ckfree(P)
+#define NDEBUG
+
+#define PR_CH stderr	/* print channel */
+
+#define CKALLOC(N)	ckalloc(N)
+#define CKREALLOC(P,N)	ckrealloc((char *) P,N)
+#define CKFREE(P)	if (P) ckfree((char *) P)
 
 #define RESULT_BS0 4096		/* Initial size of result-buffer for Tcl result */
 
@@ -45,6 +51,22 @@ DLLEXPORT double	napF64Inf;		/* Infinity */
  */
 
 DLLEXPORT NapClientData	*nap_client_data_new = NULL;
+
+/*
+ *  baseName --
+ *
+ *  Strip off directory part of file path
+ */
+
+static char *
+baseName(
+    const char		*file)
+{
+    char		*p;
+    p = strrchr(file, '/');
+    return p ? p+1 : (char *) file;
+}
+
 
 /*
  * Nap_CheckAppendLine --
@@ -89,23 +111,28 @@ m4define(`m4NAME', `Nap_Check')
 EXTERN void
 Nap_Check(
     NapClientData       *nap_cd,
-    const char          *file,                  /* name of source file */
+    const char          *path,                  /* name of source file */
     const int           line,                   /* line # in source file */
     const char		*format,                /* format of message */
     ...)
 {
     va_list             argPtr;                 /* variable-arg pointer */
+    char          	*file;                  /* name of source file */
     int			level;			/* parse level */
     int			m;			/* no. chars before token */
     const int		mll = 100;		/* max. line length */
     int			n;			/* no. chars after token */
     char		s[NAP_MAX_MESSAGE_LENGTH+1]; /* temp string */
+    double		seconds;                /* clock value */
     int			status;
     char		*token;			/* pointer to error token */
 
     assert(mll < NAP_MAX_MESSAGE_LENGTH);
-    assert(file);
+    assert(path);
     assert(format);
+    file = baseName(path);
+    assert(file);
+    seconds = (double) clock() / (double) CLOCKS_PER_SEC;
     level = nap_cd->parseLevel;
     assert(level < nap_cd->recursionLimit);
     nap_cd->errorCode = 1;
@@ -138,11 +165,18 @@ Nap_Check(
 	Nap_CheckAppendLine(nap_cd, s);
     }
     va_start(argPtr, format) ;
+#ifndef NDEBUG
+    status = vfprintf(stderr, format, argPtr) ;
+    if (format[0]) {
+	status = fprintf(stderr, "\n") ;
+    }
+#endif
     status = vsprintf(s, format, argPtr) ;
     assert(status < NAP_MAX_MESSAGE_LENGTH);
     va_end(argPtr);
     Nap_CheckAppendLine(nap_cd, s);
 #ifndef NDEBUG
+    status = fprintf(stderr, "CPU=%.3f sec. Error at line %i of file %s\n\n", seconds, line, file);
     status = sprintf(s, "Error at line %i of file %s", line, file);
     assert(status > 0  &&  status < NAP_MAX_MESSAGE_LENGTH);
     Nap_CheckAppendLine(nap_cd, s);
@@ -154,7 +188,7 @@ m4begin
 
 m4define(`m4Nap_DataTypeToText', `
         case m4DataTypeEnum($1):
-            result = Nap_StrDup("m4LowerCase($1)");
+            result = Nap_StrDup(nap_cd, "m4LowerCase($1)");
             break;')
 
 m4define(`m4Nap_TextToDataType', `
@@ -298,13 +332,37 @@ Nap_mod(
     int         y)
 {
     int         result;
+    const int	missing_value = INT_MIN;
 
-    if (y == 0) {
-	result = 0;
+    if (x == 0  ||  x == missing_value) {
+	result = x;
+    } else if (y == 0  ||  y == missing_value) {
+	result = y;
+    } else if (y > 0) {
+	if (x > 0) {
+	    if (x < y) {
+		result = x;
+	    } else {
+		result = x % y;
+	    }
+	} else {
+	    result = - Nap_mod(-x, y);
+	    if (result < 0) {
+		result += y;
+	    }
+	}
     } else {
-	result = x % y;
-	if (y > 0 && result < 0  ||  y < 0 && result > 0) {
-	    result += y;
+	if (x > 0) {
+	    result = Nap_mod(x, -y);
+	    if (result > 0) {
+		result += y;
+	    }
+	} else {
+	    if (x > y) {
+		result = x;
+	    } else {
+		result = - Nap_mod(-x, -y);
+	    }
 	}
     }
     return result;
@@ -314,6 +372,7 @@ Nap_mod(
  * Nap_lmod --
  *
  * long version of Nap_mod
+ * Result is LONG_MIN if error.
  */
 
 EXTERN long
@@ -322,13 +381,37 @@ Nap_lmod(
     long	y)
 {
     long	result;
+    const long	missing_value = LONG_MIN;
 
-    if (y == 0) {
-	result = 0;
+    if (x == 0  ||  x == missing_value) {
+	result = x;
+    } else if (y == 0  ||  y == missing_value) {
+	result = y;
+    } else if (y > 0) {
+	if (x > 0) {
+	    if (x < y) {
+		result = x;
+	    } else {
+		result = x % y;
+	    }
+	} else {
+	    result = - Nap_lmod(-x, y);
+	    if (result < 0) {
+		result += y;
+	    }
+	}
     } else {
-	result = x % y;
-	if (y > 0 && result < 0  ||  y < 0 && result > 0) {
-	    result += y;
+	if (x > 0) {
+	    result = Nap_lmod(x, -y);
+	    if (result > 0) {
+		result += y;
+	    }
+	} else {
+	    if (x > y) {
+		result = x;
+	    } else {
+		result = - Nap_lmod(-x, -y);
+	    }
 	}
     }
     return result;
@@ -341,6 +424,8 @@ Nap_lmod(
  *  If y <  0 then y < result <= 0
  *  If y == 0 then result == 0
  *  If y >  0 then 0 <= result < y
+ *  If y == infinity and x > 0 then result is x
+ *  If y == -infinity and x < 0 then result is x
  *
  *  Note the need to be careful with rounding error to ensure these are true
  */
@@ -352,25 +437,36 @@ Nap_fmod(
 {
     double      result;
 
-    if (y == 0.0) {
-	result = 0.0;
-    } else {
-	result = fmod(x, y);
-	if (y > 0.0) {
-	    if (result < 0.0) {
+    if (IsNaN64(x) || IsNaN64(y)) {
+	result = napF64NaN;
+    } else if (y > 0) {
+	if (x < 0) {
+	    result = - Nap_fmod(-x, y);
+	    if (result < 0) {
 		result += y;
-	    }
-	    if (result > y * (1.0 - DBL_EPSILON)) {
-		result = 0.0;
 	    }
 	} else {
-	    if (result > 0.0) {
-		result += y;
-	    }
-	    if (result < y * (1.0 - DBL_EPSILON)) {
-		result = 0.0;
+	    if (x < y) {
+		result = x;
+	    } else {
+		result = fmod(x, y);
 	    }
 	}
+    } else if (y < 0) {
+	if (x > 0) {
+	    result = Nap_fmod(x, -y);
+	    if (result > 0) {
+		result += y;
+	    }
+	} else {
+	    if (x > y) {
+		result = x;
+	    } else {
+		result = - Nap_fmod(-x, -y);
+	    }
+	}
+    } else {
+	result = 0;
     }
     return result;
 }
@@ -388,25 +484,36 @@ Nap_fmod_f32(
 {
     float	result;
 
-    if (y == 0.0f) {
-	result = 0.0f;
-    } else {
-	result = fmod(x, y);
-	if (y > 0.0f) {
-	    if (result < 0.0f) {
+    if (IsNaN32(x) || IsNaN32(y)) {
+	result = napF32NaN;
+    } else if (y > 0) {
+	if (x < 0) {
+	    result = - Nap_fmod_f32(-x, y);
+	    if (result < 0) {
 		result += y;
-	    }
-	    if (result > y * (1.0f - FLT_EPSILON)) {
-		result = 0.0f;
 	    }
 	} else {
-	    if (result > 0.0f) {
-		result += y;
-	    }
-	    if (result < y * (1.0f - FLT_EPSILON)) {
-		result = 0.0f;
+	    if (x < y) {
+		result = x;
+	    } else {
+		result = fmod(x, y);
 	    }
 	}
+    } else if (y < 0) {
+	if (x > 0) {
+	    result = Nap_fmod_f32(x, -y);
+	    if (result > 0) {
+		result += y;
+	    }
+	} else {
+	    if (x > y) {
+		result = x;
+	    } else {
+		result = - Nap_fmod_f32(-x, -y);
+	    }
+	}
+    } else {
+	result = 0;
     }
     return result;
 }
@@ -450,6 +557,7 @@ Nap_NE_f32(
 
 EXTERN char *
 Nap_DataTypeToText(
+    NapClientData       *nap_cd,
     Nap_dataType        dataType)
 {
     char                *result;
@@ -495,10 +603,10 @@ Nap_GetFileName(
         name = (char *) Tcl_GetVar(nap_cd->interp, oldName, 0);
     }
     if (oldName[0] == '\''  &&  Nap_StrTail(oldName) == '\'') {
-        name = Nap_StrDup(oldName+1);
+        name = Nap_StrDup(nap_cd, oldName+1);
         name[strlen(name)-1] = '\0';
     } else {
-        name = Nap_StrDup(oldName);
+        name = Nap_StrDup(nap_cd, oldName);
     }
     if (isPrefixOf("http://" , name)) {
 	result = name;
@@ -506,13 +614,13 @@ Nap_GetFileName(
 	interp = Tcl_CreateInterp();
 	fullName = Tcl_TranslateFileName(interp, name, &ds);
 	if (fullName) {
-	    result = Nap_StrDup(fullName);
+	    result = Nap_StrDup(nap_cd, fullName);
 	    Tcl_DStringFree(&ds);
 	} else {
 	    result = NULL;
 	}
 	Tcl_DeleteInterp(interp);
-	FREE(name);
+	NAP_FREE(nap_cd, name);
     }
     return result;
 }
@@ -543,19 +651,31 @@ Nap_TextToDataType(
  *	Allocate memory from heap.
  */
 
+m4define(`m4NAME', `Nap_Alloc')
+
 EXTERN void *
 Nap_Alloc(
+    NapClientData	*nap_cd,
+    const char		*file,
+    const int		line,
     size_t		size)
 {
-    int			n;
+    size_t		n;
+    size_t		*ps;
     char		*p;
+    const size_t	s = sizeof(size_t);
 
-    n = Max(1, size);
-    p = ckalloc(n);
-#ifdef PR_MALLOC
-    printf("Nap_Alloc: %p %d bytes\n", p, n);
-#endif /* PR_MALLOC */
-    return (void *) p;
+    n = size + s;
+    p = CKALLOC(n);
+    ps = (size_t *) p;
+    *ps = n;
+    nap_cd->otherBytes += n;
+    nap_cd->maxOtherBytes = Max(nap_cd->maxOtherBytes, nap_cd->otherBytes);
+    #ifdef PR_NAP_ALLOC
+	fprintf(PR_CH, "m4NAME at line %i of file %s: %d bytes at %p. Total=%d bytes\n",
+		line, baseName(file), n, p, nap_cd->otherBytes);
+    #endif /* PR_NAP_ALLOC */
+    return (void *) (p+s);
 }
 
 /*
@@ -563,23 +683,35 @@ Nap_Alloc(
  *	Allocate memory from heap and set it to zero.
  */
 
+m4define(`m4NAME', `Nap_Alloc0')
+
 EXTERN void *
 Nap_Alloc0(
+    NapClientData	*nap_cd,
+    const char		*file,
+    const int		line,
     size_t		size)
 {
     int			i;
-    int			n;
+    size_t		n;
+    size_t		*ps;
     char		*p;
+    const size_t	s = sizeof(size_t);
 
-    n = Max(1, size);
-    p = ckalloc(n);
-#ifdef PR_MALLOC
-    printf("Nap_Alloc0: %d bytes from %p\n", n, p);
-#endif /* PR_MALLOC */
-    for (i = 0; i < n; i++) {
-	p[i] = 0;
+    n = size + s;
+    p = CKALLOC(n);
+    ps = (size_t *) p;
+    *ps = n;
+    for (i = 0; i < size; i++) {
+	p[i+s] = 0;
     }
-    return (void *) p;
+    nap_cd->otherBytes += n;
+    nap_cd->maxOtherBytes = Max(nap_cd->maxOtherBytes, nap_cd->otherBytes);
+    #ifdef PR_NAP_ALLOC
+	fprintf(PR_CH, "m4NAME at line %i of file %s: %d bytes at %p. Total=%d bytes\n",
+		line, baseName(file), n, p, nap_cd->otherBytes);
+    #endif /* PR_NAP_ALLOC */
+    return (void *) (p+s);
 }
 
 /*
@@ -587,35 +719,80 @@ Nap_Alloc0(
  *	Allocate memory from heap.
  */
 
+m4define(`m4NAME', `Nap_Realloc')
+
 EXTERN void *
 Nap_Realloc(
+    NapClientData	*nap_cd,
+    const char		*file,
+    const int		line,
     void		*p,
     size_t		size)
 {
-    int			n;
-    char		*result;
+    size_t		n0;
+    size_t		n1;
+    char		*p0;
+    char		*p1;
+    size_t		*ps0;
+    size_t		*ps1;
+    const size_t	s = sizeof(size_t);
 
-    n = Max(1, size);
-    result = ckrealloc(p, n);
-#ifdef PR_MALLOC
-    printf("Nap_Realloc: %d bytes from %p\n", n, result);
-#endif /* PR_MALLOC */
-    return (void *) result;
+    n1 = size + s;
+    if (p) {
+	p0 = ((char *) p) - s;
+	ps0 = (size_t *) p0;
+	n0 = *ps0;
+	assert(n0);
+	nap_cd->otherBytes -= n0;
+	p1 = CKREALLOC(p0, n1);
+	#ifdef PR_NAP_ALLOC
+	    fprintf(PR_CH, "m4NAME:Free at line %i of file %s: %d bytes at %p.\n",
+		    line, baseName(file), n0, p0);
+	#endif /* PR_NAP_ALLOC */
+    } else {
+	p1 = CKALLOC(n1);
+    }
+    ps1 = (size_t *) p1;
+    *ps1 = n1;
+    nap_cd->otherBytes += n1;
+    nap_cd->maxOtherBytes = Max(nap_cd->maxOtherBytes, nap_cd->otherBytes);
+    #ifdef PR_NAP_ALLOC
+	fprintf(PR_CH, "m4NAME:Alloc at line %i of file %s: %d bytes at %p. Total=%d bytes\n",
+		line, baseName(file), n1, p1, nap_cd->otherBytes);
+    #endif /* PR_NAP_ALLOC */
+    return (void *) (p1+s);
 }
 
 /*
  * Nap_Free --
  */
 
+m4define(`m4NAME', `Nap_Free')
+
 EXTERN void
 Nap_Free(
-    void            *p)
+    NapClientData	*nap_cd,
+    const char		*file,
+    const int		line,
+    void            	*p)
 {
+    size_t		n;
+    char		*p0;
+    size_t		*ps;
+    const size_t	s = sizeof(size_t);
+
     if (p) {
-#ifdef PR_MALLOC
-	printf("Nap_Free: %p\n", p);
-#endif /* PR_MALLOC */
-        ckfree((char *) p);
+	p0 = ((char *) p) - s;
+	ps = (size_t *) p0;
+	n = *ps;
+	assert(n);
+	nap_cd->otherBytes -= *ps;
+	#ifdef PR_NAP_ALLOC
+	    fprintf(PR_CH, "m4NAME at line %i of file %s:  %d bytes at %p. Total=%d bytes\n", 
+		    line, baseName(file), n, p0, nap_cd->otherBytes);
+	#endif /* PR_NAP_ALLOC */
+	*ps = 0;	/* Enables detection of multiple frees */
+        CKFREE(p0);
     }
 }
 
@@ -701,19 +878,23 @@ Nap_Hdf2NapDataType(
 }
 
 /*
- * Nap_StrDup --
+ * Nap_StrDup0 --
+ *	Called by macro 'Nap_StrDup' defined in nap_check.h
  *      My version of strdup (which is non-standard, though commonly available).
  *      If error return NULL.
  */
 
 EXTERN char *
-Nap_StrDup(
-    CONST char *src)
+Nap_StrDup0(
+    NapClientData	*nap_cd,
+    const char		*file,
+    const int		line,
+    CONST char		*src)
 {
     char        *dest;
 
     if (src) {
-        dest = (char *) MALLOC(strlen(src) + 1);
+        dest = (char *) Nap_Alloc(nap_cd, file, line, strlen(src) + 1);
         if (dest) {
             (void) strcpy(dest, src);
 	}
@@ -727,11 +908,12 @@ Nap_StrDup(
  * Nap_StrCat --
  *      Concatenate 0 or more strings.
  *	Usage:  Nap_StrCat(str1, str2, str3, ..., NULL);
- *      Result is malloc string.
+ *      Result is NAP_ALLOC string.
  */
 
 EXTERN char *
 Nap_StrCat(
+    NapClientData	*nap_cd,
     char *str1, 
     ...)
 {
@@ -747,7 +929,7 @@ Nap_StrCat(
     }
     va_end(ap);
     strPtr = Tcl_DStringValue(&ds);
-    result = Nap_StrDup(strPtr);
+    result = Nap_StrDup(nap_cd, strPtr);
     Tcl_DStringFree(&ds);
     return result;
 }
@@ -761,8 +943,9 @@ EXTERN void
 Nap_InitTclResult(
     NapClientData	*nap_cd)
 {
+    NAP_FREE(nap_cd, nap_cd->result);
     nap_cd->result_bs = RESULT_BS0;
-    nap_cd->result = (char *) MALLOC(nap_cd->result_bs);
+    nap_cd->result = (char *) NAP_ALLOC(nap_cd, nap_cd->result_bs);
     nap_cd->result_n = 0;
 }
 
@@ -780,7 +963,7 @@ Nap_SetTclResult(
 
     Tcl_ExternalToUtfDString(NULL, nap_cd->result, nap_cd->result_n, &ds);
     Tcl_DStringResult(nap_cd->interp, &ds);
-    FREE(nap_cd->result);
+    NAP_FREE(nap_cd, nap_cd->result);
     nap_cd->result = NULL;
     nap_cd->result_bs = 0;
     nap_cd->result_n = 0;
@@ -801,7 +984,7 @@ Nap_AppendStr(
 	while (*str) {
 	    if (nap_cd->result_n == nap_cd->result_bs) {
 		nap_cd->result_bs *= 2;
-		nap_cd->result = (char *) REALLOC(nap_cd->result, nap_cd->result_bs);
+		nap_cd->result = (char *) NAP_REALLOC(nap_cd, nap_cd->result, nap_cd->result_bs);
 	    }
 	    nap_cd->result[(nap_cd->result_n)++] = *(str++);
 	}
@@ -1016,7 +1199,7 @@ Nap_GetNaoFromObj(
     char                *id;
 
     id = Nap_expression(nap_cd, objPtr, NULL);
-    CHECK2NULL(id, "m4NAME: Illegal expression");
+    CHECK3NULL(id, "m4NAME: Illegal expression: %s", Tcl_GetString(objPtr));
     assert(nap_cd->resultNao->id == id);
     return nap_cd->resultNao;
 }
@@ -1156,7 +1339,7 @@ Nap_TclGetVar(
     if (! result) {
 	result = name;
     }
-    result = Nap_StrDup(result);
+    result = Nap_StrDup(nap_cd, result);
     return result;
 }
 
@@ -1204,7 +1387,7 @@ Nap_TraceUnsets(
 	}
     }
     Tcl_UntraceVar(interp, name1, TCL_TRACE_UNSETS | TCL_TRACE_WRITES, Nap_TraceUnsets, clientData);
-    FREE(naoPtrPtr);
+    NAP_FREE(nap_cd, naoPtrPtr);
     return NULL;
 }
 
@@ -1220,7 +1403,7 @@ Nap_TraceUnsets(
  * If error return NULL.
  *
  * It is important that each clientData value be unique. Had bug caused by two identical names
- * within different procedures pointing to same NAO. So now use address of malloc area containing
+ * within different procedures pointing to same NAO. So now use address of NAP_ALLOC area containing
  * unique pointer (to pointer to nao).
  */
 
@@ -1252,7 +1435,7 @@ Nap_Assign(
 	 */
 
     cstr = Tcl_GetVar(nap_cd->interp, name, 0);
-    str = Nap_StrDup(cstr);
+    str = Nap_StrDup(nap_cd, cstr);
     if (str && Nap_lexID(str) == strlen(str)) {
 	oldNaoPtr = Nap_GetNaoFromId(nap_cd, str);
 	if (Nap_IsNAO(nap_cd, oldNaoPtr)) {
@@ -1261,10 +1444,10 @@ Nap_Assign(
 	    Nap_DecrRefCount(nap_cd, oldNaoPtr);
 	}
     }
-    FREE(str);
+    NAP_FREE(nap_cd, str);
     cstr = Tcl_SetVar(nap_cd->interp, name, newNaoPtr->id, 0);
     CHECK3NULL(cstr, "m4NAME: Illegal name '%s' on left of '='", name)
-    naoPtrPtr = (Nap_NAO **) MALLOC(sizeof(Nap_NAO *));
+    naoPtrPtr = (Nap_NAO **) NAP_ALLOC(nap_cd, sizeof(Nap_NAO *));
     *naoPtrPtr = newNaoPtr;
     clientData = (ClientData) naoPtrPtr;
     status = Tcl_TraceVar(nap_cd->interp, name, TCL_TRACE_UNSETS | TCL_TRACE_WRITES,
@@ -1292,7 +1475,6 @@ Nap_IsNAO(
     if (! naoPtr->id) return FALSE;
     if (! Nap_ValidDataType(naoPtr->dataType)) return FALSE;
     if (naoPtr->nap_cd != nap_cd) return FALSE;
-    if (naoPtr->slot >= nap_cd->lookupN) return FALSE;
     if (naoPtr->seqNum > nap_cd->seqNum) return FALSE;
     if (naoPtr->rank < 0) return FALSE;
     if (naoPtr->rank > NAP_MAX_RANK) return FALSE;
@@ -1387,7 +1569,6 @@ Nap_Delete(
     ClientData          clientData)
 {
     NapClientData       *nap_cd;
-    const int		delta = 1000;	/* free stack expansion increment */
     int                 i;
     size_t		slot;
     Nap_NAO             *naoPtr;
@@ -1400,7 +1581,7 @@ Nap_Delete(
 	slot = naoPtr->slot;
         nap_cd->totalBytesNAO -= naoPtr->nbytes;
 #ifdef PR_NAO_ALLOC
-        printf("m4NAME: %p %s %+10d bytes making total %12d bytes\n",
+        fprintf(PR_CH, "m4NAME: %p %s %+10d bytes making total %12d bytes\n",
             naoPtr, naoPtr->id, -((int) naoPtr->nbytes),
 	    (int) nap_cd->totalBytesNAO);
 #endif /* PR_NAO_ALLOC */
@@ -1413,7 +1594,7 @@ Nap_Delete(
 	tmpPtr = naoPtr->boxedCV;
 	Nap_DecrRefCount(nap_cd, tmpPtr);
         for (i = 0; i < naoPtr->rank; i++) {
-            FREE(naoPtr->dimName[i]);
+            NAP_FREE(nap_cd, naoPtr->dimName[i]);
         }
         if (naoPtr->dataType == NAP_BOXED  ||  naoPtr->dataType == NAP_RAGGED) {
             for (i = 0; i < naoPtr->nels; i++) {
@@ -1421,23 +1602,13 @@ Nap_Delete(
 		Nap_DecrRefCount(nap_cd, tmpPtr);
             }
         }
-        FREE(naoPtr->format);
-        FREE(naoPtr->label);
-        FREE(naoPtr->unit);
-	/* need to expand free stack? */
-	if (nap_cd->freeN >= nap_cd->freeSize) {
-	    nap_cd->freeSize += delta;
-	    nap_cd->free = (size_t *) realloc(nap_cd->free,
-		    nap_cd->freeSize * sizeof(size_t));
-	    assert(nap_cd->free);
-	    for (i = nap_cd->freeSize - delta; i < nap_cd->freeSize; i++) {
-		nap_cd->free[i] = 0;
-	    }
-	}
+        NAP_FREE(nap_cd, naoPtr->format);
+        NAP_FREE(nap_cd, naoPtr->label);
+        NAP_FREE(nap_cd, naoPtr->unit);
 	nap_cd->lookup[slot] = NULL;
-	assert(nap_cd->freeN < nap_cd->freeSize);
+	assert(nap_cd->freeN < nap_cd->lookupSize);
 	nap_cd->free[nap_cd->freeN++] = slot;
-        CKFREE((char *) naoPtr);
+        CKFREE(naoPtr);
     }
 }
 
@@ -1679,6 +1850,7 @@ Nap_NewNAO4(
     char                *basePtr;               /* pointer to whole nao */
     const int		delta = 10000;		/* table expansion increment */
     int                 i;                      /* subscript */
+    int                 j;                      /* subscript */
     size_t              slot;
     size_t              nbytes;                 /* total # bytes in nao */
     size_t              nels;                   /* # elements in array */
@@ -1700,34 +1872,28 @@ Nap_NewNAO4(
     if (dataType == NAP_RAGGED  &&  rank > 0) {
 	nels /= shape[rank-1];
     }
-    /* room at end of lookup table? */
-    if (nap_cd->lookupN < nap_cd->lookupSize) {
-	slot = nap_cd->lookupN++;
-    } else {
-	if (nap_cd->freeN > 0) {		/* any free slots anywhere else? */
-	    slot = nap_cd->free[--nap_cd->freeN];
-	    assert(slot < nap_cd->lookupN);
-	} else {
-	    nap_cd->lookupSize += delta;
-	    nap_cd->lookup = (Nap_NAO **) realloc(nap_cd->lookup,
-		    nap_cd->lookupSize * sizeof(Nap_NAO *));
-	    if (!nap_cd->lookup) {
-		return NULL;
-	    }
-	    for (i = nap_cd->lookupSize - delta; i < nap_cd->lookupSize; i++) {
-		nap_cd->lookup[i] = NULL;
-	    }
-	    slot = nap_cd->lookupN++;
+    if (nap_cd->freeN == 0) {		/* any free slots? */
+	nap_cd->freeN = delta - (nap_cd->lookupSize == 0); /* reserve special slot 0 at start */
+	nap_cd->lookupSize += delta;
+	nap_cd->lookup = (Nap_NAO **) NAP_REALLOC(nap_cd, nap_cd->lookup,
+		nap_cd->lookupSize * sizeof(Nap_NAO *));
+	assert(nap_cd->lookup);
+	nap_cd->free = (size_t *) NAP_REALLOC(nap_cd, nap_cd->free,
+		nap_cd->lookupSize * sizeof(size_t));
+	assert(nap_cd->free);
+	for (i = 0; i < delta; i++) {
+	    j = nap_cd->lookupSize - i - 1;
+	    nap_cd->lookup[j] = NULL;
+	    nap_cd->free[i] = j;
 	}
     }
-    assert(nap_cd->lookupN <= nap_cd->lookupSize);
-    assert(slot < nap_cd->lookupN);
+    slot = nap_cd->free[--nap_cd->freeN];
     offset_id = sizeof(Nap_NAO);
     offset_shape = roundUpToMultipleOf(
             offset_id + strlen(NAP_NAO_ID_PREFIX) + ndigits(nap_cd->seqNum) + ndigits(slot) + 2,
             sizeof(size_t));
     offset_dimName = roundUpToMultipleOf(offset_shape + rank * sizeof(size_t), sizeof(char *));
-    offset_data = roundUpToMultipleOf(offset_dimName + rank * sizeof(char *), sizeof(int));
+    offset_data = roundUpToMultipleOf(offset_dimName + rank * sizeof(char *), Nap_SizeOf(dataType));
     nbytes = offset_data + nels * Nap_SizeOf(dataType) + (dataType == NAP_C8);
     result = (Nap_NAO *) CKALLOC(nbytes);
     if (result) {
@@ -1771,7 +1937,7 @@ Nap_NewNAO4(
 	nap_cd->maxTotalBytesNAO =
 		Max(nap_cd->maxTotalBytesNAO, nap_cd->totalBytesNAO);
 #ifdef PR_NAO_ALLOC
-	printf("m4NAME: %p %s %+10d bytes making total %12d bytes\n",
+	fprintf(PR_CH, "m4NAME: %p %s %+10d bytes making total %12d bytes\n",
 		result, result->id, (int) nbytes, (int) nap_cd->totalBytesNAO);
 #endif /* PR_NAO_ALLOC */
     }
@@ -1994,7 +2160,7 @@ Nap_ReshapeNAO2(
     Nap_dataType	dataType,	/* new data-type */
     int			rank,		/* new rank */
     size_t		*shape,		/* new shape */
-    int			want_text,	/* Include format, label & unit? */
+    int			want_text,	/* Include format, label & unit stuff? */
     int			want_dims)	/* Include dims & CVs? */
 {
     size_t		i;
@@ -2017,9 +2183,9 @@ Nap_ReshapeNAO2(
 		}
 	    }
 	    if (want_text) {
-		new->format = Nap_StrDup(old->format);
-		new->label = Nap_StrDup(old->label);
-		new->unit = Nap_StrDup(old->unit);
+		new->format = Nap_StrDup(nap_cd, old->format);
+		new->label = Nap_StrDup(nap_cd, old->label);
+		new->unit = Nap_StrDup(nap_cd, old->unit);
 	    }
 	    switch (new->dataType) {
 	    m4ForAllDataType(`m4copy_nao1(', `)')
@@ -2090,9 +2256,9 @@ Nap_ReshapeNAO_trailing(
 	    if (old->nels == 0  &&  new->nels > 0) {
 		return NULL;
 	    }
-	    new->format = Nap_StrDup(old->format);
-	    new->label = Nap_StrDup(old->label);
-	    new->unit = Nap_StrDup(old->unit);
+	    new->format = Nap_StrDup(nap_cd, old->format);
+	    new->label = Nap_StrDup(nap_cd, old->label);
+	    new->unit = Nap_StrDup(nap_cd, old->unit);
 	    switch (new->dataType) {
 	    m4ForAllDataType(`m4copy_nao1(', `)')
 	    default:		/* error */
@@ -2121,7 +2287,7 @@ static Nap_NAO *
 Nap_CopyNAO3(
     NapClientData	*nap_cd,
     Nap_NAO		*old,
-    int			want_text)		/* Include format, label & unit? */
+    int			want_text)		/* Include format, label & unit stuff? */
 {
     int                 i;
     Nap_NAO		*result;
@@ -2146,7 +2312,7 @@ Nap_CopyNAO3(
 /* 
  * Nap_CopyNAO --
  *
- * Return pointer to new NAO which is copy (excluding format, label & unit) of existing one.
+ * Return pointer to new NAO which is copy (excluding format, label & unit stuff) of existing one.
  * If error return NULL.
  */
 
@@ -2162,7 +2328,7 @@ Nap_CopyNAO(
 /* 
  * Nap_DupNAO --
  *
- * Return pointer to new NAO which is copy (including format, label & unit) of existing one.
+ * Return pointer to new NAO which is copy (including format, label & unit stuff) of existing one.
  * If error return NULL.
  */
 
@@ -2996,10 +3162,10 @@ Nap_SetDimName(
     assert(mainNaoPtr->id);
     assert(Nap_IsNAO(nap_cd, mainNaoPtr));
     if (dimName) {
-	dimName = Nap_StrDup(dimName);
+	dimName = Nap_StrDup(nap_cd, dimName);
 	CHECK2(dimName, "m4NAME: Error calling Nap_StrDup");
     }
-    FREE(mainNaoPtr->dimName[dimNum]);
+    NAP_FREE(nap_cd, mainNaoPtr->dimName[dimNum]);
     mainNaoPtr->dimName[dimNum] = dimName;
     return TCL_OK;
 }
@@ -3122,12 +3288,24 @@ Nap_GetClientData(
     return nap_cd;
 }
 
+
 /*
  *  Nap_InterpDeleteProc --
+ *	Called when interpreter is deleted
+ *	Delete 'nap', 'nap_get' & 'nap_info' commands
  *	Delete 'Nap_ClientData' structure for specified interpreter
  */
 
+m4begin
 m4define(`m4NAME', `Nap_InterpDeleteProc')
+
+m4RmMissingValueNao(type)  e.g. m4RmMissingValueNao(I16)
+m4define(`m4RmMissingValueNao', `
+	naoPtr = nap_cd->`$1'MissingValueNao;
+	naoPtr->mortal = TRUE;
+	naoPtr->count = 1;
+	Nap_DecrRefCount(nap_cd, naoPtr);')
+m4end
 
 EXTERN void
 Nap_InterpDeleteProc(
@@ -3135,17 +3313,32 @@ Nap_InterpDeleteProc(
     Tcl_Interp		*interp)
 {
     NapClientData	*nap_cd;
+    Nap_NAO             *naoPtr;
     NapClientData	**p;
+    int                 status;
 
+    nap_cd = nap_client_data_new;
     p = &nap_client_data_new;
-    while (*p  &&  (*p)->interp != interp) {
-	p = &((*p)->next);
+    while (nap_cd  &&  nap_cd->interp != interp) {
+	p = &(nap_cd->next);
+	nap_cd = nap_cd->next;
     }
-    nap_cd = *p;
-    assert(nap_cd);
-    *p = nap_cd->next;
-    m4ForAllDataType(`Nap_DecrRefCount(nap_cd, nap_cd->', `MissingValueNao);')
-    FREE(nap_cd);
+    if (nap_cd) {
+	*p = nap_cd->next;
+	status = Tcl_DeleteCommand(nap_cd->interp, "::NAP::nap");
+	status = Tcl_DeleteCommand(nap_cd->interp, "::NAP::nap_get");
+	status = Tcl_DeleteCommand(nap_cd->interp, "::NAP::nap_info");
+	m4ForAllDataType(`m4RmMissingValueNao(', `)')
+	NAP_FREE(nap_cd, nap_cd->free);
+	NAP_FREE(nap_cd, nap_cd->lookup);
+	NAP_FREE(nap_cd, nap_cd->scanString);
+	NAP_FREE(nap_cd, nap_cd->token);
+	NAP_FREE(nap_cd, nap_cd->commandLength);
+	NAP_FREE(nap_cd, nap_cd->indexBaseCV);
+	NAP_FREE(nap_cd, nap_cd->indexDimNum);
+	NAP_FREE(nap_cd, nap_cd->braceLevel);
+	CKFREE(nap_cd);	/* allocated using CKALLOC */
+    }
 }
 
 /*
@@ -3160,10 +3353,12 @@ Nap_CreateClientData(
 {
     NapClientData	*nap_cd;
 
-    nap_cd = (NapClientData *) MALLOC(sizeof(NapClientData));
+    nap_cd = (NapClientData *) CKALLOC(sizeof(NapClientData)); /* cannot use NAP_ALLOC! */
     nap_cd->interp = interp;
     nap_cd->recursionLimit = 0;
     nap_cd->parseLevel = -1;
+    nap_cd->otherBytes = 0;
+    nap_cd->maxOtherBytes = 0;
     nap_cd->totalBytesNAO = 0;
     nap_cd->maxTotalBytesNAO = 0;
     nap_cd->numberPNodes = 0;
@@ -3173,13 +3368,12 @@ Nap_CreateClientData(
     nap_cd->seqNum = 0;
     nap_cd->slotList = 0;
     nap_cd->lookup = NULL;
-    nap_cd->lookupN = 1;
     nap_cd->lookupSize = 0;
     nap_cd->free = NULL;
     nap_cd->freeN = 0;
-    nap_cd->freeSize = 0;
     nap_cd->indexBaseCV = NULL;
     nap_cd->indexDimNum = NULL;
+    nap_cd->braceLevel= NULL;
     nap_cd->next = nap_client_data_new;
     nap_client_data_new = nap_cd;
     m4ForAllDataType(`nap_cd->', `MissingValueNao = NULL;')

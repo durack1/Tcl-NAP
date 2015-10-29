@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.26 2005/07/07 04:16:49 dav480 Exp $
+dnl	$Id: configure.m4,v 1.35 2005/11/22 01:25:29 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -104,16 +104,17 @@ case "$HOST_OS" in
         LINK='$(CC)'
     ;;
 esac
+DEBUGGER="dbx"
+XDEBUGGER="xxgdb"
 case "$HOST_OS" in
     Linux)
-	DEBUGGER="ddd"
-    ;;
-    *)
-	DEBUGGER="dbx"
+	DEBUGGER="gdb"
+	XDEBUGGER="ddd"
     ;;
 esac
 AC_SUBST(COMPRESS)
 AC_SUBST(DEBUGGER)
+AC_SUBST(XDEBUGGER)
 AC_SUBST(LINK)
 SC_CONFIG_CFLAGS
 AC_SUBST(system)
@@ -280,6 +281,9 @@ HDF_LIB_DIR=.
 NC_DLL_DIR=''
 NC_HEADER_DIR=.
 NC_LIB_DIR=.
+PROJ_DATA_DIR=.
+PROJ_HEADER_DIR=.
+PROJ_LIB_DIR=.
 TCL_HEADER_DIR=.
 TCL_LIB_DIR=.
 
@@ -297,10 +301,12 @@ do
 	    $ROOT_DIR \
 	    $ROOT_DIR/hdf/use \
 	    $ROOT_DIR/nc/use \
+	    $ROOT_DIR/proj/use \
 	    $ROOT_DIR/hdf \
-	    $ROOT_DIR/nc
+	    $ROOT_DIR/nc \
+	    $ROOT_DIR/proj
     do
-	for DIR in $DIR1 $DIR1/include* $DIR1/lib $DIR1/dll $DIR1/dlllib $DIR1/bin
+	for DIR in $DIR1 $DIR1/include* $DIR1/lib $DIR1/dll $DIR1/dlllib $DIR1/bin $DIR1/share/proj
 	do
 	    if test -r $DIR/hd${HDF_999_VERSION}m.dll; then
 		HDF_DLL_DIR=$DIR
@@ -327,6 +333,15 @@ do
 	    fi
 	    if test -r $DIR/${LIB_PREFIX}nc-dods$STLIB_SUFFIX; then
 		NC_LIB_DIR=$DIR
+	    fi
+	    if test -r $DIR/proj_def.dat; then
+		PROJ_DATA_DIR=$DIR
+	    fi
+	    if test -r $DIR/proj_api.h; then
+		PROJ_HEADER_DIR=$DIR
+	    fi
+	    if test -r $DIR/${LIB_PREFIX}proj$STLIB_SUFFIX; then
+		PROJ_LIB_DIR=$DIR
 	    fi
 	    if test -r $DIR/tcl.h; then
 		TCL_HEADER_DIR=$DIR
@@ -363,6 +378,9 @@ case "$HOST_OS" in
 	NC_LIB_PATH="$NC_LIB_DIR/netcdf.lib"
 	NC_LIB_DIR="`cygpath -w $NC_LIB_DIR`"
 	NC_LIB_SPEC="'$NC_LIB_DIR\\netcdf.lib'"
+	PROJ_LIB_PATH="$PROJ_LIB_DIR/proj.lib"
+	PROJ_LIB_DIR="`cygpath -w $PROJ_LIB_DIR`"
+	PROJ_LIB_SPEC="'$PROJ_LIB_DIR\\proj.lib'"
 	SHLIB_DIR="\${bindir}"
 	SHLIB_DIR_BASE=bin
 	TMP="$TCL_LIB_DIR/nap$USE_VERSION\${DBGX}.lib"
@@ -396,6 +414,8 @@ case "$HOST_OS" in
 	    NC_LIB_PATH="$NC_LIB_DIR/libnc-dods$STLIB_SUFFIX"
 	    NC_LIB_SPEC="-L$NC_LIB_DIR -lnc-dods -ldap++ -lnc-dods -ldap++ -lcurl -lxml2"
 	fi
+	PROJ_LIB_PATH="$PROJ_LIB_DIR/libproj$STLIB_SUFFIX"
+	PROJ_LIB_SPEC="-L$PROJ_LIB_DIR -lproj"
 	SHLIB_DIR="\${libdir}"
 	SHLIB_DIR_BASE=lib
 	if test "x$X11_LIB_SWITCHES" = "x"; then
@@ -413,6 +433,9 @@ AC_SUBST(NAP_LIB_SPEC)
 AC_SUBST(NC_DLL_DIR)
 AC_SUBST(NC_HEADER_DIR)
 AC_SUBST(NC_LIB_SPEC)
+AC_SUBST(PROJ_DATA_DIR)
+AC_SUBST(PROJ_HEADER_DIR)
+AC_SUBST(PROJ_LIB_SPEC)
 AC_SUBST(PLATFORM_MANIFEST)
 AC_SUBST(TCL_HEADER_DIR)
 AC_SUBST(TCL_LIBRARY_DIR)
@@ -425,6 +448,7 @@ AC_SUBST(TK_LIB_PATH)
 AC_SUBST(TK_STUB_LIB_PATH)
 AC_SUBST(HDF_LIB_PATH)
 AC_SUBST(NC_LIB_PATH)
+AC_SUBST(PROJ_LIB_PATH)
 AC_SUBST(SHLIB_DIR)
 AC_SUBST(SHLIB_DIR_BASE)
 AC_SUBST(X11_LIB_SWITCHES)
@@ -443,6 +467,11 @@ AC_MSG_RESULT([Using NC_LIB_DIR=$NC_LIB_DIR])
 AC_MSG_RESULT([Using NC_HEADER_DIR=$NC_HEADER_DIR])
 AC_MSG_RESULT([Using NC_LIB_SPEC=$NC_LIB_SPEC])
 AC_MSG_RESULT([Using NC_LIB_PATH=$NC_LIB_PATH])
+AC_MSG_RESULT([Using PROJ_DATA_DIR=$PROJ_DATA_DIR])
+AC_MSG_RESULT([Using PROJ_LIB_DIR=$PROJ_LIB_DIR])
+AC_MSG_RESULT([Using PROJ_HEADER_DIR=$PROJ_HEADER_DIR])
+AC_MSG_RESULT([Using PROJ_LIB_SPEC=$PROJ_LIB_SPEC])
+AC_MSG_RESULT([Using PROJ_LIB_PATH=$PROJ_LIB_PATH])
 AC_MSG_RESULT([Using TCL_HEADER_DIR=$TCL_HEADER_DIR])
 AC_MSG_RESULT([Using TCL_LIBRARY_DIR=$TCL_LIBRARY_DIR])
 AC_MSG_RESULT([Using TCL_LINK_SPEC=$TCL_LINK_SPEC])

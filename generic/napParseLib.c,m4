@@ -13,8 +13,10 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.58 2005/06/23 08:29:56 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.62 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
+
+#include <stdlib.h>
 
 #include "nap.h"
 #include "nap_check.h"
@@ -46,8 +48,8 @@ Nap_NewPNode(
     Nap_PNode		*node;
 
     CHECK2NULL(Nap_ValidPNclass(class), "m4NAME: bad class");
-    node = (Nap_PNode *) MALLOC(sizeof(Nap_PNode));
-    CHECK2NULL(node, "m4NAME: Error calling MALLOC");
+    node = (Nap_PNode *) NAP_ALLOC(nap_cd, sizeof(Nap_PNode));
+    CHECK2NULL(node, "m4NAME: Error calling NAP_ALLOC");
     node->class = class;
     level = nap_cd->parseLevel;
     assert(level >= 0);
@@ -79,7 +81,7 @@ FreePNode(
     Nap_PNode		*node)
 {
     assert(Nap_ValidPNclass(node->class));
-    FREE(node);
+    NAP_FREE(nap_cd, node);
     -- nap_cd->numberPNodes;
 }
 
@@ -349,7 +351,7 @@ Nap_StringToNumber(
     int			status;
 
     assert(str);
-    str = Nap_StrDup(str);
+    str = Nap_StrDup(nap_cd, str);
     result->dataType = Nap_HexInt(str) > 0 ? NAP_U32 : Nap_DataTypeOfSuffix(str);
     is_integer = Nap_UnsignedInt(str) == strlen(str);
     if (strcmp(str, "_") == 0) {
@@ -416,7 +418,7 @@ Nap_StringToNumber(
 	CHECK2(Nap_TypeIsReal(result->dataType), "m4NAME: Invalid constant");
 	result->F32 = result->F64 = d;
     }
-    FREE(str);
+    NAP_FREE(nap_cd, str);
     return TCL_OK;
 }
 
@@ -818,15 +820,18 @@ Nap_NaN(
  * Nap_mantissa --
  *
  * If token is mantissa then return its length, else return 0
- * Either:
+ * One of:
  *   unsigned_integer
  *   unsigned_integer "." unsigned_integer
  *   unsigned_integer "r" unsigned_integer
+ *   "." unsigned_integer (if braceLevel > 0)
+ *   unsigned_integer "." (if braceLevel > 0)
  */
 
 static size_t
 Nap_mantissa(
-    char                *str)          /* input stream */
+    char		*str,		/* input stream */
+    int			braceLevel)	/* nesting level within array constant */
 {
     size_t		n;
     char                *s;
@@ -835,12 +840,31 @@ Nap_mantissa(
     s = str;
     n = Nap_UnsignedInt(s);
     s += n;
-    if (n > 0  &&  strchr(".r", *s)) {
+    if (n == 0) {
+	if (braceLevel > 0  &&  *str == '.') {
+	    n = Nap_UnsignedInt(str+1);
+	    if (n > 0) {
+		s += n + 1;
+	    }
+	}
+    } else {
 	n = Nap_UnsignedInt(s+1);
-	s += n + (n > 0);
+	switch (*s) {
+	    case '.':
+		if (n > 0  ||  braceLevel > 0) {
+		    s += n + 1;
+		}
+		break;
+	    case 'r':
+		if (n > 0) {
+		    s += n + 1;
+		} else {
+		    s = str;
+		}
+		break;
+	}
     }
-    n = s - str;
-    return n;
+    return s - str;
 }
 
 /*
@@ -849,27 +873,29 @@ Nap_mantissa(
  * If token is integer or float-without-exponent then return its length, else
  * return 0
  *
- * Either:
+ * One of:
  *   mantissa
- *   mantissa letter
+ *   mantissa suffix
  *
  * Optional suffix indicates data-type.
  */
 
 static size_t
 Nap_SimpleNumber(
-    char                *str)          /* input stream */
+    char		*str,		/* input stream */
+    int			braceLevel)	/* nesting level within array constant */
 {
     size_t		n;
     char                *s;
 
     assert(str);
     s = str;
-    n = Nap_mantissa(s);
-    if (n == 0)  return 0;
-    s += n;
-    n = s + Nap_DataTypeSuffix(s) - str;
-    n = isalnum(str[n]) ? 0 : n;
+    n = Nap_mantissa(s, braceLevel);
+    if (n > 0) {
+	s += n;
+	n = s + Nap_DataTypeSuffix(s) - str;
+	n = isalnum(str[n]) ? 0 : n;
+    }
     return n;
 }
 
@@ -877,23 +903,25 @@ Nap_SimpleNumber(
  * Nap_ExpFloat --
  *
  * If token is float with exponent then return its length, else return 0
- * Either:
- *   mantissa "e" integer
- *   mantissa "E" integer
- *   mantissa "p" integer
- * where integer can have data-type suffix
+ * One of:
+ *   mantissa letter integer
+ *   mantissa letter integer suffix
+ *
+ * Letter is one of 'e', 'E', 'p'.
+ * Optional suffix indicates data-type.
  */
 
 static size_t
 Nap_ExpFloat(
-    char                *str)          /* input stream */
+    char		*str,		/* input stream */
+    int			braceLevel)	/* nesting level within array constant */
 {
     size_t		n;
     char                *s;
 
     assert(str);
     s = str;
-    n = Nap_mantissa(s);
+    n = Nap_mantissa(s, braceLevel);
     s += n;
     if (n > 0  &&  *s  &&  strchr("eEp", *s)) {
 	++s;
@@ -1074,13 +1102,13 @@ Nap_lex(
     Nap_stype		*lvalp,
     NapClientData	*nap_cd)
 {
-    int			level;		/* parse level */
+    int			braceLevel = nap_cd->braceLevel[nap_cd->parseLevel];
+    int			level = nap_cd->parseLevel;
     size_t		n;
     size_t		nc;		/* # chars in whole command */
     int			result;
     char		*startPtr;
 
-    level = nap_cd->parseLevel;
     nc = nap_cd->commandLength[level];
     startPtr = nap_cd->scanString[level];
     assert(startPtr);
@@ -1089,35 +1117,35 @@ Nap_lex(
 	++startPtr;
     }
     n = 0;
-    if (startPtr[0] == '\0')				result = 0;
-    else if ((n = Nap_String(startPtr)) > 0)		result = STRING;
-    else if ((n = Nap_lexID(startPtr)) > 0)		result = ID;
-    else if ((n = Nap_lexName(startPtr)) > 0)		result = NAME;
-    else if ((n = Nap_ExpFloat(startPtr)) > 0)		result = UNUMBER;
-    else if ((n = Nap_HexInt(startPtr)) > 0)		result = UNUMBER;
-    else if ((n = Nap_Infinity(startPtr)) > 0)		result = UNUMBER;
-    else if ((n = Nap_NaN(startPtr)) > 0)		result = UNUMBER;
-    else if ((n = Nap_SimpleNumber(startPtr)) > 0)	result = UNUMBER;
-    else if ((n = Nap_lexCompare(startPtr, "...")) > 0)	result = AP3;
-    else if ((n = Nap_lexCompare(startPtr, "..")) > 0)	result = TO;
-    else if ((n = Nap_lexCompare(startPtr, "==")) > 0)	result = EQ;
-    else if ((n = Nap_lexCompare(startPtr, "!=")) > 0)	result = NE;
-    else if ((n = Nap_lexCompare(startPtr, "<=")) > 0)	result = LE;
-    else if ((n = Nap_lexCompare(startPtr, ">=")) > 0)	result = GE;
-    else if ((n = Nap_lexCompare(startPtr, "<<<")) > 0)	result = LESSER_OF;
-    else if ((n = Nap_lexCompare(startPtr, "<<")) > 0)	result = SHIFT_LEFT;
-    else if ((n = Nap_lexCompare(startPtr, ">>>")) > 0)	result = GREATER_OF;
-    else if ((n = Nap_lexCompare(startPtr, ">>")) > 0)	result = SHIFT_RIGHT;
-    else if ((n = Nap_lexCompare(startPtr, "&&")) > 0)	result = AND;
-    else if ((n = Nap_lexCompare(startPtr, "||")) > 0)	result = OR;
-    else if ((n = Nap_lexCompare(startPtr, "**")) > 0)	result = POWER;
-    else if ((n = Nap_lexCompare(startPtr, "///")) > 0)	result = LAMINATE;
-    else if ((n = Nap_lexCompare(startPtr, "//")) > 0)	result = CAT;
-    else if ((n = Nap_lexCompare(startPtr, "@@@")) > 0)	result = MATCH;
-    else if ((n = Nap_lexCompare(startPtr, "@@")) > 0)	result = CLOSEST;
-    else if ((n = Nap_lexCompare(startPtr, ".")) > 0)	result = INNER_PROD;
-    else if ((n = Nap_lexCompare(startPtr, "+*")) > 0)	result = INNER_PROD;
-    else if ((n = Nap_lexCompare(startPtr, "_")) > 0)	result = UNUMBER;
+    if (startPtr[0] == '\0')						result = 0;
+    else if ((n = Nap_String(startPtr)) > 0)				result = STRING;
+    else if ((n = Nap_lexID(startPtr)) > 0)				result = ID;
+    else if ((n = Nap_lexName(startPtr)) > 0)				result = NAME;
+    else if ((n = Nap_ExpFloat(startPtr, braceLevel)) > 0)		result = UNUMBER;
+    else if ((n = Nap_HexInt(startPtr)) > 0)				result = UNUMBER;
+    else if ((n = Nap_Infinity(startPtr)) > 0)				result = UNUMBER;
+    else if ((n = Nap_NaN(startPtr)) > 0)				result = UNUMBER;
+    else if ((n = Nap_SimpleNumber(startPtr, braceLevel)) > 0)		result = UNUMBER;
+    else if ((n = Nap_lexCompare(startPtr, "...")) > 0)			result = AP3;
+    else if ((n = Nap_lexCompare(startPtr, "..")) > 0)			result = TO;
+    else if ((n = Nap_lexCompare(startPtr, "==")) > 0)			result = EQ;
+    else if ((n = Nap_lexCompare(startPtr, "!=")) > 0)			result = NE;
+    else if ((n = Nap_lexCompare(startPtr, "<=")) > 0)			result = LE;
+    else if ((n = Nap_lexCompare(startPtr, ">=")) > 0)			result = GE;
+    else if ((n = Nap_lexCompare(startPtr, "<<<")) > 0)			result = LESSER_OF;
+    else if ((n = Nap_lexCompare(startPtr, "<<")) > 0)			result = SHIFT_LEFT;
+    else if ((n = Nap_lexCompare(startPtr, ">>>")) > 0)			result = GREATER_OF;
+    else if ((n = Nap_lexCompare(startPtr, ">>")) > 0)			result = SHIFT_RIGHT;
+    else if ((n = Nap_lexCompare(startPtr, "&&")) > 0)			result = AND;
+    else if ((n = Nap_lexCompare(startPtr, "||")) > 0)			result = OR;
+    else if ((n = Nap_lexCompare(startPtr, "**")) > 0)			result = POWER;
+    else if ((n = Nap_lexCompare(startPtr, "///")) > 0)			result = LAMINATE;
+    else if ((n = Nap_lexCompare(startPtr, "//")) > 0)			result = CAT;
+    else if ((n = Nap_lexCompare(startPtr, "@@@")) > 0)			result = MATCH;
+    else if ((n = Nap_lexCompare(startPtr, "@@")) > 0)			result = CLOSEST;
+    else if ((n = Nap_lexCompare(startPtr, ".")) > 0)			result = INNER_PROD;
+    else if ((n = Nap_lexCompare(startPtr, "+*")) > 0)			result = INNER_PROD;
+    else if ((n = Nap_lexCompare(startPtr, "_")) > 0)			result = UNUMBER;
     else {
 	n = 1;
 	result = *(startPtr);
@@ -1133,6 +1161,14 @@ Nap_lex(
 	case STRING:
 	    lvalp->str = startPtr + nc + 2;  /* Use 2nd copy of whole string */
 	    lvalp->str[n-2] = '\0';
+	    break;
+	case '{':
+	    ++nap_cd->braceLevel[nap_cd->parseLevel];
+	    lvalp->op = result;
+	    break;
+	case '}':
+	    --nap_cd->braceLevel[nap_cd->parseLevel];
+	    lvalp->op = result;
 	    break;
 	default:
 	    lvalp->op = result;

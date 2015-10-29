@@ -6,7 +6,7 @@
 #
 # Copyright (c) 2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: date.tcl,v 1.13 2005/06/16 09:16:11 dav480 Exp $
+# $Id: date.tcl,v 1.15 2006/04/07 05:23:10 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -49,7 +49,7 @@ namespace eval ::NAP {
 	    error "date2jdn: Size of final dimension of argument is not 3"
 	}
 	nap "shape_result = s(0 .. (r-2) ... 1)"
-	nap "ymd2 = reshape(i32(ymd), prod(shape_result) // 3)"
+	nap "ymd2 = reshape(i32(ymd), nint(prod(shape_result)) // 3)"
 	nap "year = ymd2(,0)"
 	nap "moy  = ymd2(,1)"
 	nap "dom  = ymd2(,2)"
@@ -63,7 +63,7 @@ namespace eval ::NAP {
 	nap "jd = reshape(is_error ? _ : jd, shape_result)"
 	eval $jd set coo [$ymd coo]
 	eval $jd set dim [$ymd dim]
-	$jd set unit JDN
+	$jd set unit days
 	nap "jd"
     }
 
@@ -160,7 +160,7 @@ namespace eval ::NAP {
 	    error "dateTime2mjd: Size of final dimension of argument > 6"
 	}
 	nap "shape_result = s(0 .. (r-2) ... 1)"
-	nap "ymdhms2 = reshape(ymdhms, prod(shape_result) // s(-1))"
+	nap "ymdhms2 = reshape(ymdhms, nint(prod(shape_result)) // s(-1))"
 	nap "year = ymdhms2(,0)"
 	nap "moy = s(-1) > 1 ? ymdhms2(,1) : 1"
 	nap "dom = s(-1) > 2 ? ymdhms2(,2) : 1"
@@ -268,7 +268,7 @@ namespace eval ::NAP {
 	    error "dateTime2days: Size of final dimension of ymdhms > 6"
 	}
 	nap "shape_result = s(0 .. (r-2) ... 1)"
-	nap "ymdhms2 = reshape(ymdhms, prod(shape_result) // s(-1))"
+	nap "ymdhms2 = reshape(ymdhms, nint(prod(shape_result)) // s(-1))"
 	nap "year = ymdhms2(,0)"
 	nap "moy = s(-1) > 1 ? ymdhms2(,1) - 1 : 0"
 	nap "dom = s(-1) > 2 ? ymdhms2(,2) - 1 : 0"

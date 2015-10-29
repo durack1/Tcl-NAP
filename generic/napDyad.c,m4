@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.142 2005/06/23 08:25:53 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.153 2006/06/29 05:08:57 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -62,30 +62,42 @@ Nap_DataType2(
 }
 
 /*
- *  Nap_DyadArg --
- *      Get left/right argument nao (padded if original ragged, but otherwise original type)
+ *  Nap_DyadArgs --
+ *      Get left & right argument naos.
+ *      Do padding if needed.
+ *      Both have ref. count incremented.
  */
 
-m4define(`m4NAME', `Nap_DyadArg')
+m4define(`m4NAME', `Nap_DyadArgs')
 
-static Nap_NAO
-*Nap_DyadArg(
+static int
+Nap_DyadArgs(
     NapClientData       *nap_cd,
-    char		*str,			/* id of arg (in) */
-    char		*side)			/* "left" or "right" (in) */
+    char		*left,			/* id of left arg (in) */
+    char		*right,			/* id of right arg (in) */
+    Nap_NAO		**naoLeftPtr,		/* new left arg (out) */
+    Nap_NAO		**naoRightPtr)		/* new right arg (out) */
 {
+    Nap_NAO		*naoLeft;		/* new left arg */
     Nap_NAO		*naoPtr;
-    Nap_NAO		*naoResultPtr;
+    Nap_NAO		*naoRight;		/* new right arg */
+    int			status;
 
-    naoPtr = Nap_GetNaoFromId(nap_cd, str);
-    CHECK3NULL(naoPtr, "m4NAME: Undefined %s-hand operand", side);
-    naoResultPtr = Nap_GetNumericNaoFromId(nap_cd, str);
-    CHECK2NULL(naoResultPtr, "m4NAME: Non-numeric left-hand operand");
-    Nap_IncrRefCount(nap_cd, naoPtr);
-    Nap_IncrRefCount(nap_cd, naoResultPtr);
-    Nap_DecrRefCount(nap_cd, naoPtr);
-    CHECK2NULL(Nap_IsUnboxed(naoResultPtr), "m4NAME: Boxed left-hand operand");
-    return naoResultPtr;
+    naoPtr = Nap_GetNaoFromId(nap_cd, left);
+    CHECK2(naoPtr, "m4NAME: Undefined left-hand operand");
+    naoLeft = Nap_GetNumericNaoFromId(nap_cd, left);
+    CHECK2(naoLeft, "m4NAME: Non-numeric left-hand operand");
+    Nap_IncrRefCount(nap_cd, naoLeft);
+    CHECK2(Nap_IsUnboxed(naoLeft), "m4NAME: Boxed left-hand operand");
+    naoPtr = Nap_GetNaoFromId(nap_cd, right);
+    CHECK2(naoPtr, "m4NAME: Undefined right-hand operand");
+    naoRight = Nap_GetNumericNaoFromId(nap_cd, right);
+    CHECK2(naoRight, "m4NAME: Non-numeric right-hand operand");
+    Nap_IncrRefCount(nap_cd, naoRight);
+    CHECK2(Nap_IsUnboxed(naoRight), "m4NAME: Boxed right-hand operand");
+    *naoLeftPtr  = naoLeft;
+    *naoRightPtr = naoRight;
+    return TCL_OK;
 }
 
 
@@ -103,7 +115,7 @@ Nap_DyadInit(
     Nap_NAO		*nao2,			/* right arg (in) */
     Nap_dataType        dataType1,		/* dataType for left arg (in) */
     Nap_dataType        dataType2,		/* dataType for right arg (in) */
-    Nap_dataType        resultDataType,		/* (in) */
+    Nap_dataType        resultDataType,		/* adjusted if result has unit (in) */
     int			resultHasMissingValue,	/* TRUE/FALSE (in) */
     Nap_NAO		**naoPtr1Ptr,		/* left arg (out) */
     Nap_NAO		**naoPtr2Ptr,		/* right arg (out) */
@@ -121,15 +133,12 @@ Nap_DyadInit(
     int                 rank;
     size_t              *shape;
     int			status;
+    double		tmp_double;
 
-    Nap_IncrRefCount(nap_cd, nao1);
     naoPtr1 = Nap_CastNAO(nap_cd, nao1, dataType1);
     Nap_IncrRefCount(nap_cd, naoPtr1);
-    Nap_DecrRefCount(nap_cd, nao1);
-    Nap_IncrRefCount(nap_cd, nao2);
     naoPtr2 = Nap_CastNAO(nap_cd, nao2, dataType2);
     Nap_IncrRefCount(nap_cd, naoPtr2);
-    Nap_DecrRefCount(nap_cd, nao2);
     if (naoPtr1->rank > naoPtr2->rank) {
 	rank = naoPtr1->rank;
 	shape = naoPtr1->shape;
@@ -205,10 +214,10 @@ m4define(`m4dyad3', `
 #  m4arith1(dataType)
 m4define(`m4arith1', `m4dyad3($1, $1, $1, m4MissingValue($1))')
 
-#  m4arith(name, intDefn, floatDefn, doubleDefn)
+#  m4arith(name, unitMode, intDefn, floatDefn, doubleDefn)
 #  floatDefn  defaults to intDefn
 #  doubleDefn defaults to intDefn
-#  e.g. m4arith(`Rem', `Nap_mod($1,$2)', `Nap_fmod_f32($1, $2)', `Nap_fmod($1, $2)')
+#  e.g. m4arith(`Rem', '%', `Nap_mod($1,$2)', `Nap_fmod_f32($1, $2)', `Nap_fmod($1, $2)')
 m4define(`m4arith', `
 EXTERN char *
 Nap_$1(
@@ -226,20 +235,18 @@ Nap_$1(
     Nap_dataType        resultDataType;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK2NULL(status == TCL_OK, "Nap_$1: Error calling Nap_DyadArgs");
     resultDataType = Nap_DataType2(naoPtr1->dataType, naoPtr2->dataType);
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, resultDataType, resultDataType, resultDataType,
 	    resultHasMissingValue, &naoPtr1, &naoPtr2, &naoResultPtr);
-    CHECK1NULL(status == TCL_OK);
-    switch (resultDataType) {
-m4define(`m4op', `$2')
+    CHECK2NULL(status == TCL_OK, "Nap_$1: Error calling Nap_DyadInit");
+    switch (naoResultPtr->dataType) {
+m4define(`m4op', `$3')
     m4ForAllIntegerDataType(`m4arith1(', `)')
-m4define(`m4op', m4ifelse(`$3', `', `$2', `$3'))
+m4define(`m4op', m4ifelse(`$4', `', `$3', `$4'))
     m4arith1(F32)
-m4define(`m4op', m4ifelse(`$4', `', `$2', `$4'))
+m4define(`m4op', m4ifelse(`$5', `', `$3', `$5'))
     m4arith1(F64)
     default:            /* error */
 	assert(FALSE);
@@ -252,18 +259,18 @@ m4define(`m4op', m4ifelse(`$4', `', `$2', `$4'))
 
 m4end
 
-m4arith(`Add', `$1 + $2')
-m4arith(`Sub', `$1 - $2')
-m4arith(`Mul', `$1 * $2')
-m4arith(`LesserOf', `Min($1, $2)')
-m4arith(`GreaterOf', `Max($1, $2)')
-m4arith(`Div', `$2?$1/$2:$3', `$1/$2', `$1/$2')
-m4arith(`Rem', `Nap_mod($1,$2)', `Nap_fmod_f32($1, $2)', `Nap_fmod($1, $2)')
+m4arith(`Add', `+', `$1 + $2')
+m4arith(`Sub', `+', `$1 - $2')
+m4arith(`Mul', `*', `$1 * $2')
+m4arith(`LesserOf', `+', `Min($1, $2)')
+m4arith(`GreaterOf', `+', `Max($1, $2)')
+m4arith(`Div', `/', `$2?$1/$2:$3', `$1/$2', `$1/$2')
+m4arith(`Rem', `%', `Nap_mod($1,$2)', `Nap_fmod_f32($1, $2)', `Nap_fmod($1, $2)')
 
 m4begin
 
-#  m4real(name, defn)
-#  e.g. m4real(`Power', `Pow($1, $2)')
+#  m4real(name, unitMode, defn)
+#  e.g. m4real(`Power', 'p', `Pow($1, $2)')
 m4define(`m4real', `
 EXTERN char *
 Nap_$1(
@@ -281,17 +288,15 @@ Nap_$1(
     Nap_dataType        resultDataType;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK1NULL(status == TCL_OK);
     resultDataType = Max(naoPtr1->dataType, naoPtr2->dataType);
     resultDataType = Max(resultDataType, m4DataTypeEnum(m4MinRealDataType));
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, resultDataType, resultDataType, resultDataType,
 	    resultHasMissingValue, &naoPtr1, &naoPtr2, &naoResultPtr);
     CHECK1NULL(status == TCL_OK);
-    switch (resultDataType) {
-m4define(`m4op', `$2')
+    switch (naoResultPtr->dataType) {
+m4define(`m4op', `$3')
     m4ForAllRealDataType(`m4arith1(', `)')
     default:            /* error */
 	assert(FALSE);
@@ -304,10 +309,10 @@ m4define(`m4op', `$2')
 
 m4end
 
-m4real(`Power', `Pow($1, $2)')
-m4real(`Atan2', `atan2($1, $2)')
-m4real(`Hypot', `hypot($1, $2)')
-m4real(`Log', `log($1) / log($2)')
+m4real(`Power', `p', `Pow($1, $2)')
+m4real(`Atan2', ` ', `atan2($1, $2)')
+m4real(`Hypot', `+', `hypot($1, $2)')
+m4real(`Log',   ` ', `log($1) / log($2)')
 
 m4begin
 
@@ -342,10 +347,8 @@ Nap_$1(
     Nap_NAO		*naoPtr2;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK1NULL(status == TCL_OK);
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, naoPtr1->dataType, naoPtr2->dataType,
 	    m4DataTypeEnum(m4MinIntegerDataType), resultHasMissingValue,
 	    &naoPtr1, &naoPtr2, &naoResultPtr);
@@ -389,10 +392,8 @@ Nap_$1(
     Nap_NAO		*naoPtr2;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK1NULL(status == TCL_OK);
     argDataType = Nap_DataType2(naoPtr1->dataType, naoPtr2->dataType);
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, argDataType, argDataType,
 	    m4DataTypeEnum(m4MinIntegerDataType), resultHasMissingValue,
@@ -440,15 +441,13 @@ Nap_$1(
     Nap_dataType        resultDataType;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK1NULL(status == TCL_OK);
     resultDataType = Min(NAP_U32, Nap_DataType2(naoPtr1->dataType, naoPtr2->dataType));
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, resultDataType, resultDataType, resultDataType,
 	    resultHasMissingValue, &naoPtr1, &naoPtr2, &naoResultPtr);
     CHECK1NULL(status == TCL_OK);
-    switch (resultDataType) {
+    switch (naoResultPtr->dataType) {
 m4define(`m4op', `$2')
     m4ForAllIntegerDataType(`m4arith1(', `)')
     default:            /* error */
@@ -498,10 +497,8 @@ Nap_$1(
     Nap_NAO		*naoPtr2;
     int			status;
 
-    naoPtr1 = Nap_DyadArg(nap_cd, str1, "left");
-    CHECK1NULL(naoPtr1);
-    naoPtr2 = Nap_DyadArg(nap_cd, str2, "right");
-    CHECK1NULL(naoPtr2);
+    status = Nap_DyadArgs(nap_cd, str1, str2, &naoPtr1, &naoPtr2);
+    CHECK1NULL(status == TCL_OK);
     CHECK2NULL(Nap_TypeIsInteger(naoPtr1->dataType) && Nap_TypeIsInteger(naoPtr2->dataType), m4dnl
 	    "Nap_$1: Shift operator has non-integer argument");
     status = Nap_DyadInit(nap_cd, naoPtr1, naoPtr2, naoPtr1->dataType, naoPtr2->dataType,

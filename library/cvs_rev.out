@@ -1,0 +1,208 @@
+cvs_rev 2004-04-01
+
+bin_io.tcl
+----------------------------
+revision 1.22
+date: 2004/06/29 01:20:49;  author: dav480;  state: Exp;  lines: +4 -4
+put_cif1: fix bug with missing_value
+----------------------------
+revision 1.21
+date: 2004/04/28 02:46:39;  author: dav480;  state: Exp;  lines: +7 -2
+put_cif & put_cif1: provide arg "missing_value"
+=============================================================================
+caps_nap_menu.tcl
+----------------------------
+revision 1.7
+date: 2004/07/19 09:03:18;  author: dav480;  state: Exp;  lines: +30 -18
+create_help_menu: add entries for local/www tcl, local nap
+----------------------------
+revision 1.6
+date: 2004/07/07 08:35:58;  author: dav480;  state: Exp;  lines: +4 -2
+fix bug causes by prev mods
+----------------------------
+revision 1.5
+date: 2004/07/07 06:55:42;  author: dav480;  state: Exp;  lines: +11 -3
+Fix problem with size of menu on cygwin-X
+=============================================================================
+choose_file.tcl
+----------------------------
+revision 1.6
+date: 2004/07/07 08:33:20;  author: dav480;  state: Exp;  lines: +5 -2
+dir_gui: If user presses cancel then do not change dir.
+----------------------------
+revision 1.5
+date: 2004/07/06 02:31:29;  author: dav480;  state: Exp;  lines: +49 -64
+various mods based largely on comments from pjt & ek
+----------------------------
+revision 1.4
+date: 2004/06/28 00:26:22;  author: dav480;  state: Exp;  lines: +136 -79
+Major rewrite with new proc choose_file_gui
+=============================================================================
+date.tcl
+----------------------------
+revision 1.5
+date: 2004/08/30 07:55:54;  author: dav480;  state: Exp;  lines: +2 -1
+mjd2dateTime: Handle BC error
+----------------------------
+revision 1.4
+date: 2004/08/30 06:30:43;  author: dav480;  state: Exp;  lines: +4 -9
+comments only
+----------------------------
+revision 1.3
+date: 2004/08/17 02:59:16;  author: dav480;  state: Exp;  lines: +222 -4
+Define convert_date. Comments
+----------------------------
+revision 1.2
+date: 2004/08/13 08:07:35;  author: dav480;  state: Exp;  lines: +88 -31
+various
+----------------------------
+revision 1.1
+date: 2004/08/12 08:45:52;  author: dav480;  state: Exp;
+add
+=============================================================================
+geog.tcl
+----------------------------
+revision 1.2
+date: 2004/06/10 03:04:57;  author: dav480;  state: Exp;  lines: +7 -7
+vorticity_wind: Use better formula (from Martin Dix)
+----------------------------
+revision 1.1
+date: 2004/06/09 07:41:05;  author: dav480;  state: Exp;
+mostly from nap_function.tcl. Define div_wind & vorticity_wind
+=============================================================================
+hdf.tcl
+----------------------------
+revision 1.106
+date: 2004/07/08 04:32:50;  author: dav480;  state: Exp;  lines: +37 -39
+rewrite help
+----------------------------
+revision 1.105
+date: 2004/07/06 04:43:34;  author: dav480;  state: Exp;  lines: +186 -87
+various mods based largely on comments from pjt & ek
+----------------------------
+revision 1.104
+date: 2004/06/28 00:29:08;  author: dav480;  state: Exp;  lines: +9 -45
+Use new proc choose_file_gui for input filename
+----------------------------
+revision 1.103
+date: 2004/04/29 23:38:07;  author: dav480;  state: Exp;  lines: +2 -2
+button_command: Change color of selected sds to blue
+=============================================================================
+land.tcl
+----------------------------
+revision 1.3
+date: 2004/08/12 02:14:31;  author: dav480;  state: Exp;  lines: +1 -2
+rm "package require land_flag"
+----------------------------
+revision 1.2
+date: 2004/08/11 02:40:45;  author: dav480;  state: Exp;  lines: +1 -1
+data dir now under lib/nap
+----------------------------
+revision 1.1
+date: 2004/08/11 02:39:06;  author: dav480;  state: Exp;
+merge land_flag package into nap
+=============================================================================
+make_dll.tcl
+----------------------------
+revision 1.31
+date: 2004/05/28 06:48:00;  author: dav480;  state: Exp;  lines: +2 -1
+fix bug with -link option reported by Ian Grant
+=============================================================================
+mk3.tcl
+----------------------------
+revision 1.2
+date: 2004/05/27 04:50:31;  author: dav480;  state: Exp;  lines: +66 -67
+major rewrite
+----------------------------
+revision 1.1
+date: 2004/05/25 05:38:55;  author: dav480;  state: Exp;
+new
+=============================================================================
+nap_function_lib.tcl
+----------------------------
+revision 1.44
+date: 2004/08/10 01:48:02;  author: dav480;  state: Exp;  lines: +27 -3
+sum_elements: new.  fill_holes: Provide arg max_nloops
+----------------------------
+revision 1.43
+date: 2004/07/15 08:08:21;  author: dav480;  state: Exp;  lines: +63 -37
+scattered2grid: new. isInsidePolygon: Use inPolygon
+----------------------------
+revision 1.42
+date: 2004/06/11 00:40:51;  author: dav480;  state: Exp;  lines: +1 -76
+move moving_average from nap_function_lib.tcl to stat.tcl
+----------------------------
+revision 1.41
+date: 2004/06/09 07:39:39;  author: dav480;  state: Exp;  lines: +1 -214
+move geographic stuff to geog.tcl
+----------------------------
+revision 1.40
+date: 2004/05/31 07:32:14;  author: dav480;  state: Exp;  lines: +53 -7
+vorticity: new.  moving_average: Use f64 to prevent rounding error
+=============================================================================
+nap_proc_lib.tcl
+----------------------------
+revision 1.9
+date: 2004/05/03 06:30:24;  author: dav480;  state: Exp;  lines: +51 -1
+put_gridascii: new
+----------------------------
+revision 1.8
+date: 2004/04/27 05:08:41;  author: dav480;  state: Exp;  lines: +2 -2
+"inform seconds" -> "nap_info seconds"
+=============================================================================
+plot_nao_procs.tcl
+----------------------------
+revision 1.102
+date: 2004/06/23 07:07:49;  author: dav480;  state: Exp;  lines: +13 -7
+Better spacing for titles (allowing for multiple lines)
+----------------------------
+revision 1.101
+date: 2004/06/07 07:16:27;  author: dav480;  state: Exp;  lines: +29 -11
+draw_xy: default_height_width=512; redraw_xy: Use axis_major_ticks_span; ajor_ticks_span: new; resize_canvas: update idletasks
+----------------------------
+revision 1.100
+date: 2004/06/06 23:55:59;  author: dav480;  state: Exp;  lines: +3 -8
+draw_y_axis_for_xy & draw_y_axis_for_image: Fix bug calculating nmax
+----------------------------
+revision 1.99
+date: 2004/06/04 02:27:35;  author: dav480;  state: Exp;  lines: +2 -2
+Check status returned by Print_gui::init
+----------------------------
+revision 1.98
+date: 2004/06/03 11:51:11;  author: dav480;  state: Exp;  lines: +4 -2
+plot_nao: Handle error in Print_gui::init
+=============================================================================
+print_gui.tcl
+----------------------------
+revision 1.9
+date: 2004/06/04 02:10:31;  author: dav480;  state: Exp;  lines: +10 -4
+init: Return 0 if OK, 1 if no ezprint under Windows.
+----------------------------
+revision 1.8
+date: 2004/06/03 06:22:41;  author: dav480;  state: Exp;  lines: +77 -21
+major rewrite avoiding use of package "printer", using ezprint on windows
+=============================================================================
+stat.tcl
+----------------------------
+revision 1.19
+date: 2004/07/01 02:40:56;  author: dav480;  state: Exp;  lines: +5 -5
+moving_average: handle missing values in result
+----------------------------
+revision 1.18
+date: 2004/07/01 01:18:22;  author: dav480;  state: Exp;  lines: +17 -3
+moving_average: define coord vars & units of result
+----------------------------
+revision 1.17
+date: 2004/06/11 00:40:51;  author: dav480;  state: Exp;  lines: +87 -12
+move moving_average from nap_function_lib.tcl to stat.tcl
+----------------------------
+revision 1.16
+date: 2004/04/29 05:25:50;  author: dav480;  state: Exp;  lines: +1 -34
+rm corr (replaced by correlataion)
+=============================================================================
+vif.tcl
+----------------------------
+revision 1.13
+date: 2004/06/04 02:27:36;  author: dav480;  state: Exp;  lines: +4 -2
+Check status returned by Print_gui::init
+=============================================================================

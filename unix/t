@@ -1,0 +1,9 @@
+1 repeats of:  nap.c,m4: line 62 Nap_Alloc 4004 bytes
+1 repeats of:  nap.c,m4: line 63 Nap_Alloc 4004 bytes
+1 repeats of:  nap.c,m4: line 64 Nap_Alloc 4004 bytes
+1 repeats of:  nap.c,m4: line 65 Nap_Alloc 4004 bytes
+1 repeats of:  nap.c,m4: line 66 Nap_Alloc 4004 bytes
+1 repeats of:  nap.c,m4: line 67 Nap_Alloc 4004 bytes
+11 repeats of:  napLib.c,m4: line 1450 Nap_Alloc 8 bytes
+1 repeats of:  napLib.c,m4: line 1614 Nap_Realloc:Alloc 40004 bytes
+1 repeats of:  napLib.c,m4: line 1896 Nap_Realloc:Alloc 40004 bytes

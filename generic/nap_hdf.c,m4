@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.152 2005/08/01 05:06:26 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.156 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK_PRE Nap_HdfCheck(nap_cd);   /* CHECK_PRE is macro used in nap_check.h */
@@ -244,7 +244,7 @@ Nap_HdfOpenFile(
     default:
 	CHECK2(FALSE, "m4NAME: Illegal file access mode");
     }
-    FREE(nativeFilename);
+    NAP_FREE(nap_cd, nativeFilename);
     return TCL_OK;
 }
 
@@ -923,7 +923,7 @@ Nap_HdfGetDim(
 	    if (attr_index >= 0) {
 		status= SDattrinfo(dim_id, attr_index, name_dim, &number_type, &count);
 		CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-		(*cv_hdf_NAO)->format = (char *) MALLOC(count+1);
+		(*cv_hdf_NAO)->format = (char *) NAP_ALLOC(nap_cd, count+1);
 		assert((*cv_hdf_NAO)->format);
 		status = SDreadattr(dim_id, attr_index, (*cv_hdf_NAO)->format);
 		(*cv_hdf_NAO)->format[count] = '\0';
@@ -932,7 +932,7 @@ Nap_HdfGetDim(
 	    if (attr_index >= 0) {
 		status= SDattrinfo(dim_id, attr_index, name_dim, &number_type, &count);
 		CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-		(*cv_hdf_NAO)->unit = (char *) MALLOC(count+1);
+		(*cv_hdf_NAO)->unit = (char *) NAP_ALLOC(nap_cd, count+1);
 		assert((*cv_hdf_NAO)->unit);
 		status = SDreadattr(dim_id, attr_index, (*cv_hdf_NAO)->unit);
 		(*cv_hdf_NAO)->unit[count] = '\0';
@@ -1097,7 +1097,8 @@ Nap_HdfDefineSubscript(
 		if (j >= 0) {
 		    el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
 		    if (el_NAO) {
-			CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript element rank > 1");
+			CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
+			CHECK2(Nap_IsInteger(el_NAO), "m4NAME: Subscript not integer");
 			Nap_IncrRefCount(nap_cd, el_NAO);
 			if (el_NAO->rank > 0) {
 			    shape1[i] = main_NAO->shape[j--];
@@ -1116,7 +1117,7 @@ Nap_HdfDefineSubscript(
 	    edge32[i] = 1;
 	    status = Nap_HdfGetDim(nap_cd, sds_id, i, &cv_hdf_NAO, name);
 	    CHECK(status == TCL_OK);
-	    subscript_ptr[i] = (int32 *) MALLOC(shape1[i] * sizeof(int32));
+	    subscript_ptr[i] = (int32 *) NAP_ALLOC(nap_cd, shape1[i] * sizeof(int32));
 	    CHECK(subscript_ptr[i]);
 	    if (i < boxed_subscript_NAO->nels	 &&  boxed_subscript_NAO->data.Boxed[i]) {
 		el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
@@ -1151,24 +1152,31 @@ Nap_HdfDefineSubscript(
 	    }
 	    if (mode == 'r') {
 		if (cv_hdf_NAO) {
-		    str = Nap_Index(nap_cd, cv_hdf_NAO->id , sub_NAO->id);
-		    CHECK2(str, "m4NAME: Error defining new coordinate variable");
-		    tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
-		    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_GetNumericNaoFromId");
-		    Nap_IncrRefCount(nap_cd, tmp_NAO);
-		    if (tmp_NAO->rank == 0) {
-			tmp_NAO2 = tmp_NAO;
-			j = shape1[0];
-			shape1[0] = 1;
-			tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1,
-				shape1);
-			CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
+		    if (sub_NAO->linkSlot) {
+			tmp_NAO = Nap_GetNaoFromSlot(sub_NAO->linkSlot);
 			Nap_IncrRefCount(nap_cd, tmp_NAO);
-			Nap_DecrRefCount(nap_cd, tmp_NAO2);
-			shape1[0] = j;
+		    } else {
+			str = Nap_Index(nap_cd, cv_hdf_NAO->id , sub_NAO->id);
+			CHECK2(str, "m4NAME: Error defining new coordinate variable");
+			tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
+			CHECK2(tmp_NAO, "m4NAME: Error calling Nap_GetNumericNaoFromId");
+			Nap_IncrRefCount(nap_cd, tmp_NAO);
+			if (tmp_NAO->rank == 0) {
+			    tmp_NAO2 = tmp_NAO;
+			    j = shape1[0];
+			    shape1[0] = 1;
+			    tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1,
+				    shape1);
+			    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
+			    Nap_IncrRefCount(nap_cd, tmp_NAO);
+			    Nap_DecrRefCount(nap_cd, tmp_NAO2);
+			    shape1[0] = j;
+			}
 		    }
-		    tmp_NAO->format = Nap_StrDup(cv_hdf_NAO->format);
-		    tmp_NAO->unit = Nap_StrDup(cv_hdf_NAO->unit);
+		    NAP_FREE(nap_cd, tmp_NAO->format);
+		    tmp_NAO->format = Nap_StrDup(nap_cd, cv_hdf_NAO->format);
+		    NAP_FREE(nap_cd, tmp_NAO->unit);
+		    tmp_NAO->unit = Nap_StrDup(nap_cd, cv_hdf_NAO->unit);
 		    status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
 		    CHECK(status == TCL_OK);
 		    Nap_DecrRefCount(nap_cd, tmp_NAO);
@@ -1202,7 +1210,7 @@ Nap_HdfDefineSubscript(
 		} else {
 		    size = DFKNTsize(number_type);
 		}
-		*buffer = (char *) MALLOC(edge32[i] * size);
+		*buffer = (char *) NAP_ALLOC(nap_cd, edge32[i] * size);
 		CHECK(*buffer);
 	    }
 	} else {
@@ -1643,7 +1651,7 @@ Nap_HdfPut(
 	    if (main_NAO->dataType == NAP_RAGGED) {
 		status = Nap_HdfPutSubscriptingRagged(nap_cd, sds_id, 0,
 			main_NAO, start32, edge32, subscript_ptr, NULL, buffer);
-		FREE(buffer);
+		NAP_FREE(nap_cd, buffer);
 		CHECK(status == TCL_OK);
 	    } else {
 		status = Nap_HdfScaleBeforePut(nap_cd, sds_id, main_NAO, &scaled_NAO);
@@ -1652,12 +1660,12 @@ Nap_HdfPut(
 		data_ptr = scaled_NAO->data.c;
 		status = Nap_HdfPutSubscripting(nap_cd, sds_id, 0, scaled_NAO, start32, edge32,
 			shape1, subscript_ptr, &data_ptr, buffer);
-		FREE(buffer);
+		NAP_FREE(nap_cd, buffer);
 		CHECK(status == TCL_OK);
 		Nap_DecrRefCount(nap_cd, scaled_NAO);
 	    }
 	    for (i = 0; i < rank32; i++) {
-		FREE(subscript_ptr[i]);
+		NAP_FREE(nap_cd, subscript_ptr[i]);
 	    }
 	    Tcl_DecrRefCount(indexObj);
 	    Nap_DecrRefCount(nap_cd, subscript_NAO);
@@ -1807,7 +1815,8 @@ Nap_HdfGet(
 	if (attr_index >= 0) {
 	    status= SDattrinfo(sds_id, attr_index, name, &number_type, &count);
 	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-	    main_NAO->format = (char *) MALLOC(count+1);
+	    NAP_FREE(nap_cd, main_NAO->format);
+	    main_NAO->format = (char *) NAP_ALLOC(nap_cd, count+1);
 	    assert(main_NAO->format);
 	    status = SDreadattr(sds_id, attr_index, main_NAO->format);
 	    main_NAO->format[count] = '\0';
@@ -1816,7 +1825,8 @@ Nap_HdfGet(
 	if (attr_index >= 0) {
 	    status= SDattrinfo(sds_id, attr_index, name, &number_type, &count);
 	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-	    main_NAO->label = (char *) MALLOC(count+1);
+	    NAP_FREE(nap_cd, main_NAO->label);
+	    main_NAO->label = (char *) NAP_ALLOC(nap_cd, count+1);
 	    assert(main_NAO->label);
 	    status = SDreadattr(sds_id, attr_index, main_NAO->label);
 	    main_NAO->label[count] = '\0';
@@ -1825,7 +1835,8 @@ Nap_HdfGet(
 	if (attr_index >= 0) {
 	    status= SDattrinfo(sds_id, attr_index, name, &number_type, &count);
 	    CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-	    main_NAO->unit = (char *) MALLOC(count+1);
+	    NAP_FREE(nap_cd, main_NAO->unit);
+	    main_NAO->unit = (char *) NAP_ALLOC(nap_cd, count+1);
 	    assert(main_NAO->unit);
 	    status = SDreadattr(sds_id, attr_index, main_NAO->unit);
 	    main_NAO->unit[count] = '\0';
@@ -1837,10 +1848,10 @@ Nap_HdfGet(
 	    data_ptr = main_NAO->data.c;
 	    status = Nap_HdfGetSubscripting(nap_cd, sds_id, raw, main_NAO, 0,
 		    start32, edge32, subscript_ptr, &data_ptr, buffer);
-	    FREE(buffer);
+	    NAP_FREE(nap_cd, buffer);
 	    CHECK(status == TCL_OK);
 	    for (i = 0; i < rank32; i++) {
-		FREE(subscript_ptr[i]);
+		NAP_FREE(nap_cd, subscript_ptr[i]);
 	    }
 	} else {
 	    for (i = 0; i < rank32; i++) {

@@ -63,7 +63,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: triangulate.c,v 1.3 2004/12/17 09:04:24 dav480 Exp $";
+static char *rcsid="@(#) $Id: triangulate.c,v 1.5 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include  <stddef.h>
@@ -104,22 +104,24 @@ static void merge(edge *r_cw_l, point *s, edge *l_ccw_r, point *u, edge **l_tang
  */
 
 static int
-alloc_memory(cardinal n)
+alloc_memory(
+    NapClientData	*nap_cd, 
+    cardinal		n)
 {
     edge *e;
     tri_index i;
 
     /* Point storage. */
-    p_array = (point *) MALLOC0(n * sizeof(point));
+    p_array = (point *) NAP_ALLOC0(nap_cd, n * sizeof(point));
     if (p_array == NULL)
         return 1;
 
     /* Edges. */
     n_free_e = 3 * n;   /* Eulers relation */
-    e_array = e = (edge *) MALLOC0(n_free_e * sizeof(edge));
+    e_array = e = (edge *) NAP_ALLOC0(nap_cd, n_free_e * sizeof(edge));
     if (e_array == NULL)
         return 1;
-    free_list_e = (edge **) MALLOC0(n_free_e * sizeof(edge *));
+    free_list_e = (edge **) NAP_ALLOC0(nap_cd, n_free_e * sizeof(edge *));
     if (free_list_e == NULL)
         return 1;
     for (i = 0; i < n_free_e; i++, e++)
@@ -127,11 +129,12 @@ alloc_memory(cardinal n)
     return 0;
 }
 
-void free_memory()
+void free_memory(
+    NapClientData	*nap_cd) 
 {
-  FREE(p_array);  
-  FREE(e_array);  
-  FREE(free_list_e);  
+  NAP_FREE(nap_cd, p_array);  
+  NAP_FREE(nap_cd, e_array);  
+  NAP_FREE(nap_cd, free_list_e);  
 }
 
 edge *get_edge()
@@ -662,7 +665,7 @@ dct(
 
     n = nr_xy;
     assert(n > 1);
-    status = alloc_memory(n);
+    status = alloc_memory(nap_cd, n);
     CHECK2(status == 0, TEXT0 "not enough memory");
     for (i = 0; i < n; i++) {
 	p_array[i].x = xy[nc_xy * i];
@@ -672,17 +675,17 @@ dct(
     for (i = 0; i < n; i++)
 	p_array[i].entry_pt = NULL;
     /* Sort. */
-    p_sorted = (point **) MALLOC((unsigned)n*sizeof(point *));
+    p_sorted = (point **) NAP_ALLOC(nap_cd, (unsigned)n*sizeof(point *));
     CHECK2(p_sorted, TEXT0 "not enough memory");
-    p_temp = (point **) MALLOC((unsigned)n*sizeof(point *));
+    p_temp = (point **) NAP_ALLOC(nap_cd, (unsigned)n*sizeof(point *));
     CHECK2(p_temp, TEXT0 "not enough memory");
     for (i = 0; i < n; i++)
 	p_sorted[i] = p_array + i;
     merge_sort(p_sorted, p_temp, 0, n-1);
-    FREE((char *)p_temp);
+    NAP_FREE(nap_cd, (char *)p_temp);
     /* Triangulate. */
     divide(p_sorted, 0, n-1, &l_cw, &r_ccw);
-    FREE((char *)p_sorted);
+    NAP_FREE(nap_cd, (char *)p_sorted);
     /* Output edges or triangles. */
     if (nc_result == 3) {
 	*nr_result = define_triangles(n, nr_result_max, nc_result, result);
@@ -691,7 +694,7 @@ dct(
 	*nr_result = define_edges(    n, nr_result_max, nc_result, result);
 	CHECK2(*nr_result > 0, TEXT0 "Error calling define_edges");
     }
-    free_memory();
+    free_memory(nap_cd);
     return 0;
 }
 
@@ -748,8 +751,8 @@ Nap_TriangulateGeneric(
 	nr_result_max = 2 * nr_arg - 4;		/* upper bound. See Aurenhammer p357 */
 	nc_result = 3;
     }
-    dct_result = (int *) MALLOC(nr_result_max * nc_result * sizeof(int));
-    CHECK2(dct_result, TEXT0 "Error calling MALLOC");
+    dct_result = (int *) NAP_ALLOC(nap_cd, nr_result_max * nc_result * sizeof(int));
+    CHECK2(dct_result, TEXT0 "Error calling NAP_ALLOC");
     status = dct(nap_cd, nr_arg, nc_arg, sites->data.F32, nr_result_max, nc_result,
 	    &nr_result, dct_result);
     CHECK2(status == 0, TEXT0 "Error calling dct");
@@ -762,7 +765,7 @@ Nap_TriangulateGeneric(
     for (i = 0; i < ne_result; i++) {
 	result->data.I32[i] = dct_result[i];
     }
-    FREE(dct_result);
+    NAP_FREE(nap_cd, dct_result);
     Nap_DecrRefCount(nap_cd, sites);
     Nap_DecrRefCount(nap_cd, box_nao);
     return 0;

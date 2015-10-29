@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: function.c,m4,v 1.5 2005/07/21 05:58:07 dav480 Exp $";
+static char *rcsid="@(#) $Id: function.c,m4,v 1.15 2006/09/29 12:38:29 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -102,9 +102,9 @@ m4define(`m4_solve_linear', `
 		{
 		    m4DataTypeName($1) **a;	/* pointers to rows of left hand side */
 		    m4DataTypeName($1) **b;	/* pointers to rows of right hand side */
-		    a = (m4DataTypeName($1) **) MALLOC(n * sizeof(m4DataTypeName($1) *));
+		    a = (m4DataTypeName($1) **) NAP_ALLOC(nap_cd, n * sizeof(m4DataTypeName($1) *));
 		    CHECK2NULL(a, "m4NAME: Unable to allocate memory");
-		    b = (m4DataTypeName($1) **) MALLOC(n * sizeof(m4DataTypeName($1) *));
+		    b = (m4DataTypeName($1) **) NAP_ALLOC(nap_cd, n * sizeof(m4DataTypeName($1) *));
 		    CHECK2NULL(b, "m4NAME: Unable to allocate memory");
 		    for (i = 0; i < n; ++i) {
 			a[i] = naoA->data.$1 + i * n;
@@ -117,8 +117,8 @@ m4define(`m4_solve_linear', `
 		    }
 		    status = linsys_$1(nap_cd, n, m, a, b);
 		    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling linsys_$1");
-		    FREE(a);
-		    FREE(b);
+		    NAP_FREE(nap_cd, a);
+		    NAP_FREE(nap_cd, b);
 		}
 		break;')
 
@@ -325,7 +325,7 @@ m4define(`m4cmpInt', `
 int cmp$1(const void *xp, const void *yp) {
     m4DataTypeName($1) x = **((m4DataTypeName($1) **) xp);
     m4DataTypeName($1) y = **((m4DataTypeName($1) **) yp);
-    return x < y ? -1 : (x > y ? 1 : 0);
+    return x < y ? -1 : (x > y);
 }')
 
 #	m4cmpReal(type)
@@ -333,8 +333,19 @@ m4define(`m4cmpReal', `
 int cmp$1(const void *xp, const void *yp) {
     m4DataTypeName($1) x = **((m4DataTypeName($1) **) xp);
     m4DataTypeName($1) y = **((m4DataTypeName($1) **) yp);
-    if (m4isNaN($1)(x)  ||  x < y)  return -1;
-    if (m4isNaN($1)(y)  ||  y < x)  return  1;
+    if (m4isNaN($1)(x)) {
+	if (m4isNaN($1)(y)) {
+	    return 0;
+	} else {
+	    return -1;
+	}
+    } else {
+	if (m4isNaN($1)(y)) {
+	    return 1;
+	} else {
+	    return x < y ? -1 : (x > y);
+	}
+    }
     return 0;
 }')
 
@@ -407,7 +418,7 @@ Nap_sort(
 	n = naoPtr->shape[frame_rank];
 	nc = m / n;
 	nc_s = nc * s;
-	pv = (char **) MALLOC(n * sizeof(char *));
+	pv = (char **) NAP_ALLOC(nap_cd, n * sizeof(char *));
 	for (c = 0; c < nCells; c++) {
 	    for (j = 0; j < nc; j++) {
 		pv0 = naoPtr->data.c + (c * m + j) * s;
@@ -425,8 +436,63 @@ Nap_sort(
 		}
 	    }
 	}
-	FREE(pv);
+	NAP_FREE(nap_cd, pv);
     }
+    Nap_DecrRefCount(nap_cd, naoPtr);
+    return result->id;
+}
+
+/*
+ * Nap_isort --
+ *	Called by following unary sort operators:
+ *	    '>=' which sorts vector into ascending order
+ *	    '<=' which sorts vector into descending order
+ *
+ *	Consider NaN < -infinity
+ *	Other missing values simply treated as having their numeric value.
+ */
+
+EXTERN char *
+Nap_isort(
+    NapClientData	*nap_cd, 
+    char		*str1,			/* argument nao */
+    int			is_ascending)		/* 1 = ascending, 0 = descending */
+{
+    Nap_NAO		*naoPtr;		/* main nao */
+    size_t		i;			/* subscript */
+    size_t		n;			/* nels */
+    char		**pv;			/* vector of pointers to data values */
+    size_t		s;
+    Nap_NAO		*result;
+
+    assert(str1);
+    naoPtr = Nap_GetNaoFromId(nap_cd, str1);
+    CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_GetNaoFromId");
+    Nap_IncrRefCount(nap_cd, naoPtr);
+    CHECK2NULL(naoPtr->rank == 1, "m4NAME: Argument is not vector");
+    n = naoPtr->nels;
+    pv = (char **) NAP_ALLOC(nap_cd, n * sizeof(char *));
+    s = Nap_SizeOf(naoPtr->dataType);
+    for (i = 0; i < n; i++) {
+	pv[i] = naoPtr->data.c + i * s;
+    }
+    switch (naoPtr->dataType) {
+	m4ForAllUnboxedDataType(`m4sort(', `)')
+	default:                /* error */
+	    return NULL;
+    }
+    result = Nap_NewNAO(nap_cd, NAP_I32, 1, naoPtr->shape);
+    CHECK2NULL(result, "m4NAME: error calling Nap_NewNAO");
+    if (is_ascending) {
+	for (i = 0; i < n; i++) {
+	    result->data.I32[i] = (pv[i] - naoPtr->data.c) / s;
+	}
+    } else {
+	for (i = 0; i < n; i++) {
+	    result->data.I32[i] = (pv[n-i-1] - naoPtr->data.c) / s;
+	}
+    }
+    NAP_FREE(nap_cd, pv);
     Nap_DecrRefCount(nap_cd, naoPtr);
     return result->id;
 }
@@ -817,7 +883,7 @@ Nap_Reduce(
 	    }
 	}
     } else if (strcmp(name, "sum") == 0) {
-	new->unit = Nap_StrDup(old->unit);
+	new->unit = Nap_StrDup(nap_cd, old->unit);
 	switch (newDataType) {
 	    m4ForAllNumericDataType(`m4Sum(', `)')
 	    default:            /* error */
@@ -833,14 +899,14 @@ Nap_Reduce(
 	}
 	Nap_FreeNAO(nap_cd, signProd);
     } else if (strcmp(name, "min") == 0) {
-	new->unit = Nap_StrDup(old->unit);
+	new->unit = Nap_StrDup(nap_cd, old->unit);
 	switch (newDataType) {
 	    m4ForAllNumericDataType(`m4Min(', `)')
 	    default:            /* error */
 		assert(FALSE);
 	}
     } else if (strcmp(name, "max") == 0) {
-	new->unit = Nap_StrDup(old->unit);
+	new->unit = Nap_StrDup(nap_cd, old->unit);
 	switch (newDataType) {
 	    m4ForAllNumericDataType(`m4Max(', `)')
 	    default:            /* error */
@@ -1815,10 +1881,11 @@ Nap_invert_grid(
 	Nap_IncrRefCount(nap_cd, new_cv_nao[i]);
 	status = Nap_AttachCoordVar(nap_cd, new_cv_nao[i], NULL, tmp_nao2->dimName[0], 0);
 	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+	NAP_FREE(nap_cd, new_cv_nao[i]->unit);
 	if (main_nao[i]->unit) {
-	    new_cv_nao[i]->unit = Nap_StrDup(main_nao[i]->unit);
+	    new_cv_nao[i]->unit = Nap_StrDup(nap_cd, main_nao[i]->unit);
 	} else if (tmp_nao2->unit) {
-	    new_cv_nao[i]->unit = Nap_StrDup(tmp_nao2->unit);
+	    new_cv_nao[i]->unit = Nap_StrDup(nap_cd, tmp_nao2->unit);
 	}
 	new_cv[i] = new_cv_nao[i]->data.F32;
 	for (j = k = 0; j < tmp_nao2->nels; j++) {
@@ -1924,7 +1991,7 @@ Nap_invert_grid(
 	if (result->nels == 0) {
 	    break;
 	}
-	d2save = (float *) MALLOC(result->nels * sizeof(float));
+	d2save = (float *) NAP_ALLOC(nap_cd, result->nels * sizeof(float));
 	for (i = 0; i < result->nels; i++) {
 	    result->data.F32[i] = NAP_F32_NULL;
 	    d2save[i] = napF32Inf;
@@ -2011,7 +2078,7 @@ Nap_invert_grid(
 		}
 	    }
 	}
-	FREE(d2save);
+	NAP_FREE(nap_cd, d2save);
 	break;
     default:
 	assert(FALSE);
@@ -2240,6 +2307,10 @@ boxed_function(
 
     if (strcmp(name, "box") == 0) {
 	result = Nap_box(nap_cd, boxed);
+    } else if (strcmp(name, "cart_proj_fwd") == 0) {
+	result = Nap_cart_proj_fwd(nap_cd, boxed);
+    } else if (strcmp(name, "cart_proj_inv") == 0) {
+	result = Nap_cart_proj_inv(nap_cd, boxed);
     } else if (strcmp(name, "correlation") == 0) {
 	result = Nap_Correlation(nap_cd, boxed);
     } else if (strcmp(name, "dilate") == 0) {
@@ -2449,7 +2520,7 @@ Nap_Func1(
     Nap_NAO		*naoPtr;
     int			status;
 
-    assert(str);
+    CHECK2NULL(str, "m4NAME: NULL argument");
     naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
@@ -2572,36 +2643,37 @@ Nap_StdFuncs(
     size_t		shape[] = {1};
 
     assert(name);
-    assert(args);
-    if (args->dataType == NAP_BOXED  &&  args->rank == 1) {
-	boxed = args;
-    } else {
-	result = Nap_Func1(nap_cd, name, args->id);
-	if (!result) {
-	    boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-	    CHECK2NULL(boxed, "m4NAME: Error calling Nap_NewNAO");
-	    boxed->data.Boxed[0] = args->slot;
-	    Nap_IncrRefCount(nap_cd, args);
-	}
-    }
-    Nap_IncrRefCount(nap_cd, boxed);
-    if (!result) {
-	result = boxed_function(nap_cd, name, boxed);
-    }
-    if (!result) {
-	n = boxed->nels;
-	if (n < 3) {
-	    naoPtr1 = n < 1 ? NULL : Nap_GetNaoFromSlot(boxed->data.Boxed[0]);
-	    naoPtr2 = n < 2 ? NULL : Nap_GetNaoFromSlot(boxed->data.Boxed[1]);
-	    id1 = naoPtr1 ? naoPtr1->id : NULL;
-	    id2 = naoPtr2 ? naoPtr2->id : NULL;
-	    result = Nap_Func2(nap_cd, name, id1, id2);
-	    if (!result  &&  n < 2) {
-		result = Nap_Func1(nap_cd, name, id1);
+    if (args) {
+	if (args->dataType == NAP_BOXED  &&  args->rank == 1) {
+	    boxed = args;
+	} else {
+	    result = Nap_Func1(nap_cd, name, args->id);
+	    if (!result) {
+		boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		CHECK2NULL(boxed, "m4NAME: Error calling Nap_NewNAO");
+		boxed->data.Boxed[0] = args->slot;
+		Nap_IncrRefCount(nap_cd, args);
 	    }
 	}
+	Nap_IncrRefCount(nap_cd, boxed);
+	if (!result) {
+	    result = boxed_function(nap_cd, name, boxed);
+	}
+	if (!result) {
+	    n = boxed->nels;
+	    if (n < 3) {
+		naoPtr1 = n < 1 ? NULL : Nap_GetNaoFromSlot(boxed->data.Boxed[0]);
+		naoPtr2 = n < 2 ? NULL : Nap_GetNaoFromSlot(boxed->data.Boxed[1]);
+		id1 = naoPtr1 ? naoPtr1->id : NULL;
+		id2 = naoPtr2 ? naoPtr2->id : NULL;
+		result = Nap_Func2(nap_cd, name, id1, id2);
+		if (!result  &&  n < 2) {
+		    result = Nap_Func1(nap_cd, name, id1);
+		}
+	    }
+	}
+	Nap_DecrRefCount(nap_cd, boxed);
     }
-    Nap_DecrRefCount(nap_cd, boxed);
     return result;
 }
 
@@ -2682,15 +2754,20 @@ Nap_FuncProc(
     Tcl_IncrRefCount(scriptObj);
     Tcl_AppendToObj(scriptObj, funcName, -1);
     if (CommandIsDefined(nap_cd, scriptObj)) {
-	if (args->dataType == NAP_BOXED  &&  args->rank == 1) {
-	    for (i = 0; i < args->shape[0]; i++) {
-		slot = args->data.Boxed[i];
-		CHECK3(slot > 0, "m4NAME: NULL argument for function \"%s()\"", funcName);
-		naoPtr = Nap_GetNaoFromSlot(slot);
-		Tcl_AppendStringsToObj(scriptObj, " ", naoPtr->id, NULL);
+	if (args) {
+	    if (args->dataType == NAP_BOXED  &&  args->rank == 1) {
+		for (i = 0; i < args->shape[0]; i++) {
+		    slot = args->data.Boxed[i];
+		    if (slot > 0) {
+			naoPtr = Nap_GetNaoFromSlot(slot);
+			Tcl_AppendStringsToObj(scriptObj, " ", naoPtr->id, NULL);
+		    } else {
+			Tcl_AppendToObj(scriptObj, " NULL", -1);
+		    }
+		}
+	    } else {
+		Tcl_AppendStringsToObj(scriptObj, " ", args->id, NULL);
 	    }
-	} else {
-	    Tcl_AppendStringsToObj(scriptObj, " ", args->id, NULL);
 	}
 	list_nao = Nap_NewNAO(nap_cd, NAP_I32, 0, NULL);
 	CHECK2(list_nao, "m4NAME: Error calling Nap_NewNAO");
@@ -2744,9 +2821,7 @@ Nap_Func(
     Nap_NAO		*result_NAO;
 
     assert(name);
-    CHECK3NULL(str2, "m4NAME: Function \"%s()\" called with no arguments", name);
     naoPtr2 = Nap_GetNaoFromId(nap_cd, str2);
-    CHECK2NULL(naoPtr2, "m4NAME: Error calling Nap_GetNaoFromId");
     Nap_IncrRefCount(nap_cd, naoPtr2);
     assert(name);
     status = Nap_FuncProc(nap_cd, NAP_NAMESPACE, name, naoPtr2, &result);

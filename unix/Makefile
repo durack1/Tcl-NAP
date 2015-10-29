@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.169 2005/08/05 05:30:40 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.192 2006/10/02 02:03:31 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -57,6 +57,7 @@ GENERIC_M4_C_TARGETS = \
 	$(GENERIC_DIR)/nap_hdf.c
 
 GENERIC_PERM_C = \
+	$(GENERIC_DIR)/cart_proj.c \
 	$(GENERIC_DIR)/eval_tree.c \
 	$(GENERIC_DIR)/land_flag.c \
 	$(GENERIC_DIR)/land_flag_i.c \
@@ -84,6 +85,7 @@ SRCS = $(GENERIC_SRCS) $(UNIX_SRCS)
 #------------------------------------------------------------------------------
 
 OBJS = \
+	cart_proj$(OBJEXT) \
 	eval_tree$(OBJEXT) \
 	function$(OBJEXT) \
 	geometry$(OBJEXT) \
@@ -106,7 +108,7 @@ OBJS = \
 	nap_hdf$(OBJEXT) \
 	nap_netcdf$(OBJEXT) \
 	nap_ooc$(OBJEXT) \
-	triangulate$(OBJEXT)
+	triangulate$(OBJEXT) \
 
 #------------------------------------------------------------------------------
 # Package name and version numbers.
@@ -129,49 +131,53 @@ OBJS = \
 #------------------------------------------------------------------------------
 
 PACKAGE = nap
-MAJOR_VERSION = 5
-MINOR_VERSION = 0
-PATCHLEVEL = .5
-VERSION = 5.0
-NODOT_VERSION = 5_0
-NODOT_PATCHLEVEL = 5
-USE_VERSION = 5_0
-USE_PATCHLEVEL = 5
+MAJOR_VERSION = 6
+MINOR_VERSION = 2
+PATCHLEVEL = .1
+VERSION = 6.2
+NODOT_VERSION = 6_2
+NODOT_PATCHLEVEL = 1
+USE_VERSION = 6.2
+USE_PATCHLEVEL = .1
 
 #------------------------------------------------------------------------------
 # Package directories
 #------------------------------------------------------------------------------
 
-PWD = /cygdrive/c/dav480/tcl/nap/unix
-TOP_DIR = /cygdrive/c/dav480/tcl/nap
+PWD = /home/dav480/tcl/nap/unix
+TOP_DIR = /home/dav480/tcl/nap
 TOP_DIR_TAIL = `basename $(TOP_DIR)`
-ROOT = /cygdrive/c/dav480/tcl
+ROOT = /home/dav480/tcl
 DATA_DIR = $(TOP_DIR)/data
+GSHHS_DATA_DIR = $(DATA_DIR)/gshhs
 LAND_FLAG_DATA_DIR = $(DATA_DIR)/land_flag
+PROJ_DATA_DIR = /home/dav480/proj/use/share/proj
 GENERIC_DIR = $(TOP_DIR)/generic
 HTML_DIR = $(TOP_DIR)/html
 INSTALLER_DIR = $(TOP_DIR)/installer
 LIBRARY_DIR = $(TOP_DIR)/library
 TEST_DIR = $(TOP_DIR)/tests
+TEX_DIR = $(TOP_DIR)/tex
 
 #------------------------------------------------------------------------------
 # Operating system name and version
 #------------------------------------------------------------------------------
 
-HOST_OS = CYGWIN_NT-5.1
-PLATFORM = windows
-system = CYGWIN_NT-5.1-1.5.15(0.127/4/2)
+HOST_OS = Linux
+PLATFORM = Linux_i386
+system = Linux-2.4.20-30.9
 
 #------------------------------------------------------------------------------
 # miscellaneous platform-specific items
 #------------------------------------------------------------------------------
 
 CP = cp -f
-DEBUGGER = dbx
+DEBUGGER = gdb
+XDEBUGGER = ddd
 ECHO = printf '%s\n'
 M4 = /usr/bin/m4 -s -B999000
 MKDIR = mkdir -p
-NATIVE_PATH = cygpath -m
+NATIVE_PATH = echo
 RANLIB = ranlib
 RM = rm -f
 TOUCH = touch
@@ -184,10 +190,10 @@ TOUCH = touch
 #   SHLIB_SUFFIX: Suffix for shared library (e.g. '.so', '.dll')
 #------------------------------------------------------------------------------
 
-EXEEXT = .exe
-LIB_PREFIX = 
-OBJEXT = .obj
-SHLIB_SUFFIX = .dll
+EXEEXT = 
+LIB_PREFIX = lib
+OBJEXT = .o
+SHLIB_SUFFIX = .so
 
 #------------------------------------------------------------------------------
 # DBGX: Used in filenames to indicate whether for debugging.
@@ -205,24 +211,27 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".5\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
-HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
-NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
-TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include8.4
+CPPFLAGS =  $(DEFS) $(INCLUDES)
+HDF_HEADER_DIR = /home/dav480/hdf/use/include
+NC_HEADER_DIR = /home/dav480/nc/use/include
+PROJ_HEADER_DIR = /home/dav480/proj/use/include
+TCL_HEADER_DIR = /home/dav480/tcl/include8.4
+DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"6.2\" -DPATCHLEVEL=\".1\" 
 INCLUDES = \
 	-I`$(NATIVE_PATH) $(GENERIC_DIR)` \
 	-I`$(NATIVE_PATH) $(NC_HEADER_DIR)` \
 	-I`$(NATIVE_PATH) $(HDF_HEADER_DIR)` \
+	-I`$(NATIVE_PATH) $(PROJ_HEADER_DIR)` \
 	-I`$(NATIVE_PATH) $(TCL_HEADER_DIR)`
 
 #------------------------------------------------------------------------------
 # Compiling
 #------------------------------------------------------------------------------
 
-CC = cl
-CFLAGS = ${CFLAGS_OPTIMIZE}   
-CFLAGS_OPTIMIZE = -nologo -MD -Ox -W1
-CFLAGS_DEBUG = -nologo -MD -Z7 -Od -W1
+CC = cc
+CFLAGS = ${CFLAGS_OPTIMIZE}  -fPIC 
+CFLAGS_OPTIMIZE = -O -D__NO_STRING_INLINES -D__NO_MATH_INLINES
+CFLAGS_DEBUG = -g
 COMPILE = $(CC) -c $(CPPFLAGS) $(CFLAGS)
 
 #------------------------------------------------------------------------------
@@ -232,34 +241,37 @@ COMPILE = $(CC) -c $(CPPFLAGS) $(CFLAGS)
 #   LDFLAGS_OUT: "-o " for unix, "-out:" for windows
 #------------------------------------------------------------------------------
 
-LDFLAGS_DEBUG = -debug:full -debugtype:cv
-LDFLAGS_OPTIMIZE = -nodefaultlib -release
+LDFLAGS_DEBUG = 
+LDFLAGS_OPTIMIZE = 
 LDFLAGS_VAR = ${LDFLAGS_OPTIMIZE}
-LDFLAGS_OUT = -out:
+LDFLAGS_OUT = -o 
 
-LINK = link $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
-SHLIB_LD = link -dll -nologo $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
+LINK = $(CC) $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
+SHLIB_LD = cc -shared $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 
-TCL_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tcl84$(DBGX).lib
-TCL_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tclstub84$(DBGX).lib
-TK_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tk84$(DBGX).lib
-TK_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tkstub84$(DBGX).lib
-HDF_LIB_PATH = /cygdrive/c/dav480/hdf/use/dll/hd421m.lib /cygdrive/c/dav480/hdf/use/dll/hm421m.lib
-HDF_LIB_SPEC = 'c:\dav480\hdf\42r1-win\release\dll\hd421m.lib' 'c:\dav480\hdf\42r1-win\release\dll\hm421m.lib'
-NC_LIB_PATH = /cygdrive/c/dav480/nc/use/lib/netcdf.lib
-NC_LIB_SPEC = 'c:\dav480\nc\netcdf-3.6.1-beta1-win32dll\lib\netcdf.lib'
+TCL_LIB_PATH = /home/dav480/tcl/lib/libtcl8.4$(DBGX).so
+TCL_STUB_LIB_PATH = /home/dav480/tcl/lib/libtclstub8.4$(DBGX).a
+TK_LIB_PATH = /home/dav480/tcl/lib/libtk8.4$(DBGX).so
+TK_STUB_LIB_PATH = /home/dav480/tcl/lib/libtkstub8.4$(DBGX).a
+HDF_LIB_PATH = /home/dav480/hdf/use/lib/libdf.a /home/dav480/hdf/use/lib/libmfhdf.a
+HDF_LIB_SPEC = -L/home/dav480/hdf/use/lib -lmfhdf -ldf -ljpeg -lz
+NC_LIB_PATH = /home/dav480/nc/use/lib/libnc-dods.a
+NC_LIB_SPEC = -L/home/dav480/nc/use/lib -lnc-dods -ldap++ -lnc-dods -ldap++ -lcurl -lxml2
+PROJ_LIB_PATH = /home/dav480/proj/use/lib/libproj.a
+PROJ_LIB_SPEC = -L/home/dav480/proj/use/lib -lproj
 
-TK_LIB_SPEC = 'c:\dav480\tcl\lib\tk84$(DBGX).lib'
-TCL_LINK_SPEC = 'c:\dav480\tcl\lib\tcl84$(DBGX).lib' 'c:\dav480\tcl\lib\tclstub84$(DBGX).lib'
-TCL_SHLIB_SPEC = 'c:\dav480\tcl\lib\tclstub84$(DBGX).lib' 
+TK_LIB_SPEC = -L/home/dav480/tcl/lib -ltk8.4$(DBGX)
+TCL_LINK_SPEC = -ltcl8.4$(DBGX)
+TCL_SHLIB_SPEC = -ltclstub8.4$(DBGX) ${LIBS}
 
 LIBS = 
-MATH_LIBS = 
-XLIBSW = 
-SYS_LIBS = -nodefaultlib 'c:\PROGRA~1\MICROS~3\VC98\lib\msvcrt.lib' 'c:\PROGRA~1\MICROS~3\VC98\lib\oldnames.lib' 'c:\PROGRA~1\MICROS~3\VC98\lib\kernel32.lib'
+MATH_LIBS = -lieee -lm
+XLIBSW = -L/usr/X11R6/lib -lX11
+SYS_LIBS = -lpthread -lssl -lstdc++
 STD_LIBS = $(MATH_LIBS) $(XLIBSW) $(SYS_LIBS)
-LINK_LIBS     = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
-SHLIB_LD_LIBS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
+MISC_LIB_SPECS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(PROJ_LIB_SPEC)
+LINK_LIBS     = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
+SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
 
 #------------------------------------------------------------------------------
 # Tcl directories and files
@@ -268,9 +280,9 @@ SHLIB_LD_LIBS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) 
 #   WISH_PROG: Path of shell wish
 #------------------------------------------------------------------------------
 
-TCLSH_PROG = /cygdrive/c/dav480/tcl/bin/tclsh84.exe
-TCL_LIBRARY_DIR = 'c:\dav480\tcl\lib\tcl8.4'
-WISH_PROG = /cygdrive/c/dav480/tcl/bin/wish84.exe
+TCLSH_PROG = /home/dav480/tcl/bin/tclsh8.4
+TCL_LIBRARY_DIR = /home/dav480/tcl/lib/tcl8.4
+WISH_PROG = /home/dav480/tcl/bin/wish8.4
 
 #------------------------------------------------------------------------------
 # Binaries
@@ -291,7 +303,6 @@ BINARIES = $(PACKAGE_SHLIB)
 
 LOG = $(TOP_DIR)/change.log
 NOTES = $(TOP_DIR)/release_notes.txt
-PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
 
 #------------------------------------------------------------------------------
 # distribution tar files
@@ -318,10 +329,7 @@ binaries: $(BINARIES)
 
 libraries:
 
-doc: \
-    $(LOG) \
-    $(PDF) \
-    $(NOTES)
+doc:
 
 install: install-binaries install-headers install-libraries install-doc install-data
 
@@ -336,11 +344,6 @@ upload_src: $(SRC_TAR)
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
-upload_pdf: $(PDF)
-	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
-	$(RM) tmp.tcl
-
 upload: $(INSTALL_TAR)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(INSTALL_TAR)`" > tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
@@ -349,7 +352,10 @@ upload: $(INSTALL_TAR)
 lib: $(PACKAGE_SHLIB)
 
 debug: $(PACKAGE_SHELL)
-	$(DEBUGGER) $(PACKAGE_SHELL)
+	$(ENV) $(DEBUGGER) $(PACKAGE_SHELL)
+
+xdebug: $(PACKAGE_SHELL)
+	$(ENV) $(XDEBUGGER) $(PACKAGE_SHELL)
 
 shell: $(PACKAGE_SHELL)
 
@@ -357,28 +363,25 @@ shell: $(PACKAGE_SHELL)
 # install secondary targets
 #------------------------------------------------------------------------------
 
-prefix = /cygdrive/c/dav480/tcl
-exec_prefix = /cygdrive/c/dav480/tcl
+prefix = /home/dav480/tcl
+exec_prefix = /home/dav480/tcl
 bindir = ${exec_prefix}/bin
 datadir = ${prefix}/share
 libdir = ${exec_prefix}/lib
 mandir = ${prefix}/man
 includedir = $(TCL_HEADER_DIR)
 PACKAGE_LIBRARY_DIR = $(libdir)/$(PACKAGE)$(VERSION)
-PACKAGE_HTML_DIR = $(PACKAGE_LIBRARY_DIR)/html
-SHLIB_DIR = ${bindir}
-SHLIB_DIR_BASE = bin
+SHLIB_DIR = ${libdir}
+SHLIB_DIR_BASE = lib
 DATA_INSTALL_DIR = $(PACKAGE_LIBRARY_DIR)/data
+GSHHS_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/gshhs
 LAND_FLAG_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/land_flag
+PROJ_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/proj
 
 install-binaries: install-lib-binaries install-bin-binaries
 
-$(PACKAGE_HTML_DIR):
-	$(MKDIR) $@
-
-install-doc: $(PACKAGE_HTML_DIR)
-	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap_paper2002.pdf $(HTML_DIR)/*.html \
-		$(PACKAGE_HTML_DIR)
+install-doc:
+	cd $(TEX_DIR); $(MAKE) all; $(CP) *.pdf $(PACKAGE_LIBRARY_DIR)
 
 # C header files
 install-headers: \
@@ -386,7 +389,7 @@ install-headers: \
 	$(includedir)/nap_check.h \
 	$(includedir)/nap_hdf.h \
 	$(includedir)/nap_netcdf.h \
-	$(includedir)/nap.h
+	$(includedir)/nap.h \
 
 $(includedir):
 	$(MKDIR) $@
@@ -411,7 +414,8 @@ $(includedir)/nap.h: $(GENERIC_DIR)/nap.h $(includedir)
 $(PACKAGE_LIBRARY_DIR):
 	$(MKDIR) $@
 
-install-libraries: libraries $(PACKAGE_LIBRARY_DIR)
+install-libraries: libraries $(PACKAGE_LIBRARY_DIR) pkgIndex.tcl
+	cd $(PACKAGE_LIBRARY_DIR); $(RM) *.tcl tclIndex
 	$(CP) $(LIBRARY_DIR)/*.tcl $(PACKAGE_LIBRARY_DIR)
 	$(CP) pkgIndex.tcl $(PACKAGE_LIBRARY_DIR)
 	$(ECHO) "auto_mkindex `$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` *.tcl" > tmp.tcl
@@ -420,13 +424,17 @@ install-libraries: libraries $(PACKAGE_LIBRARY_DIR)
 
 install-lib-binaries: $(SHLIB_DIR)/$(PACKAGE_SHLIB)
 
-$(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB)
+$(libdir):
+	$(MKDIR) $@
+
+$(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB) $(SHLIB_DIR)
+	$(RM) $(SHLIB_DIR)/$(PACKAGE_SHLIB)
 	$(CP) $(PACKAGE_SHLIB) $(SHLIB_DIR)
 	if test -f $(PACKAGE_IMPORT_LIB) ; then \
 	    $(CP) $(PACKAGE_IMPORT_LIB) $(libdir); fi
 
-HDF_DLL_DIR = /cygdrive/c/dav480/hdf/use/dll
-NC_DLL_DIR  = /cygdrive/c/dav480/nc/use/bin
+HDF_DLL_DIR = 
+NC_DLL_DIR  = 
 
 $(bindir):
 	$(MKDIR) $@
@@ -437,6 +445,9 @@ install-bin-binaries: $(bindir)
 	if test -n "$(NC_DLL_DIR)" -a "$(NC_DLL_DIR)" != "$(bindir)"; then \
 	    $(CP) $(NC_DLL_DIR)/*.dll $(bindir); chmod +x $(bindir)/*.dll; fi
 
+$(GSHHS_DATA_INSTALL_DIR):
+	$(MKDIR) $@
+
 LAND_FLAG_DATA_FILES = \
 	$(LAND_FLAG_DATA_DIR)/sfa_degrees.landsea \
 	$(LAND_FLAG_DATA_DIR)/sfa_tenths.landsea \
@@ -445,20 +456,32 @@ LAND_FLAG_DATA_FILES = \
 $(LAND_FLAG_DATA_INSTALL_DIR):
 	$(MKDIR) $@
 
-install-data: $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
+$(PROJ_DATA_INSTALL_DIR):
+	$(MKDIR) $@
+
+install-data-gshhs: $(GSHHS_DATA_INSTALL_DIR)
+	$(CP) $(GSHHS_DATA_DIR)/gshhs_?.b $(GSHHS_DATA_INSTALL_DIR)
+
+install-data-land-flag: $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
 	$(CP) $(LAND_FLAG_DATA_FILES) $(LAND_FLAG_DATA_INSTALL_DIR)
+
+install-data-proj: $(PROJ_DATA_INSTALL_DIR)
+	$(CP) $(PROJ_DATA_DIR)/* $(PROJ_DATA_INSTALL_DIR)
+
+install-data: install-data-gshhs install-data-land-flag install-data-proj
 
 #------------------------------------------------------------------------------
 # Rules for Binaries
 #------------------------------------------------------------------------------
 
 LIB_PATHS = \
+	$(HDF_LIB_PATH) \
+	$(NC_LIB_PATH) \
+	$(PROJ_LIB_PATH) \
 	$(TCL_LIB_PATH) \
 	$(TCL_STUB_LIB_PATH) \
 	$(TK_LIB_PATH) \
-	$(TK_STUB_LIB_PATH) \
-	$(NC_LIB_PATH) \
-	$(HDF_LIB_PATH)
+	$(TK_STUB_LIB_PATH)
 
 $(PACKAGE_SHLIB): $(OBJS) $(LIB_PATHS)
 	$(SHLIB_LD) $(OBJS) $(SHLIB_LD_LIBS)
@@ -473,13 +496,12 @@ $(PACKAGE_SHELL): $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LIB_PATHS)
 SRC_MANIFEST = \
 $(TOP_DIR_TAIL)/data \
 $(TOP_DIR_TAIL)/generic \
-$(TOP_DIR_TAIL)/html \
 $(TOP_DIR_TAIL)/installer \
 $(TOP_DIR_TAIL)/library \
 $(TOP_DIR_TAIL)/tests \
 $(TOP_DIR_TAIL)/unix
 
-PLATFORM_MANIFEST = bin/h*m.dll bin/netcdf.dll lib/$(PACKAGE_IMPORT_LIB) lib/ezprint1.0/*
+PLATFORM_MANIFEST = 
 
 INSTALL_MANIFEST = \
 $(PLATFORM_MANIFEST) \
@@ -544,6 +566,7 @@ depend:
 		-e 's!${GENERIC_DIR}!$${GENERIC_DIR}!g' \
 		-e 's!${HDF_HEADER_DIR}!$${HDF_HEADER_DIR}!g' \
 		-e 's!${NC_HEADER_DIR}!$${NC_HEADER_DIR}!g' \
+		-e 's!${PROJ_HEADER_DIR}!$${PROJ_HEADER_DIR}!g' \
 		-e 's!${TCL_HEADER_DIR}!$${TCL_HEADER_DIR}!g' \
 		-e 's!${includedir}!$${includedir}!g' \
 		-e 's!${ROOT}!$${ROOT}!g' \
@@ -663,6 +686,9 @@ $(GENERIC_DIR)/nap_ooc.c: $(GENERIC_DIR)/nap_ooc.c,m4 $(M4INCLUDE_FILES)
 $(PACKAGE)sh$(OBJEXT):	$(GENERIC_DIR)/$(PACKAGE)sh.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/$(PACKAGE)sh.c`
 
+cart_proj$(OBJEXT):	$(GENERIC_DIR)/cart_proj.c
+	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/cart_proj.c`
+
 eval_tree$(OBJEXT):		$(GENERIC_DIR)/eval_tree.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/eval_tree.c`
 
@@ -741,12 +767,17 @@ TEST_COMMAND = ::NAP::nap 2+2
 
 TEST_SCRIPT = $(TEST_DIR)/all.tcl
 
+ENV = \
+	DATA_DIR="`$(NATIVE_PATH) $(DATA_DIR)`" \
+	GSHHS_DATA_DIR="`$(NATIVE_PATH) $(GSHHS_DATA_DIR)`" \
+	LAND_FLAG_DATA_DIR="`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`" \
+	PROJ_LIB="`$(NATIVE_PATH) $(PROJ_DATA_DIR)`" \
+	TEST_DATA_DIR="`$(NATIVE_PATH) $(TEST_DIR)/data`" \
+	LIBRARY_DIR="`$(NATIVE_PATH) $(LIBRARY_DIR)`" \
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR)
+
 test0.tcl:
 	$(RM) $@
-	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
-	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_SCRIPT)`'}' >> $@
 
 test1.tcl:
@@ -772,30 +803,22 @@ test2.tcl:
 
 test3.tcl:
 	$(RM) $@
-	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
-	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
-	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'set env(PACKAGE_SHLIB) {'`$(NATIVE_PATH) $(PACKAGE_SHLIB)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_DIR)/wish_tests.tcl`'}' >> $@
 
 test: test1 test2 test3
 
 test1: $(PACKAGE_SHLIB) test1.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(TCLSH_PROG) test1.tcl
+	$(ENV) $(TCLSH_PROG) test1.tcl
 
 test2: $(PACKAGE_SHLIB) test0.tcl test2.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(TCLSH_PROG) test2.tcl
+	$(ENV) $(TCLSH_PROG) test2.tcl
 
 test3: $(PACKAGE_SHLIB) test3.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(WISH_PROG) test3.tcl
+	$(ENV) $(WISH_PROG) test3.tcl
 
 test0: $(PACKAGE_SHELL) test0.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
-	$(PACKAGE_SHELL) test0.tcl
+	$(ENV) $(PACKAGE_SHELL) test0.tcl
 
 #------------------------------------------------------------------------------
 # Installer (tcl starpack)

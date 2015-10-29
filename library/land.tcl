@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: land.tcl,v 1.5 2005/07/04 06:12:56 dav480 Exp $
+# $Id: land.tcl,v 1.7 2005/10/03 08:13:58 dav480 Exp $
 
 namespace eval ::NAP {
 
@@ -87,6 +87,48 @@ namespace eval ::NAP {
 	nap "result"
     }
 
+
+    # fraction_land --
+    #
+    # Fraction of land in each cell.
+    #
+    # Cells are defined by functions 'merid_bounds' and 'zone_bounds'.
+    # Use function 'is_land' to test nlat*nlon points within each cell.
+    # Minimum resolution is 0.01 degrees even if specified nlat or nlon would give less.
+    # nlat & nlon are automatically reduced if their specified value would give a resolution
+    # of less than 0.01 degrees.
+
+    proc fraction_land {
+	latitude
+	longitude
+	{nlat 8}
+	{nlon nlat}
+	{data_dir "''"}
+	{min_res 0.01}
+    } {
+	nap "lat = + latitude"
+	nap "lon = + longitude"
+	$lat set unit degrees_north
+	$lon set unit degrees_east
+	nap "latb = zone_bounds(lat)"
+	nap "lonb = merid_bounds(lon)"
+	nap "nlatb = nels(latb)"
+	nap "nlonb = nels(lonb)"
+	nap "nlat = i32(abs(lat(-1) - lat(0)) / (nels(lat) - 1) / min_res >>> 1 <<< nlat)"
+	nap "nlon = i32(abs(lon(-1) - lon(0)) / (nels(lon) - 1) / min_res >>> 1 <<< nlon)"
+	nap "dlat = 1f32 / nlat";  # step size of index AP
+	nap "dlon = 1f32 / nlon";  # step size of index AP
+	nap "fine_lat = latb((nlatb-1)/dlat ... dlat/2 ..  nlatb-1-dlat/2)"
+	nap "fine_lon = lonb((nlonb-1)/dlon ... dlon/2 ..  nlonb-1-dlon/2)"
+	nap "isLand = is_land(fine_lat, fine_lon, data_dir)"
+	nap "n = nlat // nlon"
+	nap "result = f32(moving_average(isLand, n, n))"
+	$result set dim latitude longitude
+	$result set coo lat lon
+	nap "result"
+    }
+
+
     # is_coast --
     #
     #	Produce i8 (8-bit signed integer) matrix with 1 for coast and 0 otherwise.
@@ -96,6 +138,8 @@ namespace eval ::NAP {
     proc is_coast {
 	latitude
 	longitude
+	{nlat 8}
+	{nlon nlat}
 	{data_dir "''"}
     } {
 	if {[$latitude rank] != 1} {
@@ -110,12 +154,13 @@ namespace eval ::NAP {
 	$lon set unit degrees_east
 	nap "lat2 = (lat(0) + lat(0) - lat(1)) // lat // (lat(-1) + lat(-1) - lat(-2))"
 	nap "lon2 = (lon(0) + lon(0) - lon(1)) // lon // (lon(-1) + lon(-1) - lon(-2))"
-	nap "land = is_land(lat2, lon2, $data_dir)"
+	nap "land = fraction_land(lat2, lon2, nlat, nlon, data_dir) > 0.5f32"
 	nap "se = {{0 1 0}{1 0 1}{0 1 0}}"
 	nap "result = (land && !erode(land, se, {1 1}))(1 .. nels(lat), 1 .. nels(lon))"
 	$result set dim latitude longitude
 	$result set coo lat lon
 	nap "result"
     }
+
 
 }

@@ -7,7 +7,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: vif.tcl,v 1.13 2004/06/04 02:27:36 dav480 Exp $
+# $Id: vif.tcl,v 1.14 2005/10/20 08:53:30 dav480 Exp $
 
 
 # vif --
@@ -84,7 +84,12 @@ namespace eval View_image_file {
 	button $top.ok -text OK -command "destroy $top"
 	pack $top.ok
 	tkwait window $top
-	set filename "[file rootname [file tail $infile]].$format"
+	switch $format {
+	    jpeg    {set ext jpg}
+	    tiff    {set ext tif}
+	    default {set ext $format}
+	}
+	set filename "[file rootname [file tail $infile]].$ext"
 	set filename [tk_getSaveFile -initialfile $filename -title "Image Filename"]
 	if {$filename ne ""} {
 	    if [catch "$img write $filename -format $format" msg] {

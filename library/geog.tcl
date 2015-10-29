@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001-2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: geog.tcl,v 1.6 2005/05/26 01:19:59 dav480 Exp $
+# $Id: geog.tcl,v 1.12 2006/09/08 02:47:52 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -12,14 +12,17 @@ namespace eval ::NAP {
 
     # acof2boxed --
     #
-    # read ascii cof (.acof) file & return boxed nao
-    # example: nap "i = acof2boxed('abc.acof')"
+    # read ascii cof (.acof) file & return boxed nao (suitable for plot_nao overlay)
     #
-    # This version returns longitudes in range 0 to 360
-    # Need arg to specify that want range -180 to 180
+    # min_longitude (default: -180) specifies the desired minimum longitude.
+    # This is normally -180 (giving longitudes in range -180 to 180)
+    #                  or 0 (giving longitudes in range 0 to 360)
+    #
+    # Example: nap "i = acof2boxed('abc.acof', 0)"
 
     proc acof2boxed {
 	file_name_nao
+	{min_longitude -180f32}
     } {
 	if [catch {set f [open [$file_name_nao value] r]} message] {
 	    error $message
@@ -42,7 +45,7 @@ namespace eval ::NAP {
 		if {[$row shape] != 2} {
 		    error "acof2boxed: line does not contain exactly 2 numbers"
 		}
-		nap "x = row(0) % 360f32"
+		nap "x = min_longitude + (row(0) - min_longitude) % 360f32"
 		nap "y = row(1)"
 		if [[nap "x - xold > 180f32"]] {
 		    nap "xtmp = x - 360f32"
@@ -61,7 +64,7 @@ namespace eval ::NAP {
 		nap "xold = x"
 		nap "yold = y"
 	    }
-	    nap "b = b , mat"
+	    nap "b = b , transpose(mat)"
 	}
 	close $f
 	nap "b"
@@ -219,17 +222,44 @@ namespace eval ::NAP {
     }
 
 
+    # merid_bounds --
+    #
+    # Given vector of central longitudes in each cell, define reasonable boundary longitudes.
+    # Return vector with one more element than argument.
+    #
+    # Essentially, want boundaries midway between longitudes.
+    # If data is global then can wrap around to define first & final weights.
+    # Otherwise assume outer steps equal to adjacent steps.
+
+    proc merid_bounds longitude {
+	set n [$longitude nels]
+	if {$n == 0} {
+	    nap "b = {_}"
+	} elseif {$n == 1} {
+	    nap "b = {-180.0 180.0}"
+	} else {
+	    nap "x = fix_longitude(longitude)"
+	    nap "b = x(0.5 .. n-1.5)"
+	    nap "b = b(0) + x(0) - x(1) // b // b(-1) + x(-1) - x(-2)"
+	    if {[[nap "b(-1) - b(0) > 360.0"]]} {
+		nap "b = (fix_longitude(x(-1) // x // x(0)))(0.5 .. n+0.5)"
+	    }
+	    nap "b = fix_longitude(b)"
+	}
+	nap "b"
+    }
+
+
     # merid_wt --
     #
-    # calculate normalised (so sum weights = 1) meridional weights from longitudes
+    # Calculate normalised (so sum weights = 1) meridional weights from longitudes
+    # Use boundaries defined by above function 'merid_bounds'.
 
     proc merid_wt longitude {
-	nap "x = f64(longitude)"
-	nap "n = nels(x)"
-	nap "x1 = x(n-1) // x(0 .. (n-2))"
-	nap "x2 = x(1 .. n)"
-	nap "w = (x - x1) % 360.0 + (x2 - x) % 360.0"
-	nap "n > 1 ? w / sum(w) : {1}"
+	nap "n = nels(longitude)"
+	nap "b = merid_bounds(longitude)"
+	nap "w = b(1 .. n) - b(0 .. n-1)"
+	nap "w / sum(w)"
     }
 
 
@@ -289,16 +319,49 @@ namespace eval ::NAP {
     }
 
 
+    # zone_bounds --
+    #
+    # Given vector of central latitudes in each cell, define reasonable boundary latitudes.
+    # Return vector with one more element than argument.
+    #
+    # If latitude vector is arithmetic progression then boundaries are midway between
+    # latitudes, otherwise each boundary separates two equal areas between adjacent latitudes.
+    #
+    # Two outer boundaries are defined using steps (in latititude or area) equal to adjacent step,
+    # restricting magnitude from exceeding 90.
+
+    proc zone_bounds latitude {
+	set n [$latitude nels]
+	if {$n == 0} {
+	    nap "b = {_}"
+	} elseif {$n == 1} {
+	    nap "b = {-90.0 90.0}"
+	} else {
+	    if {[$latitude step] eq "AP"} {
+		nap "b = latitude(0.5 .. n-1.5)"
+		nap "b = (b(0) + b(0) - b(1) // b // b(-1) + b(-1) - b(-2)) >>> -90.0 <<< 90.0"
+	    } else {
+		nap "s = (sin(latitude / 180p-1))(0.5 .. n-1.5)"
+		nap "s = (s(0) + s(0) - s(1) // s // s(-1) + s(-1) - s(-2)) >>> -1.0 <<< 1.0"
+		nap "b = 180p-1 * asin(s)"
+	    }
+	}
+	nap "b"
+    }
+
+
     # zone_wt --
     #
-    # calculate normalised (so sum of weights is 1) zonal weights from latitudes
+    # Calculate normalised (so sum of weights is 1) zonal weights from latitudes.
+    # Use boundaries defined by above function 'zone_bounds'.
+    # Result values are proportional to surface area between these latitude bounds.
+    # Area between two latitudes = 2 * pi * R * R * (sin(lat1) - sin(lat2))
 
     proc zone_wt latitude {
-	nap "s = sin(latitude / 180p-1)"
-	nap "n = nels(s)"
-	nap "mid = s(0 .. (n-2)) + s(1 .. (n-1))"
-        nap "c = 2.0 * sign(latitude(1) - latitude(0))"
-	nap "0.25 * abs((mid // c) - (-c // mid))"
+	set n [$latitude nels]
+	nap "s = sin(zone_bounds(latitude) / 180p-1)"
+	nap "w = s(1 .. n) - s(0 .. n-1)"
+	nap "w / sum(w)"
     }
 
 

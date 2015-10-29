@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: eval_tree.c,v 1.7 2005/07/13 07:48:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: eval_tree.c,v 1.12 2005/11/05 03:27:13 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -16,6 +16,41 @@ static char *rcsid="@(#) $Id: eval_tree.c,v 1.7 2005/07/13 07:48:54 dav480 Exp $
 #include "napParse.tab.h"
 
 static char *eval_tree(NapClientData	*nap_cd, Nap_PNode *expr);
+
+/*
+ * op_str --
+ *
+ * String corresponding to operator
+ */
+
+static void
+op_str(
+    NapClientData	*nap_cd,
+    int			op,
+    char		*str)		/* out string owned by caller (allow up to 8 chars) */
+{
+    switch (op) {
+	case CLOSEST:		(void) strcpy(str, "@@"); break;
+	case MATCH:		(void) strcpy(str, "@@@"); break;
+	case LE:		(void) strcpy(str, "<="); break;
+	case GE:		(void) strcpy(str, ">="); break;
+	case CAT:		(void) strcpy(str, "//"); break;
+	case LAMINATE:		(void) strcpy(str, "///"); break;
+	case TO:		(void) strcpy(str, ".."); break;
+	case AP3:		(void) strcpy(str, "..."); break;
+	case OR:		(void) strcpy(str, "||"); break;
+	case AND:		(void) strcpy(str, "&&"); break;
+	case EQ:		(void) strcpy(str, "=="); break;
+	case NE:		(void) strcpy(str, "!="); break;
+	case LESSER_OF:		(void) strcpy(str, "<<<"); break;
+	case GREATER_OF:	(void) strcpy(str, ">>>"); break;
+	case INNER_PROD:	(void) strcpy(str, "."); break;
+	case POWER:		(void) strcpy(str, "**"); break;
+	case SHIFT_LEFT:	(void) strcpy(str, "<<"); break;
+	case SHIFT_RIGHT:	(void) strcpy(str, ">>"); break;
+	default:		str[0] = op; str[1] = '\0';
+    }
+}
 
 /*
  * expr1 --
@@ -34,24 +69,28 @@ expr1(
     int			op,
     char		*right)
 {
-    char		*fmt_c = TEXT0 "Error with unary operator '%c'";
-    char		*fmt_s = TEXT0 "Error with unary operator '%s'";
+    char		*fmt = TEXT0 "Error with unary operator '%s'";
     char		*id;		/* OOC-name of NAO */
+    char		str[8];		/* operator as string */
 
+    assert(right);
+    op_str(nap_cd, op, str);
     switch (op) {
-	case '!':     id = Nap_Not(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '#':     id = Nap_Tally(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '-':     id = Nap_Negate(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '~':     id = Nap_Complement(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '+':     id = Nap_Identity(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '^':     id = Nap_Round(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '<':     id = Nap_Floor(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '>':     id = Nap_Ceil(nap_cd, right); CHECK3NULL(id, fmt_c, op); break;
-	case '|':     id = Nap_Func(nap_cd, "abs", right); CHECK3NULL(id, fmt_c, op); break;
-	case ',':     id = Nap_Link(nap_cd, NULL, right); CHECK3NULL(id, fmt_c, op); break;
-	case '@':     id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt_c, op); break;
-	case CLOSEST: id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt_s, "@@"); break;
-	case MATCH:   id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt_s, "@@@"); break;
+	case '!':     id = Nap_Not(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '#':     id = Nap_Tally(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '-':     id = Nap_Negate(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '~':     id = Nap_Complement(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '+':     id = Nap_Identity(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '^':     id = Nap_Round(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '<':     id = Nap_Floor(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '>':     id = Nap_Ceil(nap_cd, right); CHECK3NULL(id, fmt, str); break;
+	case '|':     id = Nap_Func(nap_cd, "abs", right); CHECK3NULL(id, fmt, str); break;
+	case ',':     id = Nap_Link(nap_cd, NULL, right); CHECK3NULL(id, fmt, str); break;
+	case '@':     id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt, str); break;
+	case CLOSEST: id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt, str); break;
+	case MATCH:   id = Nap_Indirect(nap_cd, op, right); CHECK3NULL(id, fmt, str); break;
+	case LE:      id = Nap_isort(nap_cd, right, 1); CHECK3NULL(id, fmt, str); break;
+	case GE:      id = Nap_isort(nap_cd, right, 0); CHECK3NULL(id, fmt, str); break;
 	default: CHECK3NULL(0, TEXT0 "NAP_EXPR node has unexpected unary operator %c", op);
     }
     return id;
@@ -75,78 +114,80 @@ expr2(
     int			op,
     char		*right)
 {
-    char		*fmt_c = TEXT0 "Error with binary operator '%c'";
-    char		*fmt_s = TEXT0 "Error with binary operator '%s'";
+    char		*fmt = TEXT0 "Error with binary operator '%s'";
     char		*id;		/* OOC-name of NAO */
+    char		str[8];		/* operator as string */
 
     assert(left);
+    assert(right  ||  op == ',');
+    op_str(nap_cd, op, str);
     switch (op) {
 	case ':':
-	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case ',':
-	    id = Nap_Link(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Link(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case CAT:
-	    id = Nap_Cat(nap_cd, left, right); CHECK3NULL(id, fmt_s, "//"); break;
+	    id = Nap_Cat(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case LAMINATE:
-	    id = Nap_Laminate(nap_cd, left, right); CHECK3NULL(id, fmt_s, "///"); break;
+	    id = Nap_Laminate(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '@':
-	    id = Nap_IndexOf2(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_IndexOf2(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '#':
-	    id = Nap_Copy(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Copy(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case CLOSEST:
-	    id = Nap_Closest(nap_cd, left, right); CHECK3NULL(id, fmt_s, "@@"); break;
+	    id = Nap_Closest(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case MATCH:
-	    id = Nap_Match(nap_cd, left, right); CHECK3NULL(id, fmt_s, "@@@"); break;
+	    id = Nap_Match(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '?':
-	    id = Nap_Choice(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Choice(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case TO:
-	    id = Nap_AP(nap_cd, left, right); CHECK3NULL(id, fmt_s, ".."); break;
+	    id = Nap_AP(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case AP3:
-	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt_s, "..."); break;
+	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case OR:
-	    id = Nap_Or(nap_cd, left, right); CHECK3NULL(id, fmt_s, "||"); break;
+	    id = Nap_Or(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case AND:
-	    id = Nap_And(nap_cd, left, right); CHECK3NULL(id, fmt_s, "&&"); break;
+	    id = Nap_And(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case EQ:
-	    id = Nap_Eq(nap_cd, left, right); CHECK3NULL(id, fmt_s, "=="); break;
+	    id = Nap_Eq(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case NE:
-	    id = Nap_Ne(nap_cd, left, right); CHECK3NULL(id, fmt_s, "!="); break;
+	    id = Nap_Ne(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case LE:
-	    id = Nap_Le(nap_cd, left, right); CHECK3NULL(id, fmt_s, "<="); break;
+	    id = Nap_Le(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case LESSER_OF:
-	    id = Nap_LesserOf(nap_cd, left, right); CHECK3NULL(id, fmt_s, "<<<"); break;
+	    id = Nap_LesserOf(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case GREATER_OF:
-	    id = Nap_GreaterOf(nap_cd, left, right); CHECK3NULL(id, fmt_s, ">>>"); break;
+	    id = Nap_GreaterOf(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '<':
-	    id = Nap_Lt(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Lt(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case GE:
-	    id = Nap_Ge(nap_cd, left, right); CHECK3NULL(id, fmt_s, ">="); break;
+	    id = Nap_Ge(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '>':
-	    id = Nap_Gt(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Gt(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '+':
-	    id = Nap_Add(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Add(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '-':
-	    id = Nap_Sub(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Sub(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '*':
-	    id = Nap_Mul(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Mul(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '/':
-	    id = Nap_Div(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Div(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '%':
-	    id = Nap_Rem(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Rem(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case INNER_PROD:
-	    id = Nap_InnerProd(nap_cd, left, right); CHECK3NULL(id, fmt_s, "."); break;
+	    id = Nap_InnerProd(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case POWER:
-	    id = Nap_Power(nap_cd, left, right); CHECK3NULL(id, fmt_s, "**"); break;
+	    id = Nap_Power(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '&':
-	    id = Nap_BitAnd(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_BitAnd(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '|':
-	    id = Nap_BitOr(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_BitOr(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case '^':
-	    id = Nap_BitXor(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_BitXor(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case SHIFT_LEFT:
-	    id = Nap_ShiftLeft(nap_cd, left, right); CHECK3NULL(id, fmt_s, "<<"); break;
+	    id = Nap_ShiftLeft(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	case SHIFT_RIGHT:
-	    id = Nap_ShiftRight(nap_cd, left, right); CHECK3NULL(id, fmt_s, ">>"); break;
+	    id = Nap_ShiftRight(nap_cd, left, right); CHECK3NULL(id, fmt, str); break;
 	default: CHECK3NULL(0, TEXT0 "NAP_EXPR node has unexpected binary operator %c", op);
     }
     return id;
@@ -220,6 +261,7 @@ eval_expr(
     char		*id;		/* OOC-name of NAO */
     Nap_NAO		*naoPtr;
     int			status;
+    char		str[8];		/* operator as string */
 
     level = nap_cd->parseLevel;
     nap_cd->token[level] = expr->scanPtr;
@@ -228,7 +270,9 @@ eval_expr(
 	if (expr->op == '=') {
 	    CHECK2NULL(expr->left->class == NAP_NAME, TEXT0 "Left operand of '=' not name");
 	    right = eval_tree(nap_cd, expr->right);
+	    CHECK2NULL(right, TEXT0 "Illegal right operand of '='");
 	    id = Nap_Assign(nap_cd, expr->left->str, right);
+	    CHECK2NULL(id, TEXT0 "Error calling Nap_Assign");
 	} else {
 	    if (expr->op == NULL_OP) {
 		if (expr->left) {
@@ -259,14 +303,23 @@ eval_expr(
 		    id = NULL;
 		}
 	    } else {
+		op_str(nap_cd, expr->op, str);
 		left = eval_tree(nap_cd, expr->left);
 		right = eval_tree(nap_cd, expr->right);
-		if (left) {
+		if (expr->left) {
+		    CHECK3NULL(left, TEXT0 "Illegal left operand of binary operator '%s'",
+			    str);
+		    CHECK3NULL(right ||  expr->op == ',',
+			    TEXT0 "Illegal right operand of binary operator '%s'", str);
 		    id = expr2(nap_cd, left, expr->op, right);
-		} else if (right) {
+		    CHECK3NULL(id, TEXT0 "Error executing binary operator '%s'", str);
+		} else if (expr->right) {
+		    CHECK3NULL(right, TEXT0 "Illegal operand of unary operator '%s'", str);
 		    id = expr1(nap_cd, expr->op, right);
+		    CHECK3NULL(id, TEXT0 "Error executing unary operator '%s'", str);
 		} else {
 		    id = Nap_Niladic(nap_cd, expr->op);
+		    CHECK3NULL(id, TEXT0 "Error executing niladic operator '%s'", str);
 		}
 	    }
 	}

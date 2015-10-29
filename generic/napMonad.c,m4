@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.209 2005/06/23 08:28:26 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.210 2006/03/10 01:44:23 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -564,35 +564,57 @@ Nap_Indirect(
     char		*id;			/* OOC name of result */
     Nap_NAO		*indexBaseCV;		/* boxed NAO of CVs */
     int			level;			/* parse level */
+    Nap_NAO		*linkNao;
+    int			n;			/* 1 = "@", 2 = "@@", 3 = "@@@" */
+    Nap_NAO		*result;
     Nap_NAO		*right_nao;		/* argument */
+    size_t		shape[1];		/* shape of linkNao */
     int			status;
     char		*symbol;		/* "@", "@@" or "@@@" */
 
     right_nao = Nap_GetNaoFromId(nap_cd, right);
     Nap_IncrRefCount(nap_cd, right_nao);
     switch (op) {
-	case '@':	symbol = "@"; break;
-	case CLOSEST:	symbol = "@@"; break;
-	case MATCH:	symbol = "@@@"; break;
+	case '@':	n = 1; symbol = "@"; break;
+	case CLOSEST:	n = 2; symbol = "@@"; break;
+	case MATCH:	n = 3; symbol = "@@@"; break;
 	default:	assert(0);
     }
     level = nap_cd->parseLevel;
-    CHECK3NULL(level >= 0, "m4NAME: Unary '%s' used without any defined base array", symbol);
-    indexBaseCV = nap_cd->indexBaseCV[level];
-    CHECK3NULL(indexBaseCV, fmt_s, symbol);
-    CHECK3NULL(Nap_IsNAO(nap_cd, indexBaseCV), fmt_s, symbol);
-    CHECK3NULL(Nap_IsBoxed(indexBaseCV), fmt_s, symbol);
-    i = nap_cd->indexDimNum[level];
-    assert(i >= 0);
-    assert(i < indexBaseCV->nels);
-    cv_nao = Nap_GetNaoFromSlot(indexBaseCV->data.Boxed[i]);
-    CHECK3NULL(cv_nao, fmt_s, symbol);
-    CHECK3NULL(cv_nao->rank == 1, fmt_s, symbol);
-    switch (op) {
-	case '@':	id = Nap_IndexOf2(nap_cd, cv_nao->id, right); break;
-	case CLOSEST:	id = Nap_Closest( nap_cd, cv_nao->id, right); break;
-	case MATCH:	id = Nap_Match(   nap_cd, cv_nao->id, right); break;
-	default:	assert(0);
+    assert(level >= 0);
+    if (right_nao->rank < 2) {
+	indexBaseCV = nap_cd->indexBaseCV[level];
+	CHECK3NULL(indexBaseCV, fmt_s, symbol);
+	CHECK3NULL(Nap_IsNAO(nap_cd, indexBaseCV), fmt_s, symbol);
+	CHECK3NULL(Nap_IsBoxed(indexBaseCV), fmt_s, symbol);
+	i = nap_cd->indexDimNum[level];
+	assert(i >= 0);
+	assert(i < indexBaseCV->nels);
+	cv_nao = Nap_GetNaoFromSlot(indexBaseCV->data.Boxed[i]);
+	CHECK3NULL(cv_nao, fmt_s, symbol);
+	CHECK3NULL(cv_nao->rank == 1, fmt_s, symbol);
+	switch (op) {
+	    case '@':		id = Nap_IndexOf2(nap_cd, cv_nao->id, right); break;
+	    case CLOSEST:	id = Nap_Closest( nap_cd, cv_nao->id, right); break;
+	    case MATCH:		id = Nap_Match(   nap_cd, cv_nao->id, right); break;
+	    default:		assert(0);
+	}
+    } else {
+	/*
+	    Following (for rank > 1 i.e. indirect full indexing) is old method of
+	    attaching link nao with n values
+	 */
+	result = Nap_CopyNAO(nap_cd, right_nao);
+	CHECK2NULL(result, "m4NAME: Error calling Nap_CopyNAO");
+	shape[0] = right_nao->rank;
+	linkNao = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
+	CHECK2NULL(linkNao, "m4NAME: Error calling Nap_NewNAO");
+	for (i = 0; i < linkNao->nels; ++i) {
+	    linkNao->data.I32[i] = n;
+	}
+	status = Nap_AttachLink(nap_cd, result, linkNao);
+	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
+	id = result->id;
     }
     CHECK3NULL(id, "m4NAME: Error in unary operator '%s'", symbol);
     Nap_DecrRefCount(nap_cd, right_nao);

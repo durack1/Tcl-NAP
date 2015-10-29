@@ -10,7 +10,7 @@ package require Tk
 cd $::starkit::topdir
 
 # copy_tree --
-# src & dst are both exising directories
+# src & dst are both existing directories
 # copy recursively every file & directory in src to dst
 
 proc copy_tree {

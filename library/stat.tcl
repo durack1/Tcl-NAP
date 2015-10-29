@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: stat.tcl,v 1.26 2005/03/09 22:52:53 dav480 Exp $
+# $Id: stat.tcl,v 1.28 2005/12/13 01:51:45 dav480 Exp $
 #
 # Statistics functions
 
@@ -104,6 +104,47 @@ namespace eval ::NAP {
 	}
 	$result set unit [$X unit]
 	nap "result"
+    }
+
+
+    # CV --
+    #
+    # uncorrected coefficient of variation = sd/am
+
+    proc CV {
+	X
+	{verb_rank "rank(X)"}
+    } {
+	nap "sd(X, verb_rank) / am(X, verb_rank) "
+    }
+
+
+    # CV1 --
+    #
+    # corrected coefficient of variation = sd1/am
+
+    proc CV1 {
+	X
+	{verb_rank "rank(X)"}
+    } {
+	nap "sd1(X, verb_rank) / am(X, verb_rank) "
+    }
+
+
+    # fit_polynomial --
+    #
+    # Return coefficients of least squares polynomial of order n (default 1, giving straight line)
+    # x and y are vectors with the same length
+    #
+    # Function 'polynomial' below can be used to evaluate the polynomial with the
+    # resultant coefficients.
+
+    proc fit_polynomial {
+	x
+	y
+	{n 1}
+    } {
+	nap "solve_linear(outer('**', x, 0 .. n), y)"
     }
 
 
@@ -315,6 +356,53 @@ namespace eval ::NAP {
     }
 
 
+    # polynomial --
+    #
+    # Evaluate polynomial for each value of x
+    # Polynomial is defined by c, a vector of coefficients (e.g. given by function 'fit_polynomial')
+    # Result has shape of x
+
+    proc polynomial {
+	c
+	x
+    } {
+	nap "reshape(outer('**', reshape(x), 0 .. nels(c)-1) . c, shape(x))"
+    }
+
+
+    # regression --
+    #
+    # Multiple regression (predicting y from x)
+    # If x & y are both vectors (of same length) then result is 2-element vector b which defines
+    # predictive equation  Y = b(0) + b(1) * X
+    # 
+    # x & y can be matrices (with columns corresponding to variables)
+    # If y is vector then result is vector b which defines
+    # predictive equation  Y = b(0) + b(1) * X(0) + b(2) * X(1) + b(3) * X(2) + ...
+    #                        = (1 // X) . b
+    # 
+    # If y is matrix then result is matrix with same number of columns (corresponding to variables)
+    # predictive equation  Y = (1 // X) . b
+    #                      where X is vector or matrix
+
+    proc regression {
+	x
+	y
+    } {
+	switch [$x rank] {
+	    1 {nap "A = transpose(1f32 /// x)"}
+	    2 {nap "A = transpose(1f32 // transpose(x))"}
+	    default {error "regression: rank of x is not 1 or 2"}
+	}
+	switch [$y rank] {
+	    1 {}
+	    2 {}
+	    default {error "regression: rank of y is not 1 or 2"}
+	}
+	nap "solve_linear(A, y)"
+    }
+
+
     # rms --
     #
     # root mean square 
@@ -339,7 +427,7 @@ namespace eval ::NAP {
 
     # sd --
     #
-    # standard-deviation (with division by n)
+    # uncorrected standard-deviation (with division by n)
 
     proc sd {
 	X
@@ -355,7 +443,7 @@ namespace eval ::NAP {
 
     # sd1 --
     #
-    # standard-deviation (with division by n-1)
+    # corrected standard-deviation (with division by n-1)
 
     proc sd1 {
 	X
@@ -371,7 +459,7 @@ namespace eval ::NAP {
 
     # var --
     #
-    # variance (with division by n)
+    # uncorrected variance (with division by n)
 
     proc var {
 	X
@@ -384,7 +472,7 @@ namespace eval ::NAP {
 
     # var1 --
     #
-    # variance (with division by n-1)
+    # corrected variance (with division by n-1)
 
     proc var1 {
 	X
