@@ -2,7 +2,7 @@
 #
 # Copyright (c) 1998-2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: caps_nap_menu.tcl,v 1.13 2005/01/06 07:09:30 dav480 Exp $
+# $Id: caps_nap_menu.tcl,v 1.14 2005/01/16 22:43:46 dav480 Exp $
 
 
 # caps_nap_menu --
@@ -35,9 +35,7 @@ namespace eval NAP {
 	    set m [create_window caps_nap_menu $parent $geometry $title]
 	    set p $m
 	}
-	frame $m.caps_logo -borderwidth 2 -relief raised
-	create_logo $m.caps_logo.logo
-        pack $m.caps_logo.logo
+	create_logo $m.caps_logo
 	frame $m.mbar -relief raised
 	menubutton $m.mbar.browse -font $font \
 		-text "Browse" -menu $m.mbar.browse.menu -relief raised
@@ -57,20 +55,26 @@ namespace eval NAP {
 	}
     }
 
+    # create_logo --
+    # Try to create PJT's famous caps logo
+    # If something goes wrong with the logo then keep going
 
     proc create_logo {
-	name
+	frame
     } {
-	canvas $name \
-		-relief raised \
-		-width 21 \
-		-height 30
-	    #
-	    # If something goes wrong with the logo then keep going
-	    #
-	if {![catch {image create photo -file $::caps_directory/caps.gif} imageName]} {
-	    $name create image 2 2 -image $imageName -anchor nw
-	    bind $name <Button-1> {
+	if {![info exists ::caps_directory]  ||
+		[catch {image create photo -file $::caps_directory/caps.gif} imageName]} {
+	    frame $frame -width 0 -height 0
+	} else {
+	    frame $frame -borderwidth 2 -relief raised
+	    set canvas $frame.canvas
+	    canvas $canvas \
+		    -relief raised \
+		    -width 21 \
+		    -height 30
+	    $canvas create image 2 2 -image $imageName -anchor nw
+	    pack $canvas
+	    bind $canvas <Button-1> {
 		::NAP::display_help \
 			$::caps_www_command \
 			"CAPS/NAP Web documentation"

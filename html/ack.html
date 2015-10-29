@@ -1,0 +1,103 @@
+<!-- $Id: ack.html,v 1.2 2005/01/19 02:10:11 dav480 Exp $ -->
+<html>
+
+<head> <title>
+Acknowledgements
+</title> </head>
+
+<body>
+
+<h2> <center>
+Acknowledgements
+</center> </h2>
+
+Ken Iverson (who died in 2004) is the father of array processing.
+NAP does not use the radical mathematical conventions of his languages
+<a href="http://www.acm.org/sigapl/">APL</a>,
+and
+<a href="http://www.jsoftware.com/">J</a>,
+but he must be acknowledged as the source of the fundamental concepts upon which NAP is based.
+NAP has also adopted various J conventions such as that for floating-point constants 
+(e.g. allowing 0.5 to be written in rational form as <code>1r2</code>
+and allowing powers of &pi; as in <code>1p1</code>).
+
+<p>
+NAP would never have happened if the author (Harvey Davies) had not worked with
+Rhys Francis and Ian Mathieson
+on development of the data-parallel modelling language <em>DPML</em>
+and learned from them things like <em>yacc</em>.
+This project met a premature death but we did learn a lot.
+It is hoped to implement unit calculus (automatic unit conversion and definition)
+in NAP as was done in DPML.
+
+<p>
+The other strong influence on NAP was 
+<a href="http://www.unidata.ucar.edu/packages/netcdf/index.html">netCDF</a>.
+It is amazing that a portable array file format did not exist until
+Russ Rew and the late Glenn Davis developed netCDF in the early 1990s.
+This work was based on 
+<a href="http://nssdc.gsfc.nasa.gov/cdf/cdf_home.html">CDF</a>,
+which was developed by Michael Gough and Lloyd Treinish.
+NAP is designed to read and write netCDF (and the similar
+<a href="http://hdf.ncsa.uiuc.edu">HDF</a>)
+files and stores data in memory in stuctures called
+<em>NAOs</em>, which have similar properties to netCDF variables.
+
+<p>
+Peter Turner (now with CSIRO Marine Research) 
+made significant contributions to the NAP code.
+He wrote the C code for:
+<ul>
+    <li> NAO photo-image handler
+    <li> <em>land_flag</em>
+    <li> <em>draw</em> and <em>fill</em> OOC methods
+    <li> morphological functions (moving_range, dilate, erode)
+</ul>
+He also made significant contributions to the following Tcl library files:
+<code>
+<ul>
+    <li> browse_var.tcl
+    <li> caps_nap_menu.html
+    <li> colour.tcl
+    <li> hdf.tcl
+    <li> pal.tcl
+    <li> plot_nao.tcl
+    <li> proc_lib.tcl
+</ul>
+</code>
+
+<p>
+Past and present members of The CAPS development group 
+(Ian Grant,
+Edward King,
+Jenny Lovell,
+Paul Tildesley,
+Peter Turner
+and
+Chris Rathbone)
+have provided ideas, support and feedback over the years.
+Mark Collier and Janice Bathols were early users of NAP for processing results from
+atmospheric modelling.
+Their success and enthusiasm has has done a great deal to convert others to <em>napism</em>.
+Paul Durack produced the PDF version of the User's Guide.
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2005, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: ack.html,v 1.2 2005/01/19 02:10:11 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>
+

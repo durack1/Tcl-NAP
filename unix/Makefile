@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.145 2005/01/07 01:11:03 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.149 2005/01/19 07:15:19 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -127,12 +127,12 @@ OBJS = \
 PACKAGE = nap
 MAJOR_VERSION = 4
 MINOR_VERSION = 0
-PATCHLEVEL = .1
+PATCHLEVEL = .2
 VERSION = 4.0
-NODOT_VERSION = 40
-NODOT_PATCHLEVEL = 1
-USE_VERSION = 40
-USE_PATCHLEVEL = 1
+NODOT_VERSION = 4_0
+NODOT_PATCHLEVEL = _2
+USE_VERSION = 4_0
+USE_PATCHLEVEL = _2
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -200,7 +200,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"4.0\" -DPATCHLEVEL=\".1\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"4.0\" -DPATCHLEVEL=\".2\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
 HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
 NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
 TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include
@@ -288,8 +288,8 @@ COMPRESS = gzip
 TAR = tar -cf -
 TAR_SUFFIX = .tgz
 
-SRC_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
-INSTALL_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
+SRC_TAR     = $(TOP_DIR)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
+INSTALL_TAR = $(TOP_DIR)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
 
 #------------------------------------------------------------------------------
 # all (default target)
@@ -317,6 +317,13 @@ dist: src_tar install_tar
 
 upload_src: $(SRC_TAR)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(SRC_TAR)`" > tmp.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
+	$(RM) tmp.tcl
+
+PDF = $(TOP_DIR)/$(PACKAGE)$(NODOT_VERSION)$(NODOT_PATCHLEVEL).pdf
+
+upload_pdf: $(PDF)
+	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
@@ -356,7 +363,7 @@ $(PACKAGE_HTML_DIR):
 	$(MKDIR) $@
 
 install-doc: $(PACKAGE_HTML_DIR)
-	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/*.html $(PACKAGE_HTML_DIR)
+	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap.pdf $(HTML_DIR)/*.html $(PACKAGE_HTML_DIR)
 
 # C header files
 install-headers: \
@@ -770,6 +777,11 @@ SDX = sdx
 TCLKIT = $(ROOT)/tclkit/tclkit$(EXEEXT)
 
 installer: $(INSTALLER)
+
+upload_installer: $(INSTALLER)
+	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(INSTALLER)`" > tmp.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
+	$(RM) tmp.tcl
 
 $(INSTALLER): $(STARPACK)
 	$(CP) $(STARPACK) $@
