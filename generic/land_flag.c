@@ -9,8 +9,6 @@
  * This module returns a land flag for any latitude and longitude
  * on Earth to an accuracy of 0.01 degrees. 
  * 
- * Note that this needs to be compiled (cc -c land_flag.c)
- *
  * The directory where the land mask files called:
  *
  * sfa_world.landsea
@@ -19,20 +17,14 @@
  *
  * are located must be defined in the first parameter to the function.
  *
- * Then
- * make_dll land_flag {dir c8} {y i32} {x i32} {lat f32} {lon f32} \
- *     {mask i8 inout} {err i32 inout} {mess c8 inout} {msz i32}
- *
- * load ./libland_flag.so
- *
  * nap y = shape(latitude)
  * nap x = shape(longitude)
  * nap mask = reshape(i16(0),{latitude longitude}
- * land_flag y x latitude longitude mask
+ * nap_land_flag y x latitude longitude mask
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: land_flag.c,v 1.1 2004/08/11 02:44:04 dav480 Exp $";
+static char *rcsid="@(#) $Id: land_flag.c,v 1.2 2005/06/15 23:20:54 dav480 Exp $";
 #endif /* not lint */
 
 #include <stdlib.h>

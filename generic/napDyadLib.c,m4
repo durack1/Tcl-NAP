@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.79 2005/03/16 01:30:44 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.82 2005/06/23 09:19:54 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -21,7 +21,7 @@ static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.79 2005/03/16 01:30:44 dav480 
 
 /*
  *  Nap_InnerProd --
- *	Operator "+*" which is intended to mean "sum of products".
+ *	Operator ".".
  *	For vectors this is dot (scalar) product.
  *	For matrices this is matrix product.
  *	If one arg is matrix & other is vector then result is vector.
@@ -666,8 +666,10 @@ Nap_SubscriptCrossProduct(
     float		subscript[NAP_MAX_RANK]; /* subscript vector */
 
     n = naoSub->nels;
-    CHECK2(n == naoArray->rank, "m4NAME: # boxed subscripts differs from rank of array operand");
+    CHECK2(n == naoArray->rank,
+	    "m4NAME: # boxed subscripts differs from rank of array operand");
     for (d = 0; d < n; d++) {
+	newCV[d] = NULL;
 	code[d] = 0;
 	oldCV[d] = Nap_GetCoordVar(nap_cd, naoArray, d);
 	subscript[d] = -1.0;
@@ -675,10 +677,20 @@ Nap_SubscriptCrossProduct(
 	if (naoSubOldEl[d]) {
 	    linkNao = Nap_GetNaoFromSlot(naoSubOldEl[d]->linkSlot);
 	    if (linkNao) {
-		naoTmp = Nap_CastNAO(nap_cd, linkNao, NAP_I8);
-		Nap_IncrRefCount(nap_cd, naoTmp);
-		code[d] = naoTmp->data.I8[0];
-		Nap_DecrRefCount(nap_cd, naoTmp);
+		switch (linkNao->rank) {
+		    case 0:
+			naoTmp = Nap_CastNAO(nap_cd, linkNao, NAP_I8);
+			Nap_IncrRefCount(nap_cd, naoTmp);
+			code[d] = naoTmp->data.I8[0];
+			Nap_DecrRefCount(nap_cd, naoTmp);
+			break;
+		    case 1:
+			newCV[d] = linkNao;
+			if (oldCV[d]  &&  oldCV[d]->unit  &&  !newCV[d]->unit) {
+			    newCV[d]->unit = Nap_StrDup(oldCV[d]->unit);
+			}
+			break;
+		}
 	    }
 	}
     }
@@ -711,18 +723,18 @@ Nap_SubscriptCrossProduct(
 	    if (naoSubNewEl[d]->rank > 0) {
 		shape[rank] = naoSubNewEl[d]->nels;
 		dimName[rank] = naoArray->dimName[d];
-		if (naoSubOldEl[d]  &&  naoSubOldEl[d]->rank == 1  &&  code[d] > 0) {
-		    newCV[rank] = Nap_DupNAO(nap_cd, naoSubOldEl[d]);
-		    naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
-		    newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
-		} else if (naoArray->coordVarSlot[d] > 0) {
-		    naoTmp = Nap_GetNaoFromSlot(naoArray->coordVarSlot[d]);
-		    CHECK2(naoTmp, "m4NAME: Error calling Nap_GetNaoFromSlot");
-		    str = Nap_Func(nap_cd, naoTmp->id, naoSubNewEl[d]->id);
-		    CHECK2(str, "m4NAME: Error calling Nap_Func");
-		    newCV[rank] = Nap_GetNumericNaoFromId(nap_cd, str);
-		} else {
-		    newCV[rank] = NULL;
+		if (!newCV[rank]) {
+		    if (naoSubOldEl[d]  &&  naoSubOldEl[d]->rank == 1  &&  code[d] > 0) {
+			newCV[rank] = Nap_DupNAO(nap_cd, naoSubOldEl[d]);
+			naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
+			newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
+		    } else if (naoArray->boxedCV) {
+			naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
+			CHECK2(naoTmp, "m4NAME: Error calling Nap_GetCoordVar");
+			str = Nap_Index(nap_cd, naoTmp->id, naoSubNewEl[d]->id);
+			CHECK2(str, "m4NAME: Error calling Nap_Index");
+			newCV[rank] = Nap_GetNumericNaoFromId(nap_cd, str);
+		    }
 		}
 		++rank;
 	    }
@@ -1014,18 +1026,28 @@ Nap_SubscriptOfVector(
     assert(naoArray->rank == 1);
     naoSubPtr[0] = naoSub;
     oldCV[0] = Nap_GetCoordVar(nap_cd, naoArray, 0);
+    code[0] = 0;
+    newCV = NULL;
     linkNao = Nap_GetNaoFromSlot(naoSub->linkSlot);
     if (linkNao) {
-	naoTmp = Nap_CastNAO(nap_cd, linkNao, NAP_I8);
-	Nap_IncrRefCount(nap_cd, naoTmp);
-	CHECK2(naoTmp->nels == 1, "m4NAME: Subscript link-nao has > 1 element");
-	code[0] = naoTmp->data.I8[0];
-	Nap_DecrRefCount(nap_cd, naoTmp);
-    } else {
-	code[0] = 0;
+	switch (linkNao->rank) {
+	    case 0:
+		naoTmp = Nap_CastNAO(nap_cd, linkNao, NAP_I8);
+		Nap_IncrRefCount(nap_cd, naoTmp);
+		code[0] = naoTmp->data.I8[0];
+		Nap_DecrRefCount(nap_cd, naoTmp);
+		break;
+	    case 1:
+		newCV = linkNao;
+		if (oldCV[0]  &&  oldCV[0]->unit  &&  !newCV->unit) {
+		    newCV->unit = Nap_StrDup(oldCV[0]->unit);
+		}
+		break;
+	}
     }
     if (code[0] > 0) {
-	status = Nap_SubscriptIndirect(nap_cd, 1, oldCV, naoSubPtr, code, naoSubNewPtr, &dataType);
+	status = Nap_SubscriptIndirect(nap_cd, 1, oldCV, naoSubPtr, code, naoSubNewPtr,
+		&dataType);
 	CHECK(status == TCL_OK);
 	naoSubNew = naoSubNewPtr[0];
     } else {
@@ -1044,21 +1066,22 @@ Nap_SubscriptOfVector(
     }
     naoResult->unit = Nap_StrDup(naoArray->unit);
     if (naoSub->rank == 1) {
-	newCV = NULL;
-	if (code[0] > 0) {
-	    newCV = Nap_DupNAO(nap_cd, naoSub);
-	    CHECK2(newCV, "m4NAME: Error calling Nap_DupNAO");
-	    status = Nap_AttachLink(nap_cd, newCV, NULL);
-	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
-	} else if (oldCV[0]) {
-	    naoTmp = Nap_DupNAO(nap_cd, naoSub);
-	    CHECK2(naoTmp, "m4NAME: Error calling Nap_DupNAO");
-	    Nap_IncrRefCount(nap_cd, naoTmp);
-	    str = Nap_Func(nap_cd, oldCV[0]->id, naoTmp->id);
-	    CHECK2(str, "m4NAME: Error defining new coord. var");
-	    newCV = Nap_GetNumericNaoFromId(nap_cd, str);
-	    CHECK2(newCV, "m4NAME: Error calling Nap_GetNumericNaoFromId");
-	    Nap_DecrRefCount(nap_cd, naoTmp);
+	if (!newCV) {
+	    if (code[0] > 0) {
+		newCV = Nap_DupNAO(nap_cd, naoSub);
+		CHECK2(newCV, "m4NAME: Error calling Nap_DupNAO");
+		status = Nap_AttachLink(nap_cd, newCV, NULL);
+		CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
+	    } else if (oldCV[0]) {
+		naoTmp = Nap_DupNAO(nap_cd, naoSub);
+		CHECK2(naoTmp, "m4NAME: Error calling Nap_DupNAO");
+		Nap_IncrRefCount(nap_cd, naoTmp);
+		str = Nap_Index(nap_cd, oldCV[0]->id, naoTmp->id);
+		CHECK2(str, "m4NAME: Error defining new coord. var");
+		newCV = Nap_GetNumericNaoFromId(nap_cd, str);
+		CHECK2(newCV, "m4NAME: Error calling Nap_GetNumericNaoFromId");
+		Nap_DecrRefCount(nap_cd, naoTmp);
+	    }
 	}
 	if (newCV) {
 	    status = Nap_AttachCoordVar(nap_cd, naoResult, newCV, NULL, 0);
@@ -1273,6 +1296,67 @@ Nap_Subscript(
 }
 
 /*
+ * Nap_Index --
+ *
+ * Indexing (subscripting)
+ */
+
+m4define(`m4NAME', `Nap_Index')
+
+EXTERN char *
+Nap_Index(
+    NapClientData	*nap_cd, 
+    char		*str1,		/* base array */
+    char		*str2)		/* name/nao-ID of subscript/argument */
+{
+    Nap_NAO		*boxed;
+    Nap_NAO		*naoPtr1;
+    Nap_NAO		*naoPtr2;
+    char		*result = NULL;	/* NAO ID to be returned */
+    size_t		shape[] = {1};
+    int			status;
+    Nap_NAO		*result_NAO;
+
+    naoPtr2 = Nap_GetNaoFromId(nap_cd, str2);
+    if (naoPtr2) {
+	if (naoPtr2->dataType == NAP_BOXED  &&  naoPtr2->rank == 1) {
+	    boxed = naoPtr2;
+	} else {
+	    boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	    CHECK2NULL(boxed, "m4NAME: Error calling Nap_NewNAO");
+	    boxed->data.Boxed[0] = naoPtr2->slot;
+	    Nap_IncrRefCount(nap_cd, naoPtr2);
+	}
+	Nap_IncrRefCount(nap_cd, boxed);
+    } else {
+	boxed = NULL;
+    }
+    CHECK2NULL(str1, "m4NAME: Left argument is NULL");
+    str1 = Nap_StrDup(str1);
+    assert(str1);
+    naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
+    CHECK3NULL(naoPtr1, "m4NAME: Left argument is unknown NAO ID %s", str1);
+    if (boxed) {
+	Nap_IncrRefCount(nap_cd, naoPtr1);
+	result = Nap_Subscript(nap_cd, naoPtr1->id, boxed->id);
+	Nap_DecrRefCount(nap_cd, naoPtr1);
+    } else {
+	result = naoPtr1->id;
+    }
+    CHECK3NULL(result, "m4NAME: Undefined result for sub-array %s()", str1);
+    assert(naoPtr1);
+    FREE(str1);
+    result_NAO = Nap_GetNaoFromId(nap_cd, result);
+    CHECK2NULL(result_NAO, "m4NAME: Error calling Nap_GetNaoFromId");
+    Nap_IncrRefCount(nap_cd, result_NAO);
+    if (boxed) {
+	Nap_DecrRefCount(nap_cd, boxed);
+    }
+    --result_NAO->count;
+    return result;
+}
+
+/*
  *  Nap_Copy --
  *      Operation represented by nap notation 'x # y'
  */
@@ -1438,7 +1522,6 @@ Nap_Link(
 	    ++(naoTmp->count);
 	}
     }
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     Nap_FreeNAO(nap_cd, naoPtr1);
     Nap_FreeNAO(nap_cd, naoPtr2);
     return result->id;
@@ -1512,18 +1595,19 @@ Nap_Cat(
     CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
     status = Nap_CopyDims(nap_cd, naoPtr2, result); /* for dims beyond 1st */
     CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
-    if (naoPtr1->coordVarSlot[0] > 0  && naoPtr2->coordVarSlot[0] > 0) {
-	naoTmp = Nap_GetNaoFromSlot(naoPtr1->coordVarSlot[0]);
-	CHECK2NULL(naoTmp->coordVarSlot[0] == 0,
-		"m4NAME: Coordinate variable has coordinate variable");
-	cv1 = Nap_GetNaoFromSlot(naoPtr1->coordVarSlot[0]);
-	cv2 = Nap_GetNaoFromSlot(naoPtr2->coordVarSlot[0]);
-	id = Nap_Cat(nap_cd, cv1->id, cv2->id);
-	naoTmp = Nap_GetNumericNaoFromId(nap_cd, id);
-	status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr1->dimName[0], 0);
-	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
-	status = Nap_AttachCoordVar(nap_cd, result, NULL, naoPtr2->dimName[0], 0);
-	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+    if (naoPtr1->boxedCV  && naoPtr2->boxedCV) {
+	cv1 = Nap_GetCoordVar(nap_cd, naoPtr1, 0);
+	cv2 = Nap_GetCoordVar(nap_cd, naoPtr2, 0);
+	if (cv1 && cv2) {
+	    CHECK2NULL(! cv1->boxedCV, "m4NAME: Coordinate variable has coordinate variable");
+	    CHECK2NULL(! cv2->boxedCV, "m4NAME: Coordinate variable has coordinate variable");
+	    id = Nap_Cat(nap_cd, cv1->id, cv2->id);
+	    naoTmp = Nap_GetNumericNaoFromId(nap_cd, id);
+	    status = Nap_AttachCoordVar(nap_cd, result, naoTmp, naoPtr1->dimName[0], 0);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+	    status = Nap_AttachCoordVar(nap_cd, result, NULL, naoPtr2->dimName[0], 0);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
+	}
     }
     nbytes1 = Nap_SizeOf(dataType) * naoPtr1->nels;
     nbytes2 = Nap_SizeOf(dataType) * naoPtr2->nels;
@@ -1536,7 +1620,6 @@ Nap_Cat(
     }
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
 
@@ -1614,13 +1697,13 @@ Nap_Laminate(
 	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
     }
     result->dimName[0] = NULL;
-    result->coordVarSlot[0] = 0;
+    status = Nap_AttachCV(nap_cd, result, NULL, 0);
+    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
     nb = Nap_SizeOf(dataType) * naoPtr1->nels;
     assert(nb == Nap_SizeOf(dataType) * naoPtr2->nels);
     memcpy(result->data.c, naoPtr1->data.c, nb);
     memcpy(result->data.c + nb, naoPtr2->data.c, nb);
     id = result->id;
-    Tcl_SetResult(nap_cd->interp, id, TCL_VOLATILE);
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);
     return id;
@@ -1640,6 +1723,9 @@ Nap_Laminate(
  *	If r-1 > R then:
  *	- Must have s((r-R) .. s(r-1)) == S i.e. matching trailing dims
  *	- Treat right arg as having shape s(1 .. (r-1)).  This is also shape of result.
+ *
+ *	If right arg has rank 1 then attach it as link. This will be used as CV by indexing
+ *	but will disappear if used for anything else.
  *
  *	Treat longitude arg1 (indicated by unit "degrees_east") as special cyclic case.
  *
@@ -1828,9 +1914,12 @@ Nap_IndexOf2(
 		Nap_DecrRefCount(nap_cd, naoTmp);
 	    }
 	}
+	if (naoPtr2->rank == 1) {
+	    status = Nap_AttachLink(nap_cd, result, naoPtr2);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
+	}
 	Nap_DecrRefCount(nap_cd, naoPtr1);
 	Nap_DecrRefCount(nap_cd, naoPtr2);
-	Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
 	id = result->id;
     }
     return id;
@@ -1841,6 +1930,9 @@ Nap_IndexOf2(
  *	Index of 1st value in arg1 exactly equal to arg2 (operator '@@@').
  *	arg1 is vector.
  *	Result has type NAP_I32 & shape of arg2.
+ *
+ *	If right arg has rank 1 then attach it as link. This will be used as CV by indexing
+ *	but will disappear if used for anything else.
  */
 
 m4begin
@@ -1966,9 +2058,12 @@ Nap_Match(
     default:            /* error */
 	CHECK2NULL(FALSE, "m4NAME: Illegal data-type");
     }
+    if (naoPtr2->rank == 1) {
+	status = Nap_AttachLink(nap_cd, result, naoPtr2);
+	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
+    }
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
 
@@ -1977,6 +2072,9 @@ Nap_Match(
  *	Index of closest value to arg2 in arg1 (operator '@@').
  *	arg1 is vector.
  *	Result has type NAP_I32 & shape of arg2.
+ *
+ *	If right arg has rank 1 then attach it as link. This will be used as CV by indexing
+ *	but will disappear if used for anything else.
  */
 
 m4begin
@@ -2151,8 +2249,11 @@ Nap_Closest(
 	default:            /* error */
 	    CHECK2NULL(FALSE, "m4NAME: Illegal data-type");
 	}
-	Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
 	id = result->id;
+	if (naoPtr2old->rank == 1) {
+	    status = Nap_AttachLink(nap_cd, result, naoPtr2old);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachLink");
+	}
     }
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);

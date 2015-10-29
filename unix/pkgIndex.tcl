@@ -19,11 +19,11 @@
 # set dir {$dir}
 # defines another variable called "dir" within uplevel.
 
-package ifneeded nap 4.1 [subst {
+package ifneeded nap 5.0 [subst {
     [list load [file join \
 	[file dirname [file dirname $dir]] \
 	bin \
-	nap4_1.dll]]
+	nap5_0.dll]]
     set dir {$dir}
     [list source [file join $dir tclIndex]]
     unset dir

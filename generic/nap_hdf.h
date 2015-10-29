@@ -7,7 +7,7 @@
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap_hdf.h,v 1.13 2004/08/24 02:02:48 dav480 Exp $
+ * $Id: nap_hdf.h,v 1.14 2005/05/27 02:19:11 dav480 Exp $
  */
 
 #ifndef _NAP_HDF
@@ -50,6 +50,21 @@ Nap_HdfCloseFile(
 ;
 
 EXTERN int
+Nap_HdfOpenSDS(
+    NapClientData       *nap_cd,
+    int32		sd_id,			/* file handle */
+    char		*name_sds,		/* SDS name */
+    int			*exists,		/* SDS exists? (out) */
+    int32		*sds_id)		/* SDS handle (out) */
+;
+
+EXTERN int
+Nap_HdfCloseSDS(
+    NapClientData       *nap_cd,
+    int32		sds_id)			/* SDS handle */
+;
+
+EXTERN int
 Nap_HdfCoordVar(
     NapClientData       *nap_cd,
     char		*fileName,		/* HDF file name */
@@ -65,7 +80,7 @@ Nap_HdfDimNames(
 EXTERN int
 Nap_HdfGet(
     NapClientData       *nap_cd,
-    char                *fileName,      /* HDF file name */
+    int32		sd_id,		/* file handle */
     char                *sds_name,      /* HDF sds (var) name */
     Nap_NAO             *subscript_NAO, /* pointer to subscript nao */
     int                 raw,            /* 1 to request raw data */
@@ -85,6 +100,14 @@ Nap_HdfInfo(
 ;
 
 EXTERN int
+nap_HdfGetIndex(
+    NapClientData       *nap_cd,
+    int32		sds_id,
+    Tcl_Obj		*indexObj,		/* index arg. */
+    Nap_NAO		**index_nao)		/* result (out) */
+;
+
+EXTERN int
 Nap_HdfList(
     NapClientData *nap_cd,
     char *fileName,
@@ -101,7 +124,7 @@ Nap_HdfPut(
     Nap_NAO		*valid_range_NAO,	/* for new SDS */
     Nap_NAO		*main_NAO,		/* pointer to main nao */
     Nap_NAO		*boxed_cv_hdf,		/* pointers to CV NAOs */
-    Nap_NAO		*subscript_NAO,		/* pointer to subscript nao */
+    Tcl_Obj		*indexObj,		/* index */
     int			isRecord)		/* Want unlimited dim in new sds? */
 ;
 

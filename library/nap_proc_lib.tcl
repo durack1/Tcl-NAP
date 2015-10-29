@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_proc_lib.tcl,v 1.10 2004/11/16 23:07:27 dav480 Exp $
+# $Id: nap_proc_lib.tcl,v 1.13 2005/04/28 11:42:54 dav480 Exp $
 
 
 # compare --
@@ -219,12 +219,13 @@ proc swap_naos {name1 name2} {
 
 proc Test {name description script expectedAnswer {leaks 1} {constraints ""}} {
     uplevel [list ::tcltest::test $name $description $constraints $script $expectedAnswer]
-    set z [l0]
-    if {$leaks  &&  $z != ""} {
-	puts ""
-	puts "NAO memory leak in $name $description"
-	puts $z
-	rm_naos0
+    if {$leaks} {
+	foreach id [l0] {
+	    puts ""
+	    puts "NAO $id has memory leak in $name $description"
+	    puts [$id a -keep]
+	    $id set count 0
+	}
     }
     return
 }

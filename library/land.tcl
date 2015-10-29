@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: land.tcl,v 1.3 2004/08/12 02:14:31 dav480 Exp $
+# $Id: land.tcl,v 1.5 2005/07/04 06:12:56 dav480 Exp $
 
 namespace eval ::NAP {
 
@@ -22,8 +22,12 @@ namespace eval ::NAP {
 	{data_dir "''"}
     } {
 	if {[[nap "nels(data_dir) == 0"]]} {
-	    nap "data_dir =
-		'[lindex [lsort [glob [file dirname $::tcl_library]/nap*.*/data/land_flag]] end]'"
+	    if {[info exists ::env(LAND_FLAG_DATA_DIR)]} {
+		nap "data_dir = '$::env(LAND_FLAG_DATA_DIR)'"
+	    } else {
+		nap "data_dir = '[lindex [lsort [glob \
+			[file dirname $::tcl_library]/nap*.*/data/land_flag]] end]'"
+	    }
 	}
 	nap "err = 0"
 	nap "maxlen = 100"
@@ -47,7 +51,7 @@ namespace eval ::NAP {
 	    $result set coo lat lon
 	    nap "lat = transpose(reshape(lat <<< 89.9f32 >>> -89.9f32, nx // ny))"
 	    nap "lon = reshape((lon + 180f32) % 360f32 - 180f32,       ny // nx)"
-	    land_flag data_dir ny nx lat lon result err msg maxlen
+	    nap_land_flag data_dir ny nx lat lon result err msg maxlen
 	} else {
 	    nap "lat = lat <<< 89.9f32 >>> -89.9f32"
 	    nap "lon = (lon + 180f32) % 360f32 - 180f32"
@@ -74,7 +78,7 @@ namespace eval ::NAP {
 	    nap "result = reshape(0i8, shape(lat))"
 	    eval $result set dim [$lat dim]
 	    eval $result set coo [$lat coo]
-	    land_flag data_dir 1 nels(lat) lat lon result err msg maxlen
+	    nap_land_flag data_dir 1 nels(lat) lat lon result err msg maxlen
 	    nap "result = present_lat && present_lon ? result : _"
 	}
 	if [[nap "err"]] {

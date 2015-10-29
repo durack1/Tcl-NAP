@@ -6,7 +6,7 @@
 #
 # Copyright (c) 2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: date.tcl,v 1.10 2004/10/22 07:42:10 dav480 Exp $
+# $Id: date.tcl,v 1.13 2005/06/16 09:16:11 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -172,7 +172,7 @@ namespace eval ::NAP {
         nap "mjd = reshape(mjd, shape_result)"
 	eval $mjd set coo [$ymdhms coo]
 	eval $mjd set dim [$ymdhms dim]
-	$mjd set unit MJD
+	$mjd set unit "days since 1858-11-17 00:00"
         nap "mjd"
     }
 
@@ -226,6 +226,121 @@ namespace eval ::NAP {
 	nap "ymdhms = transpose(ymd // hod // moh // som)"
 	eval $ymdhms set coo [$mjd coo]
 	eval $ymdhms set dim [$mjd dim]
+        nap "ymdhms"
+    }
+
+    # dateTime2days --
+    #
+    # This is similar to the above dateTime2mjd, except that it uses an unconventional calendar
+    # defined by the additional argument 'ndim' specifying the number of days in each month.
+    # This number does not change from year to year (i.e. there are no leap years).
+    # The function returns the time in days since the start of year 0.
+    #
+    # Inverse of function days2dateTime below.
+    #
+    # Usage:
+    #     dateTime2days(ymdhms, ndim)
+    #	      ymdhms is array whose final dimension has size from 1 to 6.
+    #		Column 0 contains the (possibly negative) integer year relative to year 0
+    #		Column 1 contains month of year. 1 for Jan, 2 for Feb, ... (default: 1)
+    #		Column 2 contains day of month (1 to 31) (default: 1)
+    #		Column 3 contains hour of day (0 to 23) (default: 0)
+    #		Column 4 contains minute of hour (0 to 59) (default: 0)
+    #		Column 5 contains second of minute (0 to 60) (default: 0)
+    #	      ndim is 12-element vector giving "days in month"
+    #
+    # Examples:
+    #     dateTime2days({0 1 1 0 0 0}, 12 # 30) gives 0
+
+    proc dateTime2days {
+	ymdhms
+	ndim
+    } {
+	if {[[nap "shape(ndim)"]] ne "12"} {
+	    error "dateTime2days: Shape(ndim) is not {12}"
+	}
+	set r [$ymdhms rank]
+	if {$r < 1} {
+	    error "dateTime2days: ymdhms is scalar"
+	}
+	nap "s = shape(ymdhms)"
+	if {[[nap "s(-1)"]] > 6} {
+	    error "dateTime2days: Size of final dimension of ymdhms > 6"
+	}
+	nap "shape_result = s(0 .. (r-2) ... 1)"
+	nap "ymdhms2 = reshape(ymdhms, prod(shape_result) // s(-1))"
+	nap "year = ymdhms2(,0)"
+	nap "moy = s(-1) > 1 ? ymdhms2(,1) - 1 : 0"
+	nap "dom = s(-1) > 2 ? ymdhms2(,2) - 1 : 0"
+	nap "hod = s(-1) > 3 ? ymdhms2(,3) : 0"
+	nap "moh = s(-1) > 4 ? ymdhms2(,4) : 0"
+	nap "som = s(-1) > 5 ? ymdhms2(,5) : 0"
+	nap "diy = sum ndim";	# days in year
+	nap "dsm = 0 // psum(ndim)";	# days from start of year to start of each month
+        nap "days = year * diy + dsm(moy) + dom + (hod + (moh + som / 60.0) / 60.0) / 24.0"
+        nap "days = reshape(days, shape_result)"
+	eval $days set coo [$ymdhms coo]
+	eval $days set dim [$ymdhms dim]
+	$days set unit days
+        nap "days"
+    }
+
+    # days2dateTime --
+    #
+    # This is similar to the above mjd2dateTime, except that it uses an unconventional calendar
+    # defined by the additional argument 'ndim' specifying the number of days in each month.
+    # This number does not change from year to year (i.e. there are no leap years).
+    #
+    # The function converts a time-in-days-since-the-start-of-year-0 to a
+    # calendar-date-and-time-of-day.
+    # The shape of the result is "shape(argument) // 6",
+    # where the final dimension corresponds to year, month, day, hour, minute, second.
+    #
+    # Inverse of function dateTime2days above.
+    #
+    # Usage:
+    #     days2dateTime(days, ndim [,delta])
+    #	     where
+    #		days is time in days since start of year 0
+    #	        ndim is 12-element vector giving "days in month"
+    #		delta is rounding increment (seconds) (default: 1)
+    #		    The result is rounded to the nearest multiple of delta seconds.
+    #		    delta = 1    rounds to the nearest second.
+    #		    delta = 60   rounds to the nearest minute.
+    #		    delta = 1e-3 rounds to the nearest millisecond.
+    #
+    # Examples:
+    #     days2dateTime(0, 12#30) gives {0 1 1 0 0 0}
+
+    proc days2dateTime {
+	days
+	ndim
+	{delta 1.0}
+    } {
+	if {[[nap "shape(ndim)"]] ne "12"} {
+	    error "days2dateTime: Shape(ndim) is not {12}"
+	}
+	if {[[nap "delta <= 0.0"]]} {
+	    error "days2dateTime: delta <= 0"
+	}
+	nap "ndim = i32 ndim"
+	nap "diy = sum ndim";				# days in year
+	nap "dsm = 0 // psum(ndim)";		# days from start of year to start of month
+	nap "n = nint(days * 86400.0 / delta) * delta";	# rounded total seconds
+        nap "som = n % 60.0";				# second of minute
+        nap "n = floor(n / 60.0)";			# whole minutes
+        nap "moh = n % 60.0";				# minute of hour
+        nap "n = floor(n / 60.0)";			# whole hours
+	nap "hod = n % 24.0";				# hour of day
+        nap "n = floor(n / 24.0)";			# whole days
+        nap "y = floor(n / diy)";			# year
+        nap "doy = n % diy";				# day of year (0 = Jan 1)
+        nap "moy = floor(dsm @ doy)";			# month of year (0 = Jan)
+        nap "dom = doy - dsm(moy) + 1.0";		# day of month (1, 2, 3, ...)
+        nap "moy = moy + 1.0";				# month of year (1 = Jan)
+	nap "ymdhms = transpose(y /// moy // dom // hod // moh // som)"
+	eval $ymdhms set coo [$days coo]
+	eval $ymdhms set dim [$days dim]
         nap "ymdhms"
     }
 

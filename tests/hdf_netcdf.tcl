@@ -5,7 +5,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: hdf_netcdf.tcl,v 1.19 2004/10/25 04:10:50 dav480 Exp $
+# $Id: hdf_netcdf.tcl,v 1.24 2005/06/27 04:31:05 dav480 Exp $
 
 switch $hdf_nc {
     hdf		{set ext hdf; set ishdf 1}
@@ -96,9 +96,7 @@ Test $hdf_nc-2.4 "check coordinate variable read from $hdf_nc file" {
 } {{8 9.3} degrees_east}
 
 Test $hdf_nc-2.5 "read $hdf_nc variable with coordinate variables using @@" {
-    nap "index = @@{9.3 4}, @@{8.6 9.2}"
-    nap "in = [nap_get $hdf_nc geog.$ext mat index]"
-    unset index
+    nap "in = [nap_get $hdf_nc geog.$ext mat "@@{9.3 4}, @@{8.6 9.2}"]"
     $in v -f %g
 } {8 9
 4 0}
@@ -191,7 +189,7 @@ Test $hdf_nc-3.4 "normal char att" {
 
 file delete tmp.$ext
 
-file delete ooc.$ext ragged.$ext
+file delete ooc.$ext
 put_info "after $hdf_nc-3.4 13"
 
 Test $hdf_nc-4.1 "OOC $hdf_nc write" {
@@ -265,8 +263,35 @@ Test $hdf_nc-5.3 {check cv 0} {[$in coo i]} {2 4 6 7 9}
 
 Test $hdf_nc-5.4 {check cv 1} {[$in coo j]} {1 3 4 8 9}
 
+Test $hdf_nc-5.5 "ragged array with non-std missing value" {
+    file del ragged.$ext
+    nap "r = {{0 1.5 2 -1}{1n 1 4 1n}{4#1n}{1n 1n 9 -9}}"
+    $r set miss -999
+    nap "r = prune r"
+    $r set dim i j
+    $r $hdf_nc ragged.$ext r -c "{2 4 6 7 9},{1 3 4 8 9}"
+    nap "in =[nap_get $hdf_nc ragged.$ext r]"
+    $in da
+} f64
+
+Test $hdf_nc-5.6 "check in" {
+    $in all
+} "$in  f64  MissingValue: -999  References: 1
+Dimension 0   Size: 5      Name: i         Coordinate-variable: [$in coo 0]
+Dimension 1   Size: 5      Name: j         Coordinate-variable: [$in coo 1]
+Value:
+ 0.0  1.5  2.0 -1.0    _
+   _  1.0  4.0    _    _
+   _    _    _    _    _
+   _    _  9.0 -9.0    _
+   _    _    _    _    _"
+
+Test $hdf_nc-5.7 {check cv 0} {[$in coo i]} {2 4 6 7 9}
+
+Test $hdf_nc-5.8 {check cv 1} {[$in coo j]} {1 3 4 8 9}
+
 unset in
-put_info "after $hdf_nc-5.4 18"
+put_info "after $hdf_nc-5.8 18"
 
 Test $hdf_nc-6.1 "OOC $hdf_nc -datatype" {
     nap "v = 3 .. 6"
@@ -614,7 +639,50 @@ Test $hdf_nc-18.10 {check cv 0} {[$in coo 0]} {2 4 5}
 
 Test $hdf_nc-18.11 {check cv 1} {[$in coo 1]} {1 2 3}
 
-unset in mat
+Test $hdf_nc-18.12 "overwrite entire var with unlimited dimension" {
+    nap "mat = reshape(1 .. 9, 2#3)"
+    $mat $hdf_nc unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {1 2 3
+4 5 6
+7 8 9}
+
+Test $hdf_nc-18.13 "overwrite a column of matrix with unlimited dimension" {
+    nap "vec = 12 .. 14"
+    $vec $hdf_nc -index ",1" unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} { 1 12  3
+ 4 13  6
+ 7 14  9}
+
+Test $hdf_nc-18.14 "rank different, no index" {
+    $vec $hdf_nc unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {12 13 14
+ 4 13  6
+ 7 14  9}
+
+Test $hdf_nc-18.15 "overwrite a row of matrix with unlimited dimension" {
+    nap "vec = 22 .. 24"
+    $vec $hdf_nc -index "-1," unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {12 13 14
+ 4 13  6
+22 23 24}
+
+Test $hdf_nc-18.16 "overwrite element of matrix with unlimited dimension" {
+    [nap "55"] $hdf_nc -index "1,2" unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} {12 13 14
+ 4 13 55
+22 23 24}
+
+unset in mat vec
 put_info "before $hdf_nc-19.1 12"
 file delete unlimited.$ext
 

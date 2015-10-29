@@ -1,4 +1,4 @@
-<!-- $Id: geog.html,v 1.6 2004/11/17 00:48:50 dav480 Exp $ -->
+<!-- $Id: geog.html,v 1.9 2005/06/16 01:03:18 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -22,15 +22,6 @@ Geographic Functions
 	<li><a href="#wind"><code>vorticity_wind(</code><var>u</var><code>,
 	    </code></code><var>v</var><code>)</code></a>
     </ul>
-    <li><a href="#land">Land, Sea and Coast</a>
-    <ul>
-	<li><a href="#is_land"><code>is_land(</code><var>latitude</var><code>,
-	    </code><var>longitude</var>[<code>,
-	    </code></code><var>data_dir</var>]<code>)</code></a>
-	<li><a href="#is_coast"><code>is_coast(</code><var>latitude</var><code>,
-	    </code><var>longitude</var>[<code>,
-	    </code></code><var>data_dir</var>]<code>)</code></a>
-    </ul>
     <li><a href="#latlon">Things related to Latitude and Longitude</a>
     <ul>
 	<li><a href="#area_on_globe"><code>area_on_globe(</code><var>latitude</var><code>,
@@ -40,10 +31,20 @@ Geographic Functions
 	<li><a href="#merid_wt"><code>merid_wt(</code><var>longitude</var><code>)</code></a>
 	<li><a href="#zone_wt"><code>zone_wt(</code><var>latitude</var><code>)</code></a>
     </ul>
+    <li><a href="#land">Land, Sea and Coast</a>
+    <ul>
+	<li><a href="#is_land"><code>is_land(</code><var>latitude</var><code>,
+	    </code><var>longitude</var>[<code>,
+	    </code></code><var>data_dir</var>]<code>)</code></a>
+	<li><a href="#is_coast"><code>is_coast(</code><var>latitude</var><code>,
+	    </code><var>longitude</var>[<code>,
+	    </code></code><var>data_dir</var>]<code>)</code></a>
+    </ul>
     <li><a href="#Reading">Reading Geographic Files</a>
     <ul>
 	<li><a href="#acof2boxed"><code>acof2boxed(</code><var>filename</var><code>)</code></a>
-	<li><a href="#get_gridascii"><code>get_gridascii(</code><var>filename</var><code>)</code>
+	<li><a href="#get_gridascii"><code>get_gridascii(</code><var>filename</var>[<code>,
+	    </code><var>unit</var>]<code>)</code>
 	    </a>
     </ul>
 
@@ -117,64 +118,6 @@ FACE="Symbol">j</FONT> -
 cos <FONT FACE="Symbol">q</FONT>)/<FONT FACE="Symbol">&#182;</FONT><FONT FACE="Symbol">q</FONT>) /
 (<var>r</var> cos <FONT FACE="Symbol">q</FONT>)
 
-
-<h3>
-<a name=land>
-Land, Sea and Coast
-</h3>
-
-<h4>
-<a name=is_land>
-<code>is_land(</code><var>latitude</var><code>,
-</code><var>longitude</var>[<code>,
-</code></code><var>data_dir</var>]<code>)</code>
-</h4>
-
-Produce a land/sea mask in the form of an
-<code>i8</code>
-(8-bit signed integer) matrix with 1 for land and 0 for sea.
-The data has an accuracy of 0.01&deg;.
-
-<p>
-The arguments
-<var>latitude</var>
-and
-<var>longitude</var>
-can be scalars, vectors or matrices.
-If they are either both vectors,  or one is a vector
-and the other is a scalar, then they are used as the coordinate variables of the matrix result.
-Otherwise the result has the same shape and coordinate variables as the one of higher rank.
-
-<p>
-The optional argument
-<var>data_dir</var>
-is only needed if a non-standard data directory is to be used.
-
-<h4>
-<a name=is_coast>
-<code>is_coast(</code><var>latitude</var><code>,
-</code><var>longitude</var>[<code>,
-</code></code><var>data_dir</var>]<code>)</code>
-</h4>
-
-Produce an
-<code>i8</code>
-(8-bit signed integer) matrix with 1 for coast and 0 otherwise.
-The data has an accuracy of 0.01&deg;.
-
-<p>
-The arguments
-<var>latitude</var>
-and
-<var>longitude</var>
-are vectors.
-These are used to define the coordinate variables of the result.
-
-<p>
-The optional argument
-<var>data_dir</var>
-is only needed if a non-standard data directory is to be used.
-
 <h3>
 <a name=latlon>
 Things related to Latitude and Longitude
@@ -188,16 +131,19 @@ Given latitude and longitude vectors, this function calculates a matrix whose va
 are fractions of the Earth's surface area.
 <p>
 Example:
-<br>
-<code>
-% [nap "area_on_globe(-90 .. 0 ... 45, 0 .. 180 ... 45)"] value -format %.4f
-<br>
-0.0229 0.0092 0.0092 0.0092 0.0229
-<br>
-0.0781 0.0312 0.0312 0.0312 0.0781
-<br>
-0.2115 0.0846 0.0846 0.0846 0.2115
-</code>
+
+<pre>
+% [nap "lats = 90 .. -90 ... -45"]
+90 45 0 -45 -90
+% [nap "lons = -180 .. 180 ... 45"] value
+-180 -135 -90 -45 0 45 90 135 180
+% [nap "area = area_on_globe(lats, lons)"] value -format %.4f
+0.0046 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0046
+0.0156 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0156
+0.0221 0.0442 0.0442 0.0442 0.0442 0.0442 0.0442 0.0442 0.0221
+0.0156 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0156
+0.0046 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0046
+</pre>
 
 <h4><a name=fix_longitude>
 <code>fix_longitude(</code><var>longitude</var><code>)</code>
@@ -242,6 +188,127 @@ Example:
 </code>
 
 <h3>
+<a name=land>
+Land, Sea and Coast
+</h3>
+
+The functions 
+<code>is_land</code>
+and
+<code>is_coast</code>
+are based on the 
+<a href="land_flag.html"><code>nap_land_flag</code></a>
+command.
+
+<h4>
+<a name=is_land>
+<code>is_land(</code><var>latitude</var><code>,
+</code><var>longitude</var>[<code>,
+</code></code><var>data_dir</var>]<code>)</code>
+</h4>
+
+Produce a land/sea mask in the form of an
+<code>i8</code>
+(8-bit signed integer) matrix with 1 for land and 0 for sea.
+The data has an accuracy of 0.01&deg;.
+
+<p>
+The arguments
+<var>latitude</var>
+and
+<var>longitude</var>
+can be scalars, vectors or matrices.
+If they are either both vectors,  or one is a vector
+and the other is a scalar, then they are used as the coordinate variables of the matrix result.
+Otherwise the result has the same shape and coordinate variables as the one of higher rank.
+
+<p>
+The optional argument
+<var>data_dir</var>
+is only needed if a non-standard data directory is to be used.
+
+<p>
+The following example produces a matrix with <code>0</code> for sea and
+<code>1</code> for land:
+
+<pre>
+% [nap "isLand = is_land(lats, lons)"] value
+0 0 0 0 0 0 0 0 0
+0 0 1 0 1 1 1 1 0
+0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1 1
+</pre>
+
+The following shows how this can be used
+to mask out (make missing) the sea points in the above matrix named
+<code>area</code>:
+
+<pre>
+% [nap "isLand ? area : _"] value -format %.4f
+     _      _      _      _      _      _      _      _      _
+     _      _ 0.0313      _ 0.0313 0.0313 0.0313 0.0313      _
+     _      _      _      _      _      _      _      _      _
+     _      _      _      _      _      _      _      _      _
+0.0046 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0046
+</pre>
+
+The following masks out the land points:
+
+<pre>
+% [nap "isLand ? _ : area"] value -format %.4f
+0.0046 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0046
+0.0156 0.0313      _ 0.0313      _      _      _      _ 0.0156
+0.0221 0.0442 0.0442 0.0442 0.0442 0.0442 0.0442 0.0442 0.0221
+0.0156 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0313 0.0156
+     _      _      _      _      _      _      _      _      _
+</pre>
+
+The following alternative method defines a mask consisting of zeros and missing values.
+Masking is done by adding this mask.
+
+<pre>
+% [nap "mask = {_ 0}(isLand)"] value
+_ _ _ _ _ _ _ _ _
+_ _ 0 _ 0 0 0 0 _
+_ _ _ _ _ _ _ _ _
+_ _ _ _ _ _ _ _ _
+0 0 0 0 0 0 0 0 0
+% [nap "area + mask"] value -format %.4f
+     _      _      _      _      _      _      _      _      _
+     _      _ 0.0313      _ 0.0313 0.0313 0.0313 0.0313      _
+     _      _      _      _      _      _      _      _      _
+     _      _      _      _      _      _      _      _      _
+0.0046 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0092 0.0046
+</pre>
+
+<h4>
+<a name=is_coast>
+<code>is_coast(</code><var>latitude</var><code>,
+</code><var>longitude</var>[<code>,
+</code></code><var>data_dir</var>]<code>)</code>
+</h4>
+
+Produce an
+<code>i8</code>
+(8-bit signed integer) matrix with 1 for coast and 0 otherwise.
+The data has an accuracy of 0.01&deg;.
+
+<p>
+The arguments
+<var>latitude</var>
+and
+<var>longitude</var>
+are vectors.
+These are used to define the coordinate variables of the result.
+
+<p>
+The optional argument
+<var>data_dir</var>
+is only needed if a non-standard data directory is to be used.
+
+
+<h3>
 <a name=Reading>
 Reading Geographic Files
 </h3>
@@ -259,17 +326,27 @@ nap "in = acof2boxed('abc.acof')"
 </code>
 
 <h4><a name=get_gridascii>
-<code>get_gridascii(</code><var>filename</var><code>)</code>
+<code>get_gridascii(</code><var>filename</var>[<code>,
+    </code><var>unit</var>]<code>)</code>
 </h4>
 
 Read a file in ARC/INFO GRIDASCII format.
 
 <p>
-Example:
+The optional argument <var>unit</var> specifies the unit of x and y.
+If this argument is omitted then:
 <br>
-<code>
-% nap "in = get_gridascii('abc.gridascii')"
-</code>
+Dimension <var>x</var> is longitude and has unit <code>"degrees_east"</code>.
+<br>
+Dimension <var>y</var> is latitude and has unit <code>"degrees_north"</code>.
+
+<p>
+Examples:
+<br>
+<pre>
+% nap "in = get_gridascii('abc.gridascii')"; # x is longitude, y is latitude
+% nap "in = get_gridascii('abc.gridascii', 'metres')"
+</pre>
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -282,7 +359,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: geog.html,v 1.6 2004/11/17 00:48:50 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: geog.html,v 1.9 2005/06/16 01:03:18 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.198 2005/03/07 05:48:26 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.205 2005/06/23 09:29:14 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -49,7 +49,7 @@ DLLEXPORT NapClientData	*nap_client_data_new = NULL;
 /*
  * Nap_CheckAppendLine --
  *
- * Called by Nap_Check to append line to message.
+ * Called by Nap_Check, etc. to append error-message lines to Tcl result.
  */
 
 m4define(`m4NAME', `Nap_CheckAppendLine')
@@ -57,21 +57,24 @@ m4define(`m4NAME', `Nap_CheckAppendLine')
 EXTERN void
 Nap_CheckAppendLine(
     NapClientData       *nap_cd,
-    const char		*str)		/* string to append */
+    char		*str)		/* string to append */
 {
-    size_t		n1;
-    size_t		n2;
+    int			n;
+    CONST char		*old_result;
+    Tcl_Obj		*resultObj;
+    int			status;
 
-    assert(str);
-    n1 = strlen(nap_cd->message);
-    n2 = strlen(str);
-    if (n2 > 0  &&  n1+n2 < NAP_MAX_MESSAGE_LENGTH) {
-	if (n1 > 0) {
-	    (void) strcpy(nap_cd->message+n1, "\n");
-	    ++n1;
-	}
-	(void) strcpy(nap_cd->message+n1, str);
+    resultObj = Tcl_GetObjResult(nap_cd->interp);
+    assert(resultObj);
+    Tcl_IncrRefCount(resultObj);
+    Tcl_ResetResult(nap_cd->interp);
+    old_result = Tcl_GetStringFromObj(resultObj, &n);
+    if (n > 0  &&  old_result[n-1] != '\n') {
+	Tcl_AppendToObj(resultObj, "\n", -1);
     }
+    Tcl_AppendToObj(resultObj, str, -1);
+    Tcl_SetObjResult(nap_cd->interp, resultObj);
+    Tcl_DecrRefCount(resultObj);
 }
 
 /*
@@ -96,50 +99,47 @@ Nap_Check(
     ...)
 {
     va_list             argPtr;                 /* variable-arg pointer */
-    char		*endLine;               /* pointer to end of line */
-    int			i;			/* subscript */
     int			level;			/* parse level */
-    char		s[NAP_MAX_MESSAGE_LENGTH]; /* temp string */
-    char		saveChar;               /* '\n' or '\0' at end */
-    char		*startLine;             /* pointer to start of line */
+    int			m;			/* no. chars before token */
+    const int		mll = 100;		/* max. line length */
+    int			n;			/* no. chars after token */
+    char		s[NAP_MAX_MESSAGE_LENGTH+1]; /* temp string */
     int			status;
+    char		*token;			/* pointer to error token */
 
+    assert(mll < NAP_MAX_MESSAGE_LENGTH);
     assert(file);
     assert(format);
     level = nap_cd->parseLevel;
     assert(level < nap_cd->recursionLimit);
-    if (level >= 0) {
-	assert(nap_cd->scanString[level]);
-	startLine = nap_cd->scanString[level];
-	while (startLine  &&  *(startLine-1) != '\n') {
-	    startLine = nap_cd->scanString[level]-startLine < 200
-		    ? startLine-1 : NULL;
+    nap_cd->errorCode = 1;
+    token = level < 0 ? NULL : nap_cd->token[level];
+    if (token && *token) {
+	m = 0;
+	while (m < mll  &&  token[-m-1]  &&  token[-m-1] != '\n') {
+	    ++ m;
 	}
-	if (startLine) {
-	    endLine = startLine;
-	    while (endLine  &&  *endLine  &&  *endLine != '\n') {
-		endLine = endLine-nap_cd->scanString[level] < 200
-			? endLine+1 : NULL;
+	n = 0;
+	while (n < mll  &&  token[n+1]  &&  token[n+1] != '\n') {
+	    ++ n;
+	}
+	if (m+1+n > mll) {
+	    if (m+m >= mll  &&  n+n >= mll) {
+		m = mll/2;
+		n = m-1;
+	    } else if (m+m > mll) {
+		m = mll - n - 1;
+	    } else {
+		n = mll - m - 1;
 	    }
-	} else {
-	    endLine = NULL;
 	}
-	if (endLine) {
-	    saveChar = *endLine;
-	    *endLine = '\0';
-	    Nap_CheckAppendLine(nap_cd, startLine);
-	    i = nap_cd->scanString[level] - startLine;
-	    status = sprintf(s, "%*s", i, "^");
-	    assert(status > 0  &&  status < NAP_MAX_MESSAGE_LENGTH);
-	    Nap_CheckAppendLine(nap_cd, s);
-	    *endLine = saveChar;
-	} else {
-	    Nap_CheckAppendLine(nap_cd, "m4NAME: Error generating error message. "
-		    "Input line too long!");
-	    status = sprintf(s, "%200s", startLine);
-	    assert(status > 0  &&  status < NAP_MAX_MESSAGE_LENGTH);
-	    Nap_CheckAppendLine(nap_cd, s);
-	}
+	memcpy(s, token-m, m+1+n);
+	s[m+1+n] = '\0';
+	Nap_CheckAppendLine(nap_cd, s);
+	memset(s, ' ', m);
+	s[m] = '^';
+	s[m+1] = '\0';
+	Nap_CheckAppendLine(nap_cd, s);
     }
     va_start(argPtr, format) ;
     status = vsprintf(s, format, argPtr) ;
@@ -151,10 +151,9 @@ Nap_Check(
     assert(status > 0  &&  status < NAP_MAX_MESSAGE_LENGTH);
     Nap_CheckAppendLine(nap_cd, s);
 #endif
-    if (level < 0) {
-	Tcl_SetResult(nap_cd->interp, nap_cd->message, TCL_STATIC);
-    }
 }
+
+
 m4begin
 
 m4define(`m4Nap_DataTypeToText', `
@@ -528,7 +527,7 @@ Nap_GetFileName(
  *      Convert text to data-type
  */
 
-Nap_dataType
+EXTERN Nap_dataType
 Nap_TextToDataType(
     char                *str)
 {
@@ -887,6 +886,62 @@ Nap_AppendListElement(
 }
 
 /*
+ * Nap_Substitute --
+ *
+ * Arg 'expr' is tcl variable-name, other NAP expression or function name.
+ * If it is tcl variable-name then its value can also be any of these three.
+ * Allow up to 8 levels of such indirection.
+ *
+ * The resultant string (OOC-name or function-name) is returned via arg. new
+ * The result is 0 for error, 1 for OOC-name, 2 for (apparent) function-name.
+ */
+
+m4define(`m4NAME', `Nap_Substitute')
+
+EXTERN int
+Nap_Substitute(
+    NapClientData	*nap_cd,
+    char                *expr,		/* nao ID, tcl variable-name or expr */
+    char                **pnew)		/* resultant OOC-name or function-name */
+{
+    int			count;		/* levels of indirection */
+    const int		maxLevel = 8;	/* max. # levels of indirection */
+    char		*new;
+    Tcl_Obj		*obj_new;
+    int			result;
+    CONST char		*str;
+
+    new = expr;
+    result = new ? -1 : 0;
+    count = 0;
+    while (result < 0) {
+	if (++count > maxLevel) {
+	    new = NULL;
+	    result = 0;
+	} else if (Nap_lexID(new) == strlen(new)) {
+	    result = 1;
+	} else if (Nap_lexName(new) == strlen(new)) {
+	    str = Tcl_GetVar(nap_cd->interp, new, 0);
+	    if (str) {
+		new = (char *) str;
+	    } else {
+		result = 2;
+	    }
+	} else {
+	    obj_new = Tcl_NewStringObj(new, -1);
+	    Tcl_IncrRefCount(obj_new);
+	    new = Nap_expression(nap_cd, obj_new, NULL);
+	    Tcl_DecrRefCount(obj_new);
+	    if (!new) {
+		result = 0;
+	    }
+	}
+    }
+    *pnew = new;
+    return result;
+}
+
+/*
  * Nap_GetNaoFromId --
  *
  * Get nao corresponding to nao ID, tcl variable-name or other NAP expression.
@@ -901,52 +956,22 @@ m4define(`m4NAME', `Nap_GetNaoFromId')
 EXTERN Nap_NAO *
 Nap_GetNaoFromId(
     NapClientData	*nap_cd,
-    char                *name)		/* nao ID, tcl variable-name or expr */
+    char                *expr)		/* nao ID, tcl variable-name or expr */
 {
-    int			count;		/* levels of indirection */
     Tcl_CmdInfo         infoPtr;
-    const int		maxLevel = 8;	/* max. # levels of indirection */
-    size_t		n;		/* previous length of error message */
+    char                *name;
     Nap_NAO             *result;
-    CONST char		*str;
     int                 status;
 
-    name = Nap_StrDup(name);
-    count = 0;
-    while (name && Nap_lexID(name) != strlen(name)) {
-	if (++count > maxLevel) {
-	    FREE(name);
-	    name = NULL;
-	} else if (Nap_lexName(name) == strlen(name)) {
-	    str = Tcl_GetVar(nap_cd->interp, name, 0);
-	    FREE(name);
-	    if (str) {
-		name = Nap_StrDup(str);
-	    } else {
-		name = NULL;
-	    }
-	} else {
-	    str = Nap_StrCat("nap \"", name, "\"", NULL);
-	    FREE(name);
-	    n = strlen(nap_cd->message);
-	    status = Tcl_Eval(nap_cd->interp, str);
-	    if (status == TCL_OK) {
-		name = Nap_StrDup(Tcl_GetStringResult(nap_cd->interp));
-	    } else {
-		name = NULL;
-	    }
-	    FREE(str);
-	    nap_cd->message[n] = '\0';
+    result = NULL;
+    status = Nap_Substitute(nap_cd, expr, &name);
+    if (status == 1) {
+	status = Tcl_GetCommandInfo(nap_cd->interp, name, &infoPtr);
+	if (status == 1) {
+	    result = (Nap_NAO *) infoPtr.objClientData;
+	    assert(Nap_IsNAO(nap_cd, result));
 	}
     }
-    status = name ? Tcl_GetCommandInfo(nap_cd->interp, name, &infoPtr) : 0;
-    if (status) {
-	result = (Nap_NAO *) infoPtr.objClientData;
-	assert(Nap_IsNAO(nap_cd, result));
-    } else {
-	result = NULL;
-    }
-    FREE(name);
     return result;
 }
 
@@ -971,36 +996,7 @@ Nap_GetNumericNaoFromId(
 
     naoPtr = Nap_GetNaoFromId(nap_cd, name);
     if (naoPtr  &&  naoPtr->dataType == NAP_RAGGED) {
-        str = Nap_Func(nap_cd, "pad", naoPtr->id);
-        Nap_FreeNAO(nap_cd, naoPtr);
-        naoPtr = Nap_GetNaoFromId(nap_cd, str);
-    }
-    return naoPtr;
-}
-
-/*
- * Nap_GetNumericNaoFromSlot --
- *
- * Like Nap_GetNaoFromSlot except that if dataType == NAP_RAGGED then pad to
- * make numeric.
- *
- *	If error or other non-numeric return NULL.
- */
-
-m4define(`m4NAME', `Nap_GetNumericNaoFromSlot')
-
-Nap_NAO *
-Nap_GetNumericNaoFromSlot(
-    NapClientData	*nap_cd,
-    size_t              slot)		/* nao slot no. */
-{
-    Nap_NAO             *naoPtr;
-    char		*str;
-
-    naoPtr = Nap_GetNaoFromSlot(slot);
-    if (naoPtr  &&  naoPtr->dataType == NAP_RAGGED) {
-        str = Nap_Func(nap_cd, "pad", naoPtr->id);
-        Nap_FreeNAO(nap_cd, naoPtr);
+        str = Nap_pad(nap_cd, naoPtr->id, NULL);
         naoPtr = Nap_GetNaoFromId(nap_cd, str);
     }
     return naoPtr;
@@ -1009,29 +1005,24 @@ Nap_GetNumericNaoFromSlot(
 /*
  * Nap_GetNaoFromObj --
  *
- *	Get nao corresponding to Tcl object.
+ *	Get nao corresponding to Tcl object containing NAP expression.
  *
  *	If error return NULL.
  */
 
 m4define(`m4NAME', `Nap_GetNaoFromObj')
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_GetNaoFromObj(
     NapClientData	*nap_cd,
     Tcl_Obj *CONST	objPtr)
 {
-    Nap_NAO             *naoPtr;
-    char                *str;
+    char                *id;
 
-    str = Tcl_GetStringFromObj(objPtr, NULL);
-    if (str && *str) {
-	naoPtr = Nap_GetNaoFromId(nap_cd, str);
-	assert(!naoPtr  ||  Nap_IsNAO(nap_cd, naoPtr));
-    } else {
-	naoPtr = NULL;
-    }
-    return naoPtr;
+    id = Nap_expression(nap_cd, objPtr, NULL);
+    CHECK2NULL(id, "m4NAME: Illegal expression");
+    assert(nap_cd->resultNao->id == id);
+    return nap_cd->resultNao;
 }
 
 /*
@@ -1052,7 +1043,7 @@ m4define(`m4missingNAO', `
 
 m4end
 
-Nap_NAO* 
+EXTERN Nap_NAO* 
 Nap_StandardMissingValueNAO(
     NapClientData	*nap_cd,
     Nap_dataType	dataType)
@@ -1078,7 +1069,7 @@ Nap_StandardMissingValueNAO(
 
 m4define(`m4NAME', `Nap_GetMissingValueNAO')
 
-Nap_NAO* 
+EXTERN Nap_NAO* 
 Nap_GetMissingValueNAO(
     NapClientData	*nap_cd,
     Nap_NAO		*naoPtr)
@@ -1132,7 +1123,7 @@ Nap_GetStringLengthFromObj(
  *	If error return NULL.
  */
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_GetCoordVar(
     NapClientData       *nap_cd,
     Nap_NAO		*naoPtr, 	/* Parent NAO */
@@ -1140,10 +1131,13 @@ Nap_GetCoordVar(
 {
     Nap_NAO             *result = NULL;
 
-    if (naoPtr && i >= 0 && i < naoPtr->rank && naoPtr->coordVarSlot[i]) {
-	assert(naoPtr->id);
+    if (naoPtr  &&  naoPtr->boxedCV) {
 	assert(Nap_IsNAO(nap_cd, naoPtr));
-        result = Nap_GetNaoFromSlot(naoPtr->coordVarSlot[i]);
+	assert(Nap_IsNAO(nap_cd, naoPtr->boxedCV));
+	assert(Nap_IsBoxed(naoPtr->boxedCV));
+	assert(i >= 0);
+	assert(i < naoPtr->rank);
+	result = Nap_GetNaoFromSlot(naoPtr->boxedCV->data.Boxed[i]);
     }
     return result;
 }
@@ -1168,18 +1162,6 @@ Nap_TclGetVar(
     }
     result = Nap_StrDup(result);
     return result;
-}
-
-m4define(`m4NAME', `Nap_SetParseResult')
-
-EXTERN char *
-Nap_SetParseResult(
-    NapClientData	*nap_cd,
-    char		*str)		/* nao id of result from parser */
-{
-    CHECK2NULL(str, "m4NAME: Result undefined");
-    Tcl_SetResult(nap_cd->interp, str, TCL_VOLATILE);
-    return str;
 }
 
 /*
@@ -1315,6 +1297,7 @@ Nap_IsNAO(
     if (! Nap_ValidDataType(naoPtr->dataType)) return FALSE;
     if (naoPtr->nap_cd != nap_cd) return FALSE;
     if (naoPtr->slot >= nap_cd->lookupN) return FALSE;
+    if (naoPtr->seqNum > nap_cd->seqNum) return FALSE;
     if (naoPtr->rank < 0) return FALSE;
     if (naoPtr->rank > NAP_MAX_RANK) return FALSE;
     if (naoPtr->nbytes < sizeof(Nap_NAO)) return FALSE;
@@ -1374,12 +1357,14 @@ Nap_FreeNAO(
     NapClientData	*nap_cd,
     Nap_NAO             *naoPtr)
 {
+    Nap_NAO             *cv_box_nao;
     char                id[64];
     int			isOwnCV;	/* Is NAO coord. var of itself? */
 
     if (naoPtr  &&  naoPtr->mortal) {
         assert(Nap_IsNAO(nap_cd, naoPtr));
-	isOwnCV = naoPtr->rank == 1  &&  naoPtr->slot == naoPtr->coordVarSlot[0];
+	cv_box_nao = naoPtr->boxedCV;
+	isOwnCV = naoPtr->rank == 1  &&  cv_box_nao  &&  naoPtr->slot == cv_box_nao->data.Boxed[0];
 	if (naoPtr->count <= isOwnCV) {
 	    (void) strncpy(id, naoPtr->id, 64);
 	    (void) Tcl_DeleteCommand(nap_cd->interp, id);
@@ -1392,7 +1377,7 @@ Nap_FreeNAO(
  *
  *   Free memory associated with nao, including dim. names.
  *   Decrement ref count of following, & release if their counts are then 0:
- *	coord vars
+ *	coord var boxed nao
  *	missing value
  *	elements if boxed array
  *
@@ -1429,27 +1414,15 @@ Nap_Delete(
 	Nap_DecrRefCount(nap_cd, tmpPtr);
 	tmpPtr = Nap_GetNaoFromSlot(naoPtr->raggedStartSlot);
 	Nap_DecrRefCount(nap_cd, tmpPtr);
+	tmpPtr = naoPtr->boxedCV;
+	Nap_DecrRefCount(nap_cd, tmpPtr);
         for (i = 0; i < naoPtr->rank; i++) {
             FREE(naoPtr->dimName[i]);
-            tmpPtr = Nap_GetCoordVar(nap_cd, naoPtr, i);
-            if (tmpPtr) {
-                assert(Nap_IsNAO(nap_cd, tmpPtr));
-                -- tmpPtr->count;
-		if (tmpPtr != naoPtr) {
-		    Nap_FreeNAO(nap_cd, tmpPtr);
-		}
-            }
         }
         if (naoPtr->dataType == NAP_BOXED  ||  naoPtr->dataType == NAP_RAGGED) {
             for (i = 0; i < naoPtr->nels; i++) {
                 tmpPtr = Nap_GetNaoFromSlot(naoPtr->data.Boxed[i]);
-                if (tmpPtr) {
-                    assert(Nap_IsNAO(nap_cd, tmpPtr));
-                    -- tmpPtr->count;
-		    if (tmpPtr != naoPtr) {
-			Nap_FreeNAO(nap_cd, tmpPtr);
-		    }
-                }
+		Nap_DecrRefCount(nap_cd, tmpPtr);
             }
         }
         FREE(naoPtr->format);
@@ -1713,7 +1686,6 @@ Nap_NewNAO4(
     size_t              slot;
     size_t              nbytes;                 /* total # bytes in nao */
     size_t              nels;                   /* # elements in array */
-    size_t              offset_coordVarSlot;	/* offset of nao section */
     size_t              offset_data;            /* offset of nao section */
     size_t              offset_dimName;         /* offset of nao section */
     size_t              offset_id;              /* offset of nao section */
@@ -1759,9 +1731,7 @@ Nap_NewNAO4(
             offset_id + strlen(NAP_NAO_ID_PREFIX) + ndigits(nap_cd->seqNum) + ndigits(slot) + 2,
             sizeof(size_t));
     offset_dimName = roundUpToMultipleOf(offset_shape + rank * sizeof(size_t), sizeof(char *));
-    offset_coordVarSlot = roundUpToMultipleOf(offset_dimName + rank * sizeof(char *), sizeof(int));
-    offset_data = roundUpToMultipleOf(
-            offset_coordVarSlot + rank * sizeof(int), Nap_SizeOf(dataType));
+    offset_data = roundUpToMultipleOf(offset_dimName + rank * sizeof(char *), sizeof(int));
     nbytes = offset_data + nels * Nap_SizeOf(dataType) + (dataType == NAP_C8);
     result = (Nap_NAO *) CKALLOC(nbytes);
     if (result) {
@@ -1769,7 +1739,6 @@ Nap_NewNAO4(
         result->id		=            (basePtr + offset_id);
         result->shape		= (size_t *) (basePtr + offset_shape);
         result->dimName		= (char **)  (basePtr + offset_dimName);
-        result->coordVarSlot	= (int *)    (basePtr + offset_coordVarSlot);
         result->data.c		=            (basePtr + offset_data);
 	result->slot = slot;
 	result->seqNum = nap_cd->seqNum;
@@ -1790,12 +1759,12 @@ Nap_NewNAO4(
         result->step = NAP_UNKNOWN;
         result->mortal = TRUE;
         result->missingValueSlot = 0;
+	result->boxedCV = NULL;
 	status = Nap_SetMissing(nap_cd, result, missingValueSlot);
 	CHECK1NULL(status == TCL_OK);
         for (i = 0; i < rank; i++) {
             result->shape[i] = shape[i];
             result->dimName[i] = NULL;
-            result->coordVarSlot[i] = 0;
         }
 	if (dataType == NAP_C8) {
 	    result->data.c[nels] = '\0';
@@ -1832,7 +1801,7 @@ m4define(`m4missingValue', `
 
 m4end
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_NewNAO(
     NapClientData	*nap_cd,
     Nap_dataType        dataType,
@@ -1846,6 +1815,7 @@ Nap_NewNAO(
     switch (dataType) {
         case NAP_U8:
         case NAP_C8:
+        case NAP_RAGGED:
             missingValueNao = NULL;
             break;
 	default:
@@ -1878,7 +1848,7 @@ m4define(`m4scalar', `
 
 m4end
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_NewScalarNAO(
     NapClientData	*nap_cd,
     Nap_dataType        dataType,
@@ -2021,7 +1991,7 @@ m4define(`m4copy_nao1', `
 		break;')
 m4end
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_ReshapeNAO2(
     NapClientData	*nap_cd,
     Nap_NAO		*old,
@@ -2079,7 +2049,7 @@ Nap_ReshapeNAO2(
  *      If error return NULL.
  */
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_ReshapeNAO(
     NapClientData	*nap_cd,
     Nap_NAO		*old,
@@ -2184,7 +2154,7 @@ Nap_CopyNAO3(
  * If error return NULL.
  */
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_CopyNAO(
     NapClientData	*nap_cd,
     Nap_NAO		*old)
@@ -2200,7 +2170,7 @@ Nap_CopyNAO(
  * If error return NULL.
  */
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_DupNAO(
     NapClientData	*nap_cd,
     Nap_NAO		*old)
@@ -2246,7 +2216,7 @@ Nap_CastNAO(
  *      If error return NULL.
  */
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_Promote(
     NapClientData	*nap_cd,
     Nap_NAO		*naoPtr,
@@ -2291,7 +2261,7 @@ Nap_Promote(
 
 m4define(`m4NAME', `Nap_UnboxedElement1')
 
-Nap_NAO *
+EXTERN Nap_NAO *
 Nap_UnboxedElement1(
     NapClientData       *nap_cd,
     Nap_NAO		*naoPtr)
@@ -2946,29 +2916,40 @@ Nap_AttachCV(
     Nap_NAO             *coordNaoPtr,	/* New coord var (may be NULL) */
     int                 dimNum)		/* Dimension number */
 {
+    Nap_NAO             *boxedCV;
+    int			d;		/* dim. no. */
+    int			ncv;		/* no. CVs */
     Nap_NAO             *oldCoordNaoPtr; /* Old coord var (may be NULL) */
+    size_t		shape[1];
     Nap_NAO             *tmpNaoPtr;
 
     assert(mainNaoPtr);
     assert(dimNum >= 0);
     assert(dimNum < mainNaoPtr->rank);
-    assert(mainNaoPtr->id);
     assert(Nap_IsNAO(nap_cd, mainNaoPtr));
-    oldCoordNaoPtr = Nap_GetNaoFromSlot(mainNaoPtr->coordVarSlot[dimNum]);
+    boxedCV = mainNaoPtr->boxedCV;
+    assert(!boxedCV  ||  Nap_IsBoxed(boxedCV));
+    oldCoordNaoPtr = Nap_GetCoordVar(nap_cd, mainNaoPtr, dimNum);
     if (coordNaoPtr) {
-	assert(coordNaoPtr->id);
+	if (! boxedCV) {
+	    shape[0] = mainNaoPtr->rank;
+	    boxedCV = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	    Nap_IncrRefCount(nap_cd, boxedCV);
+	    mainNaoPtr->boxedCV = boxedCV;
+	    for (d = 0; d < mainNaoPtr->rank; ++d) {
+		boxedCV->data.Boxed[d] = 0;
+	    }
+	}
 	assert(Nap_IsNAO(nap_cd, coordNaoPtr));
 	CHECK2(coordNaoPtr->rank == 1,
 		"m4NAME: Coordinate variable has rank other than 1");
 	CHECK5(coordNaoPtr->nels >= mainNaoPtr->shape[dimNum],
 		"m4NAME: Coordinate variable of dimension %d has %d elements which should be >= %d",
 		dimNum, coordNaoPtr->nels, mainNaoPtr->shape[dimNum]);
-	if (coordNaoPtr->coordVarSlot[0]) {	/* cv has cv, so create copy */
+	if (coordNaoPtr->boxedCV) {	/* cv has cv, so create copy */
 	    tmpNaoPtr = coordNaoPtr;
 	    Nap_IncrRefCount(nap_cd, tmpNaoPtr);
-	    coordNaoPtr = Nap_NewNAO(nap_cd, tmpNaoPtr->dataType, 1, mainNaoPtr->shape + dimNum);
-	    memcpy(coordNaoPtr->data.c, tmpNaoPtr->data.c,
-		    Nap_SizeOf(coordNaoPtr->dataType) * coordNaoPtr->nels);
+	    coordNaoPtr = Nap_DupNAO(nap_cd, tmpNaoPtr);
 	    Nap_DecrRefCount(nap_cd, tmpNaoPtr);
 	}
 	if (coordNaoPtr->nels > mainNaoPtr->shape[dimNum]) {
@@ -2978,12 +2959,22 @@ Nap_AttachCV(
 		    tmpNaoPtr->dataType, 1, mainNaoPtr->shape + dimNum);
 	    Nap_DecrRefCount(nap_cd, tmpNaoPtr);
 	}
-	mainNaoPtr->coordVarSlot[dimNum] = coordNaoPtr->slot;
+	boxedCV->data.Boxed[dimNum] = coordNaoPtr->slot;
 	Nap_IncrRefCount(nap_cd, coordNaoPtr);
-    } else {
-	mainNaoPtr->coordVarSlot[dimNum] = 0;
+	Nap_DecrRefCount(nap_cd, oldCoordNaoPtr);
+    } else if (oldCoordNaoPtr) {
+	assert(boxedCV);
+	boxedCV->data.Boxed[dimNum] = 0;
+	Nap_DecrRefCount(nap_cd, oldCoordNaoPtr);
+	ncv = 0;		/* If this was only CV then set mainNaoPtr->boxedCV = NULL */
+	for (d = 0; d < mainNaoPtr->rank; ++d) {
+	    ncv += (boxedCV->data.Boxed[d] > 0);
+	}
+	if (ncv == 0) {
+	    Nap_DecrRefCount(nap_cd, boxedCV);
+	    mainNaoPtr->boxedCV = NULL;
+	}
     }
-    Nap_DecrRefCount(nap_cd, oldCoordNaoPtr);
     return TCL_OK;
 }
 
@@ -3179,6 +3170,7 @@ Nap_CreateClientData(
     nap_cd->parseLevel = -1;
     nap_cd->totalBytesNAO = 0;
     nap_cd->maxTotalBytesNAO = 0;
+    nap_cd->numberPNodes = 0;
     nap_cd->result = NULL;
     nap_cd->result_bs = 0;
     nap_cd->result_n = 0;
@@ -3190,6 +3182,8 @@ Nap_CreateClientData(
     nap_cd->free = NULL;
     nap_cd->freeN = 0;
     nap_cd->freeSize = 0;
+    nap_cd->indexBaseCV = NULL;
+    nap_cd->indexDimNum = NULL;
     nap_cd->next = nap_client_data_new;
     nap_client_data_new = nap_cd;
     m4ForAllDataType(`nap_cd->', `MissingValueNao = NULL;')

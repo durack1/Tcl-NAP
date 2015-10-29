@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.23 2005/02/22 01:41:53 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.25 2005/06/23 08:37:24 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -145,7 +145,7 @@ Nap_GetHDF_metaVar(
     fileName = Tcl_GetStringFromObj(objv[3], NULL);
     CHECK_NUM_ARGS(objc == 5, 4, "<NAME>");
     name = Tcl_GetStringFromObj(objv[4], NULL);
-    status = Nap_HdfInfo(nap_cd, fileName, name, 0, &rank, shape,
+    status = Nap_HdfInfo(nap_cd, fileName, name, 0, &rank, shape, 
 	    &externalDataType, &internalDataType);
     CHECK(status == TCL_OK);
     switch (index) {
@@ -276,6 +276,7 @@ Nap_GetHDF(
     int			objc,
     Tcl_Obj *CONST	objv[])
 {
+    int			exists;			/* SDS exists? */
     Nap_dataType	externalDataType;
     char		*fileName;
     size_t		hdf_shape[NAP_MAX_RANK];
@@ -288,9 +289,12 @@ Nap_GetHDF(
     int			new_rank;
     int			rank;
     int			raw = 0;		/* 1 to request raw data */
+    int32		sd_id;
+    int32		sds_id;
     char		*sds_name;
     size_t		shape[NAP_MAX_RANK];
     int			status;
+    int			status2;
     char		*str;
     Nap_NAO		*subscript_NAO = NULL;	/* pointer to subscript nao */
     Nap_NAO		*tmp_NAO;		/* pointer to temporary nao */
@@ -304,11 +308,6 @@ Nap_GetHDF(
 	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <SDS_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
 	sds_name = Tcl_GetStringFromObj(objv[3], NULL);
-	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
-	    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[4]);
-	    CHECK2(subscript_NAO, TEXT0 "Error evaluating subscript");
-	    Nap_IncrRefCount(nap_cd, subscript_NAO);
-	}
 	if (objc > 5  &&  Tcl_GetCharLength(objv[5]) > 0) {
 	    status = Tcl_GetBooleanFromObj(interp, objv[5], &raw);
 	    CHECK2(status == TCL_OK  &&  (raw == 0  ||  raw == 1),
@@ -317,14 +316,14 @@ Nap_GetHDF(
 	status = Nap_HdfInfo(nap_cd, fileName, sds_name, raw, &rank,
 		hdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
-	if (subscript_NAO) {
-	    if (subscript_NAO->dataType != NAP_BOXED) {
-		tmp_NAO = subscript_NAO;
-		shape[0] = 1;
-		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-		Nap_IncrRefCount(nap_cd, subscript_NAO);
-		subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
-	    }
+	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
+	    status = Nap_HdfOpenFile(nap_cd, fileName, 'r', &sd_id);
+	    CHECK(status == TCL_OK);
+	    status = Nap_HdfOpenSDS(nap_cd, sd_id, sds_name, &exists, &sds_id);
+	    CHECK3(exists, "m4NAME: SDS %s not found", sds_name);
+	    status = nap_HdfGetIndex(nap_cd, sds_id, objv[4], &subscript_NAO);
+	    CHECK2(status == 0, TEXT0 "Error evaluating index");
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	    CHECK2(subscript_NAO->rank <= 1, TEXT0 "Subscript rank > 1");
 	    CHECK2(subscript_NAO->nels <= rank, TEXT0 "# elements in subscript > hdf rank");
 	    for (i = 0; i < rank; i++) {
@@ -339,6 +338,10 @@ Nap_GetHDF(
 		}
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK(status == TCL_OK);
+	    status = Nap_HdfCloseFile(nap_cd, sd_id);
+	    CHECK(status == TCL_OK);
 	} else {
 	    for (i = 0; i < rank; i++) {
 		shape[i] = hdf_shape[i];
@@ -346,8 +349,12 @@ Nap_GetHDF(
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
-	status = Nap_HdfGet(nap_cd, fileName, sds_name, subscript_NAO, raw, naoPtr);
+	status = Nap_HdfOpenFile(nap_cd, fileName, 'r', &sd_id);
+	CHECK(status == TCL_OK);
+	status = Nap_HdfGet(nap_cd, sd_id, sds_name, subscript_NAO, raw, naoPtr);
+	status2 = Nap_HdfCloseFile(nap_cd, sd_id);
 	CHECK2(status == 0, TEXT0 "Error calling Nap_HdfGet");
+	CHECK(status2 == TCL_OK);
 	new_rank = 0;
 	for (i = 0; i < rank; i++) {
 	    if (want_dim[i]) {
@@ -542,11 +549,13 @@ Nap_GetNetcdf(
     Tcl_Obj *CONST	objv[])
 {
     Nap_dataType	externalDataType;
+    int			exists;			/* Var exists? */
     char		*fileName;
     Nap_dataType	internalDataType;
     size_t		netcdf_shape[NAP_MAX_RANK];
     int			i;
     int			j;
+    int			ncid;			/* file handle */
     Nap_NAO		*naoPtr;
     Nap_NAO		*new_nao;
     int			new_rank;
@@ -556,10 +565,12 @@ Nap_GetNetcdf(
     char		*var_name;
     size_t		shape[NAP_MAX_RANK];
     int			status;
+    int			status2;
     char		*str;
     Nap_NAO		*subscript_NAO = NULL;	/* pointer to subscript nao */
     Nap_NAO		*tmp_NAO;		/* pointer to temporary nao */
     int			want_dim[NAP_MAX_RANK]; /* Include this dimension? */
+    int			varid;			/* Var handle */
 
     CHECK_NUM_ARGS(objc > 2, 2, "?-<OPTION>? <FILENAME> ...");
     str = Tcl_GetStringFromObj(objv[2], NULL);
@@ -569,11 +580,6 @@ Nap_GetNetcdf(
 	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <VAR_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
 	var_name = Tcl_GetStringFromObj(objv[3], NULL);
-	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
-	    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[4]);
-	    CHECK2(subscript_NAO, TEXT0 "Error evaluating subscript");
-	    Nap_IncrRefCount(nap_cd, subscript_NAO);
-	}
 	if (objc > 5  &&  Tcl_GetCharLength(objv[5]) > 0) {
 	    status = Tcl_GetBooleanFromObj(interp, objv[5], &raw);
 	    CHECK2(status == TCL_OK  &&  (raw == 0  ||  raw == 1),
@@ -582,16 +588,16 @@ Nap_GetNetcdf(
 	status = Nap_NetcdfInfo(nap_cd, fileName, var_name, raw,
 		&rank, netcdf_shape, &externalDataType, &internalDataType);
 	CHECK(status == TCL_OK);
-	if (subscript_NAO) {
-	    if (subscript_NAO->dataType != NAP_BOXED) {
-		tmp_NAO = subscript_NAO;
-		shape[0] = 1;
-		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-		Nap_IncrRefCount(nap_cd, subscript_NAO);
-		subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
-	    }
+	if (objc > 4  &&  Tcl_GetCharLength(objv[4]) > 0) {
+	    status = Nap_NetcdfOpenFile(nap_cd, fileName, 'r', &ncid);
+	    CHECK(status == TCL_OK);
+	    status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, &varid);
+	    CHECK3(exists, "m4NAME: Variable %s not found", var_name);
+	    status = nap_NetcdfGetIndex(nap_cd, ncid, varid, objv[4], &subscript_NAO);
+	    CHECK2(status == 0, TEXT0 "Error evaluating index");
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	    CHECK2(subscript_NAO->rank <= 1, TEXT0 "Subscript rank > 1");
-	    CHECK2(subscript_NAO->nels <= rank, TEXT0 "# elements in subscript > netcdf rank");
+	    CHECK2(subscript_NAO->nels <= rank, TEXT0 "# elements in subscript > netCDF rank");
 	    for (i = 0; i < rank; i++) {
 		if (i < subscript_NAO->nels  &&	 subscript_NAO->data.Boxed[i]) {
 		    tmp_NAO = Nap_GetNaoFromSlot(subscript_NAO->data.Boxed[i]);
@@ -604,6 +610,8 @@ Nap_GetNetcdf(
 		}
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
+	    status = Nap_NetcdfCloseFile(nap_cd, ncid);
+	    CHECK(status == TCL_OK);
 	} else {
 	    for (i = 0; i < rank; i++) {
 		shape[i] = netcdf_shape[i];
@@ -611,8 +619,12 @@ Nap_GetNetcdf(
 	    }
 	    naoPtr = Nap_NewNAO(nap_cd, internalDataType, rank, shape);
 	}
-	status = Nap_NetcdfGet(nap_cd, fileName, var_name, subscript_NAO, raw, naoPtr);
+	status = Nap_NetcdfOpenFile(nap_cd, fileName, 'w', &ncid);
+	CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
+	status = Nap_NetcdfGet(nap_cd, ncid, var_name, subscript_NAO, raw, naoPtr);
+	status2 = Nap_NetcdfCloseFile(nap_cd, ncid);
 	CHECK2(status == TCL_OK, TEXT0 "Error calling Nap_NetcdfGet");
+	CHECK(status2 == TCL_OK);
 	new_rank = 0;
 	for (i = 0; i < rank; i++) {
 	    if (want_dim[i]) {
@@ -722,7 +734,7 @@ Nap_GetCmd(
 				"netcdf",
 				(char *) NULL};
 
-    nap_cd->message[0] = '\0';
+    nap_cd->errorCode = 0;
     CHECK_NUM_ARGS(objc > 1, 1, "binary|hdf|netcdf ...");
     Nap_InitTclResult(nap_cd);
     status = Tcl_GetIndexFromObj(interp, objv[1], subCommands, "sub-command", 0, &index);

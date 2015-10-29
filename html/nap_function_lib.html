@@ -1,4 +1,4 @@
-<!-- $Id: nap_function_lib.html,v 1.7 2004/07/19 00:10:49 dav480 Exp $ -->
+<!-- $Id: nap_function_lib.html,v 1.8 2005/05/02 07:20:04 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -34,7 +34,10 @@ Miscellaneous Functions
     <li><a href="#mixed_base">
 	<code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code></a>
     <li><a href="#nub"><code>nub(</code><var>x</var><code>)</code></a>
-    <li><a href="#outer"><code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code></a>
+    <li><a href="#outer"><code>outer(</code><var>dyad</var><code>,
+	</code><var>y</var>[, </code><var>x</var>]<code>)</code></a>
+    <li><a href="#palette_interpolate"><code>palette_interpolate(</code><var>from</var><code>,
+	</code><var>to</var>)</code></a>
     <li><a href="#scattered2grid"><code>scattered2grid(</code><var>xyz</var><code>,</code><var>ycv</var><code>,</code><var>xcv</var><code>)</code></a>
     <li><a href="#scaleAxis"><code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
     <li><a href="#scaleAxisSpan"><code>scaleAxisSpan(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
@@ -354,6 +357,17 @@ Following example produces a multiplication table:
  5 10 15 20 25
 </pre>
 
+
+<h3><a name=palette_interpolate>
+<code>palette_interpolate(</code><var>from</var><code>, </code><var>to</var>)</code></a>
+</h3>
+
+Define a palette by interpolating around the HSV (hue, saturation, value) colour wheel
+with both <var>S</var> (saturation) and <var>V</var> (value) set to 1.
+The arguments <var>from</var> and <var>to</var> are angles in degrees 
+which specify the range of of <var>H</var> (hue).
+Red is 0, green is -240 and blue is 240.
+
 <h3><a name=scattered2grid>
 <code>scattered2grid(</code><var>xyz</var><code>,</code><var>ycv</var><code>,</code><var>xcv</var><code>)</code>
 </h3>
@@ -518,7 +532,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.7 2004/07/19 00:10:49 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.8 2005/05/02 07:20:04 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

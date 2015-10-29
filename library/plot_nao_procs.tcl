@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: plot_nao_procs.tcl,v 1.114 2005/03/23 03:14:06 dav480 Exp $
+# $Id: plot_nao_procs.tcl,v 1.118 2005/06/30 06:22:33 dav480 Exp $
 #
 # Produce xy-graph, barchart (histogram), z-plot (image) or tiled-plot (multiple images).
 
@@ -146,7 +146,7 @@ namespace eval Plot_nao {
 	    global $var
 	}
 	    # set default main_palette to "blue to red"
-	Plot_nao::palette_interpolate main_palette $window_id 240 0
+	Plot_nao::paletteInterpolate main_palette $window_id 240 0
 	set buttonPressCommand "lappend Plot_nao::$window_id\::save \$Plot_nao::xyz"
 	set buttonReleaseCommand ""
 	set geometry ""
@@ -813,13 +813,13 @@ namespace eval Plot_nao {
 		-command "Plot_nao::set_palette $name $window_id \
 			\"transpose(reshape(255 .. 0 ... -1, 3 // 256))\"; $cond_redraw_command"
 	$palette_menu add command -label "blue to red (white = missing)" -command \
-		"Plot_nao::palette_interpolate $name $window_id 240 0; $cond_redraw_command"
+		"Plot_nao::paletteInterpolate $name $window_id 240 0; $cond_redraw_command"
 	$palette_menu add command -label "red to blue (white = missing)" -command \
-		"Plot_nao::palette_interpolate $name $window_id 0 240; $cond_redraw_command"
+		"Plot_nao::paletteInterpolate $name $window_id 0 240; $cond_redraw_command"
 	$palette_menu add command -label "green to red (white = missing)" -command \
-		"Plot_nao::palette_interpolate $name $window_id -240 0; $cond_redraw_command"
+		"Plot_nao::paletteInterpolate $name $window_id -240 0; $cond_redraw_command"
 	$palette_menu add command -label "red to green (white = missing)" -command \
-		"Plot_nao::palette_interpolate $name $window_id 0 -240; $cond_redraw_command"
+		"Plot_nao::paletteInterpolate $name $window_id 0 -240; $cond_redraw_command"
 	$palette_menu add command \
 		-label "default overlay palette: 0=black, 1=white, 2=red, 3=green, 4=blue" \
 		-command "nap \"::Plot_nao::${window_id}::overlay_palette =
@@ -930,6 +930,28 @@ namespace eval Plot_nao {
     }
 
 
+    # write_image_save --
+    # Write canvas to image file
+
+    proc write_image_save {
+	window_id
+	all
+	graph
+    } {
+	global Plot_nao::${window_id}::image_format
+	set top .image_tmp_top
+	toplevel $top
+	wm geometry $top "+[winfo x $all]+[winfo y $all]"
+	set filename "plot.$image_format"
+	set filename [tk_getSaveFile -initialfile $filename -title "Image Filename" \
+		-parent $top]
+	destroy $top
+	if {$filename ne ""} {
+	    write_image $window_id $all $graph $filename $image_format
+	}
+    }
+
+
     # write_image_gui --
     # Create GUI to write canvas to image file
 
@@ -951,18 +973,14 @@ namespace eval Plot_nao {
 		    -variable ::Plot_nao::${window_id}::image_format
 	    pack $top.$fmt -anchor w
 	}
-	button $top.ok -text OK -command "destroy $top"
-	pack $top.ok
+	set buttons $top.buttons
+	frame $buttons
+	button $buttons.ok -text OK -command \
+		"destroy $top; Plot_nao::write_image_save $window_id $all $graph"
+	button $buttons.cancel -text Cancel -command "destroy $top"
+	pack $buttons.ok $buttons.cancel -side left -fill x -expand 1
+	pack $buttons -anchor w -fill x -expand 1
 	tkwait window $top
-	toplevel $top
-	wm geometry $top "+[winfo x $all]+[winfo y $all]"
-	set filename "plot.$image_format"
-	set filename [tk_getSaveFile -initialfile $filename -title "Image Filename" \
-		-parent $top]
-	destroy $top
-	if {$filename ne ""} {
-	    write_image $window_id $all $graph $filename $image_format
-	}
     }
 
 
@@ -1179,23 +1197,18 @@ namespace eval Plot_nao {
     }
 
 
-    # palette_interpolate --
+    # paletteInterpolate --
     #
     # Define palette by interpolating round colour wheel (with s = v = 1)
     # from & to are angles in degrees (Red = 0, green = -240, blue = 240)
 
-    proc palette_interpolate {
+    proc paletteInterpolate {
 	name
 	window_id
 	from
 	to
     } {
-	nap "n = 255"
-	nap "h = ap_n(f32(from), f32(to), n)"
-	nap "s = v = n # 1f32"
-	nap "mat = transpose(hsv2rgb(h /// s // v))"
-	nap "white = 3 # 1f32"
-	nap "::Plot_nao::${window_id}::$name = u8(255.999f32 * (mat // white))"
+	nap "::Plot_nao::${window_id}::$name = palette_interpolate(from, to)"
     }
 
 
@@ -2192,6 +2205,7 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::magnification
 	global Plot_nao::${window_id}::major_tick_length
 	global Plot_nao::${window_id}::main_palette
+	global Plot_nao::${window_id}::major_ticks_z
 	global Plot_nao::${window_id}::new_height
 	global Plot_nao::${window_id}::new_width
 	global Plot_nao::${window_id}::title
@@ -2200,6 +2214,7 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::yflip
 	global Plot_nao::${window_id}::ylabel
 
+	set major_ticks_z ""
 	set rank_nao [$nao rank]
 	set nx [[nap "(shape nao)(-1)"]]
 	set ny [[nap "(shape nao)(-2)"]]
@@ -2586,10 +2601,12 @@ namespace eval Plot_nao {
 	    nap "label_min = geog_nice * ceil (cv_min/geog_nice)"
 	    nap "label_max = geog_nice * floor(cv_max/geog_nice)"
 	    nap "n = nint((label_max - label_min) / geog_nice)"
-	    nap "i = n @@@ max((n <= nmax) # n)"
-	    nap "geog_labels = label_min(i) .. label_max(i) ... geog_nice(i)"
-	    if [[nap "nels(geog_labels) > 1"]] {
-		nap "major_ticks = cv(0) < cv(1) ? geog_labels : geog_labels(-)"
+	    if [[nap "min(n) <= nmax"]] {
+		nap "i = n @@@ max((n <= nmax) # n)"
+		nap "geog_labels = label_min(i) .. label_max(i) ... geog_nice(i)"
+		if [[nap "nels(geog_labels) > 1"]] {
+		    nap "major_ticks = cv(0) < cv(1) ? geog_labels : geog_labels(-)"
+		}
 	    }
 	}
 	$major_ticks set unit $unit

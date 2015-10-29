@@ -1,4 +1,4 @@
-<!-- $Id: indexing.html,v 1.5 2004/11/11 22:34:23 dav480 Exp $ -->
+<!-- $Id: indexing.html,v 1.7 2005/06/28 02:59:20 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -28,12 +28,11 @@ Indexing
 	<li><a href="#Full_index">Full-index</a>
 	<li><a href="#Cross_product_index">Cross-product-index</a>
     </ol>
-    <li><a href="#indirect_indexing">Indirect Indexing</a>
+    <li><a href="#indirect_indexing">Indirect Indexing and Unary Operators
+	    &quot;<code>@</code>&quot; and &quot;<code>@@</code>&quot;</a>
     <ol>
-	<li><a href="#Indirect_Shape_Preserving_Indexing">Indirect Shape-Preserving Indexing</a>
-	<li><a href="#Indirect_Cross_Product_Indexing">Indirect Cross-Product Indexing</a>
-	<li><a href="#Indirect_Full_Indexing">Indirect Full Indexing</a>
-	<li><a href="#How_Indirect_Indexing_Works">How Indirect Indexing Works</a>
+	<li><a href="#indirect_1d">1D Time-Series Example</a>
+	<li><a href="#indirect_2d">2D Geographic Example</a>
     </ol>
 </ol>
 
@@ -552,122 +551,176 @@ Value:
 2 3 5
 </pre>
 
-<h3><a name=indirect_indexing>Indirect Indexing</h3>
+<h3>
+<a name=indirect_indexing>
+Indirect Indexing and Unary Operators
+&quot;<code>@</code>&quot; and &quot;<code>@@</code>&quot;
+</h3>
 
-It is often more natural to index via coordinate variables rather than subscripts.
-For example, consider a matrix with latitude and longitude coordinate variables.
-One could specify an element directly using subscripts such as "row 3, column 5".
-One could also specify an interpolated point directly using subscripts such as
-"row 3.5, column 5.2".
-However many users would prefer to specify latitude and longitude
-(values of the coordinate variables) rather than specify row and column.
-<em>Indirect indexing</em> simplifies such indexing via coordinate variables.
-The following three sections correspond to the three types of index:
-<em>shape-preserving</em>,
-<em>cross-product</em>
-and
-<em>full</em>.
-
-<h4><a name=Indirect_Shape_Preserving_Indexing>Indirect Shape-Preserving Indexing</h4>
-
-The following table defines 
-<em>indirect shape-preserving</em> indexing of any vector
-<var>v</var>
-via any array
-<var>c</var>
-containing coordinate variable values:
-
-<p>
-<table border>
-    <tr>
-	<th align=center>Syntax
-	<th align=center>Value
-	<tr valign=top> <td>
-		<var>v</var><code>(@</code><var>c</var><code>)</code>
-	    <td>
-    <var>v</var><code>(coordinate_variable(</code><var>v</var><code>)@</code><var>c</var>)</code>
-	<tr valign=top> <td>
-		<var>v</var><code>(@@</code><var>c</var><code>)</code>
-	    <td>
-    <var>v</var><code>(coordinate_variable(</code><var>v</var><code>)@@</code><var>c</var>)</code>
-</table>
-
-<p>
-For example, suppose we have temperatures at two-hourly intervals from time 1000 
-to 1600 as follows:
-
-<pre>
-% nap "t = {20.2 21.6 24.9 22.7}"
-::NAP::159-159
-% $t set coord "10 .. 16 ... 2"
-</pre>
-
-We could estimate temperatures every hour during this period as follows:
-
-<pre>
-% [nap "t(coordinate_variable(t)@(10..16))"] value
-20.2 20.9 21.6 23.25 24.9 23.8 22.7
-</pre>
-
-Indirect indexing allows us to omit the left argument of operators
-&quot;<code>@</code>&quot;
-and
-&quot;<code>@@</code>&quot;
-in such expressions.
-This enables the above expression to be simplified as follows:
-
-<pre>
-% [nap "t(@(10..16))"] value
-20.2 20.9 21.6 23.25 24.9 23.8 22.7
-</pre>
-
-<p>
-Note that this syntax does not allow indirect indices such as that in "<code>t(3+@@12)</code>".
-Instead we have to use <em>binary</em> "<code>@@</code>" as in
-"<code>t(3+coordinate_variable(t)@@12)</code>".
-
-<h4><a name=Indirect_Cross_Product_Indexing>Indirect Cross-Product Indexing</h4>
-
-The syntax for a general <em>cross-product-index</em> (involving direct and/or indirect
-indexing) is:<br>
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-&hellip;
-<br>
+<em>Indirect indexing</em> is indexing via coordinate variables.
+An example is specifying latitudes and longitudes rather than rows and columns.
+One can convert a latitude of say 20&deg;S to a subscript using
+&quot;<code>lat@-20</code>&quot;,
 where 
-<var>expr</var>
-is an expression (which may need to be enclosed in parentheses).
+<code>lat</code>
+is the latitude coordinate variable.
+This uses the 
+<a href="op.html#Interpolated_Subscript">
+<em>binary</em> interpolated subscript &quot;<code>@</code>&quot;</a>
+ operator.
+Within an index expression it is possible to use the <em>unary</em> &quot;<code>@</code>&quot; operator
+and simply write 
+&quot;<code>@-20</code>&quot;.
+The omitted left operand defaults to the corresponding coordinate variable.
 
 <p>
-The following table defines <em>indirect cross-product</em> indexing.
-It shows how the subscript for dimension
-<var>d</var>
-of array
-<var>a</var>
-is calculated from (vector or scalar)
-<var>v</var>:
+There are three such unary operators for indirect indexing:
+&quot;<code>@</code>&quot;,
+&quot;<code>@@</code>&quot;
+and
+&quot;<code>@@@</code>&quot;.
+However &quot;<code>@@@</code>&quot; is seldom used and will not be mentioned further.
 
 <p>
-<table border>
-    <tr>
-	<th align=center>Syntax
-	<th align=center>Subscript Value
-	<tr valign=top> <td>
-		<code>@</code><var>v</var>
-	    <td>
-<code>coordinate_variable(</code><var>a</var><code>,</code><var>d</var><code>)@</code><var>v</var>
-	<tr valign=top> <td>
-		<code>@@</code><var>v</var>
-	    <td>
-<code>coordinate_variable(</code><var>a</var><code>,</code><var>d</var><code>)@@</code><var>v</var>
-</table>
+There were restrictions on the use of these unary operators prior to version 5 of NAP.
+Each subscript had to have the form
+&quot;<code>@</code><var>expr</var>&quot;
+or
+&quot;<code>@@</code><var>expr</var>&quot;.
+These restrictions have now been lifted, as demonstrated at the end of the following 
+<a href="#indirect_1d">1D Time-Series Example</a>.
+
+<p>
+However these unary operators can no longer be used with <em>full indexing</em>.
+This facility was seldom if ever used.
+
+<p>
+The unary "<code>@</code>" and "<code>@@</code>" operators previously worked
+by simply creating a copy of
+their operand and attaching to it (via the 
+<a href="nao.html"><em>link slot</em></a>)
+an ancillary NAO containing an integer with the value <br>
+&bull; 1 for indirect indexing using "<code>@</code>" <br>
+&bull; 2 for indirect indexing using "<code>@@</code>".
+
+<p>
+The function <code>invert_grid()</code> still produces an indirect full index 
+with such an attached NAO and the indexing code still handles such indices.
+However such NAOs are no longer produced in any other way and can be considered
+an anachronistic kludge.
+
+<p>
+The new version of NAP is based on a parser which produces a <em>parse tree</em>
+and then executes this tree.
+This allows cleverer execution of various things such as indexing,
+during which the coordinate variables are visible and can be used by the
+unary "<code>@</code>" and "<code>@@</code>" operators.
+
+<p>
+The operators
+&quot;<code>@</code>&quot; and &quot;<code>@@</code>&quot;
+are often used with indexing to interpolate to a finer or coarser grid.
+The operand of
+&quot;<code>@</code>&quot; and &quot;<code>@@</code>&quot;
+is normally the desired coordinate variable of the result.
+In many case this would happen using normal NAP processes, but there are some situations
+where this would not be the case.
+One example is producing a finer grid using 
+&quot;<code>@@</code>&quot;
+to produce <em>nearest-neighbour</em> values.
+Another is using
+&quot;<code>@</code>&quot;
+with longitude wrap-around.
+
+<p>
+NAP ensures that the right-hand operand is used as the coordinate variable by attaching it
+to the result of 
+&quot;<code>@</code>&quot; and &quot;<code>@@</code>&quot;
+using the
+<a href="nao.html"><em>link slot</em></a>.
+This is discussed further in 
+<a href="op.html#Inverse_Indexing">
+Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quot;
+and &quot;<code>@@@</code>&quot;</a>.
+The
+<a href="#indirect_2d">2D Geographic Example</a>
+shows how 
+&quot;<code>@@</code>&quot;
+produces <em>nearest-neighbour</em> values and such coordinate variables.
+
+<h4>
+<a name=indirect_1d>
+1D Time-Series Example
+</h4>
+
+<p>
+Suppose we have temperatures at two-hourly intervals from time 10:00 
+to 16:00 as follows:
+
+<pre>
+% nap "time = 10 .. 16 ... 2"
+::NAP::20-20
+% nap "temperature = {20.2 21.6 24.9 22.7}"
+::NAP::21-21
+% $temperature set coord time
+</pre>
+
+We could estimate temperatures every hour during this period using either
+the binary or unary 
+&quot;<code>@</code>&quot;
+as follows:
+
+<pre>
+% [nap "temperature(time @ (10 .. 16))"] value; # Use binary @
+20.2 20.9 21.6 23.25 24.9 23.8 22.7
+% [nap "temperature(@ (10 .. 16))"] value; # Use unary @
+20.2 20.9 21.6 23.25 24.9 23.8 22.7
+</pre>
+
+<p>
+These unary operators can only be used within index expressions.
+Let's see what happens if we use one elsewhere:
+
+<pre>
+% nap "@10"
+Nap_Indirect: Illegal coordinate variable corresponding to unary '@'
+Error at line 583 of file /cygdrive/c/dav480/tcl/nap/generic/napMonad.c,m4
+expr1: Error with unary operator '@'
+Error at line 52 of file c:/dav480/tcl/tcl-nap/generic/eval_tree.c
+</pre>
+
+Note that this unary 
+&quot;<code>@</code>&quot;
+operator makes no sense because it is not within an index and thus there is no
+corresponding coordinate variable.
+
+<p>
+The following examples illustrate useful index expressions which now work but did not
+work prior to version 5 of NAP:
+
+<pre>
+% [nap "temperature(@@11.5 + 2)"]; # Example 1
+22.7
+% [nap "temperature(@@11.5 .. @@16.5)"]; # Example 2
+21.6 24.9 22.7
+% [nap "temperature(>@10.5 .. <@15.5)"]; # Example 3
+21.6 24.9
+</pre>
+
+Example 1 gives the second temperature after that closest to time 11:30.
+Example 2 gives all the temperatures from that closest to time 11:30
+to that closest to time 16:30.
+Example 3 gives all the temperatures from the first following time 11:30
+to the first before time 15:30.
+
+<h4>
+<a name=indirect_2d>
+2D Geographic Example
+</h4>
 
 <p>
 The following creates a 3&times;4 matrix 
-<code>temperature</code>
-that will be used to demonstrate <em>indirect indexing</em>.
-It has
+<code>temperature</code>, which has
 <li>unit of <code>degC</code> (&deg;C).
 <li>rows corresponding to latitudes 10&deg;N, 20&deg;N and 30&deg;N
 <li>columns corresponding to longitudes 
@@ -700,12 +753,12 @@ Value:
 31.5 37.2 32.9 34.0
 25.1 25.2 29.0 21.9
 20.5 21.2 21.0 19.9
-% ::NAP::76-76 all
+% [$temperature coo 0] all
 ::NAP::76-76  f32  MissingValue: NaN  References: 2  Unit: degrees_north
 Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
 10 20 30
-% ::NAP::86-86 all
+% [$temperature coo 1] all
 ::NAP::86-86  f32  MissingValue: NaN  References: 2  Unit: degrees_east
 Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
@@ -797,37 +850,31 @@ such as
 <li>wrap around to allow interpolation across longitude 180
 <li>data-type <code>f32</code>
 
-<h4><a name=Indirect_Full_Indexing>Indirect Full Indexing</h4>
-
-A full index can be preceded by the unary "<code>@</code>"
-or "<code>@@</code>" operator to give indirect indexing.
-However, unlike cross-product indexing, this operator applies to all dimensions.
-The following example shows how full indexing can be used to produce the same values
-as those in the above example of cross-product indexing.
+<p>
+The above  use of
+&quot;<code>@</code>&quot;
+produces <em>interpolated</em> values.
+The following illustrates the use of
+&quot;<code>@@</code>&quot;
+to produce <em>nearest-neighbour</em> values.
+Note the use of the original operands as the final coordinate variables.
 
 <pre>
-% [nap "temperature({{1 2}{1.1 2.8}})"]; # direct indexing
-29 23
-% [nap "temperature(@{{20 130}{21 138}})"]
-29 23
-% [nap "temperature(@@{{20 130}{21 138}})"]
-29 21.9
+% nap "nearest_temperature = temperature(@@(14 .. 16), @@(123 .. 127))"
+::NAP::222-222
+% $nearest_temperature all
+::NAP::222-222  f32  MissingValue: NaN  References: 1  Unit: degC
+Dimension 0   Size: 3      Name: latitude  Coordinate-variable: ::NAP::212-212
+Dimension 1   Size: 5      Name: longitude  Coordinate-variable: ::NAP::217-217
+Value:
+37.2 37.2 32.9 32.9 32.9
+25.2 25.2 29.0 29.0 29.0
+25.2 25.2 29.0 29.0 29.0
+% [$nearest_temperature coo 0]
+14 15 16
+% [$nearest_temperature coo 1]
+123 124 125 126 127
 </pre>
-
-<h4><a name=How_Indirect_Indexing_Works>How Indirect Indexing Works</h4>
-
-Indirect indexing uses ancillary NAOs linked to index NAOs using their link slots.
-These ancillary NAOs contain integers with value <br>
-&bull; 0 for direct indexing <br>
-&bull; 1 for indirect indexing using "<code>@</code>" <br>
-&bull; 2 for indirect indexing using "<code>@@</code>".
-
-<p>
-The unary "<code>@</code>" and "<code>@@</code>" operators simply create a copy of
-their operand and attach to it such an ancillary NAO.
-Another process in which indirect full indices are created by attaching such
-an ancillary NAO, is
-the function <code>invert_grid()</code>.
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -840,7 +887,7 @@ the function <code>invert_grid()</code>.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: indexing.html,v 1.5 2004/11/11 22:34:23 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: indexing.html,v 1.7 2005/06/28 02:59:20 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

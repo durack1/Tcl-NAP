@@ -13,7 +13,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParse.y,v 1.61 2003/11/14 06:57:12 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParse.y,v 1.64 2005/05/26 23:36:34 dav480 Exp $";
 #endif /* not lint */
 
 #ifdef WIN32
@@ -32,38 +32,41 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.61 2003/11/14 06:57:12 dav480 Exp $
 
 %pure_parser
 
+%token <op>	NULL_OP			/* Null operator */
 %token <str>	ID			/* ID of nao  e.g. "nao.42" */
 %token <str>	NAME			/* of nao or function */
 %token <str>	STRING			/* e.g. 'hello world', `abc` */
 %token <str>	UNUMBER			/* unsigned double */
-%token <str>	CAT			/* // */
-%token <str>	LAMINATE		/* /// */
-%token <str>	CLOSEST			/* @@ */
-%token <str>	MATCH			/* @@@ */
-%token <str>	TO			/* .. */
-%token <str>	AP3			/* ... */
-%token <str>	EQ			/* == */
-%token <str>	NE			/* != */
-%token <str>	LE			/* <= */
-%token <str>	GE			/* >= */
-%token <str>	SHIFT_LEFT		/* << */
-%token <str>	LESSER_OF		/* <<< */
-%token <str>	SHIFT_RIGHT		/* >> */
-%token <str>	GREATER_OF		/* >>> */
-%token <str>	AND			/* && */
-%token <str>	OR			/* || */
-%token <str>	POWER			/* ** */
-%token <str>	INNER_PROD		/* . (or +* for compatibility) */
-%token <str>	FUNCTION		/* used only for prec */
-%token <str> ' ' '!' '"' '#' '$' '%' '&' '(' ')' '*' '+' ',' '-' '.' '/'
-%token <str> ':' ';' '<' '=' '>' '?' '@'
-%token <str> '[' ']' '^' '_' '`'
-%token <str> '{' '|' '}' '~'
+%token <op>	CAT			/* // */
+%token <op>	LAMINATE		/* /// */
+%token <op>	CLOSEST			/* @@ */
+%token <op>	MATCH			/* @@@ */
+%token <op>	TO			/* .. */
+%token <op>	AP3			/* ... */
+%token <op>	EQ			/* == */
+%token <op>	NE			/* != */
+%token <op>	LE			/* <= */
+%token <op>	GE			/* >= */
+%token <op>	SHIFT_LEFT		/* << */
+%token <op>	LESSER_OF		/* <<< */
+%token <op>	SHIFT_RIGHT		/* >> */
+%token <op>	GREATER_OF		/* >>> */
+%token <op>	AND			/* && */
+%token <op>	OR			/* || */
+%token <op>	POWER			/* ** */
+%token <op>	INNER_PROD		/* . (or +* for compatibility) */
+%token <op>	FUNCTION		/* used only for prec */
+%token <op> ' ' '!' '"' '#' '$' '%' '&' '(' ')' '*' '+' ',' '-' '.' '/'
+%token <op> ':' ';' '<' '=' '>' '?' '@'
+%token <op> '[' ']' '^' '_' '`'
+%token <op> '{' '|' '}' '~'
 
 %right '='
 %left ','
 %left CAT LAMINATE
 %right '?' ':'
+%left TO
+%left AP3
 %left OR
 %left AND
 %left '|'
@@ -77,16 +80,15 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.61 2003/11/14 06:57:12 dav480 Exp $
 %left '*' '/' '%'
 %left INNER_PROD
 %left '#'
-%left TO
-%left '@' CLOSEST MATCH AP3
+%left '@' CLOSEST MATCH
 %right '!' '~'
 %right POWER
 %right FUNCTION
 
 %type <str>	result			/* final result (nao ID) */
-%type <str>	expr			/* nao ID of expression */
-%type <str>	FuncArg1		/* 1st arg of Nap_Func */
-%type <str>	FuncArg2		/* 2nd arg of Nap_Func */
+%type <pnode>	expr			/* nao ID of expression */
+%type <pnode>	FuncArg1		/* 1st arg of Nap_Func */
+%type <pnode>	FuncArg2		/* 2nd arg of Nap_Func */
 %type <str>	naoID			/* nao->ID */
 %type <str>	arrayConst		/* nao ID of encList */
 %type <str>	stringConst		/* nao ID of string */
@@ -98,78 +100,92 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.61 2003/11/14 06:57:12 dav480 Exp $
 
 %%
 
-result	: expr				{$$ = Nap_SetParseResult(Nap_param, $1);}
+result	: /* empty */			{$$ = Nap_SetParseResult(Nap_param, NULL);}
+	| expr				{$$ = Nap_SetParseResult(Nap_param, $1);}
 	;
 
-expr	: naoID
-	| arrayConst
-	| stringConst
-	| usnv				{$$ = Nap_ScalarConstant(Nap_param, $1);}
-	| NAME				{$$ = Nap_GetNaoIdFromId(Nap_param, $1);}
-	| NAME '=' expr			{$$ = Nap_Assign(Nap_param, $1, $3);}
-	| expr ',' expr			{$$ = Nap_Link(Nap_param, $1, $3);}
-	| expr CAT expr			{$$ = Nap_Cat(Nap_param, $1, $3);}
-	| expr LAMINATE expr		{$$ = Nap_Laminate(Nap_param, $1, $3);}
-	| expr '@' expr			{$$ = Nap_IndexOf2(Nap_param, $1, $3);}
-	| expr '#' expr			{$$ = Nap_Copy(Nap_param, $1, $3);}
-	| expr CLOSEST expr		{$$ = Nap_Closest(Nap_param, $1, $3);}
-	| expr MATCH expr		{$$ = Nap_Match(Nap_param, $1, $3);}
-	| expr '?' expr ':' expr	{$$ = Nap_Choice(Nap_param, $1, $3, $5);}
-	| expr TO expr			{$$ = Nap_AP(Nap_param, $1, $3);}
-	| expr AP3 expr			{$$ = Nap_Link(Nap_param, $1, $3);}
-	| expr OR expr			{$$ = Nap_Or(Nap_param, $1, $3);}
-	| expr AND expr			{$$ = Nap_And(Nap_param, $1, $3);}
-	| expr EQ expr			{$$ = Nap_Eq(Nap_param, $1, $3);}
-	| expr NE expr			{$$ = Nap_Ne(Nap_param, $1, $3);}
-	| expr LE expr			{$$ = Nap_Le(Nap_param, $1, $3);}
-	| expr LESSER_OF expr		{$$ = Nap_LesserOf(Nap_param, $1, $3);}
-	| expr GREATER_OF expr		{$$ = Nap_GreaterOf(Nap_param, $1, $3);}
-	| expr '<' expr			{$$ = Nap_Lt(Nap_param, $1, $3);}
-	| expr GE expr			{$$ = Nap_Ge(Nap_param, $1, $3);}
-	| expr '>' expr			{$$ = Nap_Gt(Nap_param, $1, $3);}
-	| expr '+' expr			{$$ = Nap_Add(Nap_param, $1, $3);}
-	| expr '-' expr			{$$ = Nap_Sub(Nap_param, $1, $3);}
-	| expr '*' expr			{$$ = Nap_Mul(Nap_param, $1, $3);}
-	| expr '/' expr			{$$ = Nap_Div(Nap_param, $1, $3);}
-	| expr '%' expr			{$$ = Nap_Rem(Nap_param, $1, $3);}
-	| expr INNER_PROD expr		{$$ = Nap_InnerProd(Nap_param, $1, $3);}
-	| expr POWER expr		{$$ = Nap_Power(Nap_param, $1, $3);}
-	| expr '&' expr			{$$ = Nap_BitAnd(Nap_param, $1, $3);}
-	| expr '|' expr			{$$ = Nap_BitOr(Nap_param, $1, $3);}
-	| expr '^' expr			{$$ = Nap_BitXor(Nap_param, $1, $3);}
-	| expr SHIFT_LEFT expr		{$$ = Nap_ShiftLeft(Nap_param, $1, $3);}
-	| expr SHIFT_RIGHT expr		{$$ = Nap_ShiftRight(Nap_param, $1, $3);}
-	| '!' expr			{$$ = Nap_Not(Nap_param, $2);}
-	| '#' expr %prec '!'		{$$ = Nap_Tally(Nap_param, $2);}
-	| '-' expr %prec '!'		{$$ = Nap_Negate(Nap_param, $2);}
-	| '~' expr %prec '!'		{$$ = Nap_Complement(Nap_param, $2);}
-	| '+' expr %prec '!'		{$$ = Nap_Identity(Nap_param, $2);}
-	| '@' expr %prec '!'		{$$ = Nap_Indirect(Nap_param, 1,$2);}
-	| CLOSEST expr %prec '!'	{$$ = Nap_Indirect(Nap_param, 2,$2);}
-	| MATCH expr %prec '!'		{$$ = Nap_Indirect(Nap_param, 3,$2);}
-	| ',' expr %prec ','		{$$ = Nap_Link(Nap_param, NULL, $2);}
-	| expr ',' %prec ','		{$$ = Nap_Link(Nap_param, $1, NULL);}
-	| ','				{$$ = Nap_Niladic(Nap_param, ",");}
-	| '-'	   %prec '!'		{$$ = Nap_Niladic(Nap_param, "-");}
+expr	: naoID				{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| arrayConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| stringConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| usnv				{$$ = Nap_NewNaoPNode(Nap_param,
+					    Nap_ScalarConstant(Nap_param, $1));}
+	| NAME				{$$ = Nap_NewNamePNode(Nap_param, $1);}
+	| NAME '=' expr			{$$ = Nap_NewExprPNode(Nap_param, 
+					    Nap_NewNamePNode(Nap_param, $1), $2, $3);}
+	| expr ',' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr CAT expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr LAMINATE expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '@' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '#' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr CLOSEST expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr MATCH expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '?' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr ':' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr TO expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr AP3 expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr OR expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr AND expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr EQ expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr NE expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr LE expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr LESSER_OF expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr GREATER_OF expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '<' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr GE expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '>' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '+' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '-' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '*' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '/' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '%' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr INNER_PROD expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr POWER expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '&' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '|' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr '^' expr			{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr SHIFT_LEFT expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| expr SHIFT_RIGHT expr		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, $3);}
+	| '!' expr			{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '#' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '-' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '~' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '+' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '^' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '<' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '>' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '|' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| '@' expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| CLOSEST expr %prec '!'	{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| MATCH expr %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| ',' expr %prec ','		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, $2);}
+	| expr ',' %prec ','		{$$ = Nap_NewExprPNode(Nap_param, $1, $2, NULL);}
+	| ','				{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, NULL);}
+	| '-'	   %prec '!'		{$$ = Nap_NewExprPNode(Nap_param, NULL, $1, NULL);}
 	| '(' expr ')'			{$$ = $2;}
-	| NAME NAME %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}
-	| NAME FuncArg2 %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}
-	| FuncArg1 NAME %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}
-	| FuncArg1 FuncArg2 %prec FUNCTION	{$$ = Nap_Func(Nap_param, $1, $2);}
+	| NAME NAME %prec FUNCTION	{$$ = Nap_NewExprPNode(Nap_param, 
+					    Nap_NewNamePNode(Nap_param, $1), NULL_OP,
+					    Nap_NewNamePNode(Nap_param, $2));}
+	| NAME FuncArg2 %prec FUNCTION	{$$ = Nap_NewExprPNode(Nap_param, 
+					    Nap_NewNamePNode(Nap_param, $1), NULL_OP, $2);}
+	| FuncArg1 NAME %prec FUNCTION	{$$ = Nap_NewExprPNode(Nap_param, $1, NULL_OP,
+					    Nap_NewNamePNode(Nap_param, $2));}
+	| FuncArg1 FuncArg2 %prec FUNCTION
+					{$$ = Nap_NewExprPNode(Nap_param, $1, NULL_OP, $2);}
 	;
 
-FuncArg1: arrayConst
-	| stringConst
-	| naoID
+FuncArg1: arrayConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| stringConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| naoID				{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| '(' expr ')'			{$$ = $2;}
 	;
 
-FuncArg2: arrayConst
-	| stringConst
-	| naoID
+FuncArg2: arrayConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| stringConst			{$$ = Nap_NewNaoPNode(Nap_param, $1);}
+	| naoID				{$$ = Nap_NewNaoPNode(Nap_param, $1);}
 	| '(' expr ')'			{$$ = $2;}
-	| '(' ')'			{$$ = NULL;}
-	| usnv				{$$ = Nap_ScalarConstant(Nap_param, $1);}
+	| '(' ')'			{$$ = Nap_NewExprPNode(Nap_param, NULL, NULL_OP, NULL);}
+	| usnv				{$$ = Nap_NewNaoPNode(Nap_param,
+					    Nap_ScalarConstant(Nap_param, $1));}
 	;
 
 naoID:	ID				{$$ = Nap_GetNaoIdFromId(Nap_param, $1);}

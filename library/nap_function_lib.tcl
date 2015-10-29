@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.44 2004/08/10 01:48:02 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.45 2005/05/02 06:40:12 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -573,6 +573,24 @@ namespace eval ::NAP {
 	}
 	$result set coo y x
 	nap "result"
+    }
+
+
+    # palette_interpolate --
+    #
+    # Define palette by interpolating round colour wheel (with s = v = 1)
+    # Args 'from' & 'to' are angles in degrees (Red = 0, green = -240, blue = 240)
+
+    proc palette_interpolate {
+	from
+	to
+    } {
+	nap "n = 255"
+	nap "h = f32(n ... from .. to)"
+	nap "s = v = 1f32"
+	nap "mat = transpose(hsv2rgb(h /// s // v))"
+	nap "white = 3 # 1f32"
+	nap "u8(255.999f32 * (mat // white))"
     }
 
 

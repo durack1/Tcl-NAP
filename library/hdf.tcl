@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.120 2005/03/15 05:32:35 dav480 Exp $
+# $Id: hdf.tcl,v 1.122 2005/07/07 08:10:52 dav480 Exp $
 
 
 # hdf --
@@ -96,7 +96,25 @@ namespace eval ::Hdf {
 	trace add variable ${top_ns}::sds_name  write "::Hdf::need_read $top_ns"
 	trace add variable ${top_ns}::index     write "::Hdf::need_read $top_ns"
 	trace add variable ${top_ns}::raw       write "::Hdf::need_read $top_ns"
+	# bind $top <Destroy> "if {[string equal %W $top]} {namespace delete $top_ns}"
+	bind $top <Destroy> "::Hdf::close_window $top_ns %W $top"
 	return $top
+    }
+
+
+    # close_window --
+    #
+    # Delete namespace associated with top-level window
+    # Note that this is called for all sub-windows as well, so must test for top-level
+
+    proc close_window {
+	top_ns
+	w
+	top
+    } {
+	if {[string equal $w $top]} {
+	    namespace delete $top_ns
+	}
     }
 
 
@@ -261,8 +279,12 @@ namespace eval ::Hdf {
 	global ${top_ns}::sds_name
 	global ${top_ns}::index
 	global ${top_ns}::sds_rank
-	set sds_rank [hdf_info $top_ns -rank $filename $sds_name]
 	set shp [hdf_info $top_ns -shape $filename $sds_name]
+	if {[lsearch $shp 0] < 0} {
+	    set sds_rank [hdf_info $top_ns -rank $filename $sds_name]
+	} else {
+	    set sds_rank 0; # Kludge to handle nels == 0
+	}
 	foreach name [namespace children ${top_ns}] {
 	    eval namespace delete $name
 	}

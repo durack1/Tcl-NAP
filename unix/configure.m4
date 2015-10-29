@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.22 2005/03/16 06:35:51 dav480 Exp $
+dnl	$Id: configure.m4,v 1.26 2005/07/07 04:16:49 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -106,7 +106,7 @@ case "$HOST_OS" in
 esac
 case "$HOST_OS" in
     Linux)
-	DEBUGGER="xxgdb"
+	DEBUGGER="ddd"
     ;;
     *)
 	DEBUGGER="dbx"
@@ -293,13 +293,14 @@ for ROOT_DIR in \
 do
     for DIR1 in \
 	    $ROOT_DIR/tcl \
+	    $ROOT_DIR/tcl_new \
 	    $ROOT_DIR \
 	    $ROOT_DIR/hdf/use \
 	    $ROOT_DIR/nc/use \
 	    $ROOT_DIR/hdf \
 	    $ROOT_DIR/nc
     do
-	for DIR in $DIR1 $DIR1/include $DIR1/lib $DIR1/dll $DIR1/dlllib $DIR1/bin
+	for DIR in $DIR1 $DIR1/include* $DIR1/lib $DIR1/dll $DIR1/dlllib $DIR1/bin
 	do
 	    if test -r $DIR/hd${HDF_999_VERSION}m.dll; then
 		HDF_DLL_DIR=$DIR
@@ -467,12 +468,12 @@ AC_MSG_RESULT([Using TK_STUB_LIB_PATH=$TK_STUB_LIB_PATH])
 # These will be appended to the current set of compiler flags for
 # your system.
 #
-# NATIVE_PATH is command (echo or 'cygpath -w') to print native file path name.
+# NATIVE_PATH is command (echo or 'cygpath -m') to print native file path name.
 #------------------------------------------------------------------------------
 
 PLATFORM=windows
 PLATFORM_DIR=unix
-NATIVE_PATH=${exec_prefix}/bin/windows_path
+NATIVE_PATH='cygpath -m'
 CP='cp -f'
 RM='rm -f'
 TOUCH='touch'

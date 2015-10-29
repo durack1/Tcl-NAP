@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napChoice.c,m4,v 1.35 2002/10/10 09:00:19 dav480 Exp $";
+static char *rcsid="@(#) $Id: napChoice.c,m4,v 1.37 2005/06/23 08:24:52 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -73,8 +73,7 @@ EXTERN char *
 Nap_Choice(
     NapClientData	*nap_cd,
     char		*str1,			/* id of test nao */
-    char		*str2,			/* id of "if true" nao */
-    char		*str3)			/* id of "if false" nao */
+    char		*str2)			/* id of boxed nao */
 {
     Nap_NAO             *coordNaoPtr;           /* coordinate variable */
     Nap_dataType        dataType;
@@ -92,17 +91,24 @@ Nap_Choice(
     Nap_NAO		*naoPtr1;		/* test nao arg */
     Nap_NAO		*naoPtr2;		/* "if true" nao arg */
     Nap_NAO		*naoPtr3;		/* "if false" nao arg */
+    Nap_NAO		*naoPtrBoxed;		/* boxed nao arg */
     int                 test;			/* temp. boolean */
 
     naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
-    naoPtr2 = Nap_GetNumericNaoFromId(nap_cd, str2);
-    naoPtr3 = Nap_GetNumericNaoFromId(nap_cd, str3);
-    CHECK2NULL(naoPtr1, "m4NAME: Undefined left-hand operand. NULL?y:z");
+    CHECK2NULL(naoPtr1, "m4NAME: Undefined left-hand operand of '?'");
+    naoPtrBoxed = Nap_GetNaoFromId(nap_cd, str2);
+    CHECK2NULL(naoPtrBoxed, "m4NAME: Undefined right-hand operand of '?'");
+    CHECK2NULL(naoPtrBoxed->dataType == NAP_BOXED,
+	    "m4NAME: Right-hand operand of '?' is not boxed");
+    Nap_IncrRefCount(nap_cd, naoPtrBoxed);
+    naoPtr2 = Nap_GetNaoFromSlot(naoPtrBoxed->data.Boxed[0]);
+    naoPtr3 = Nap_GetNaoFromSlot(naoPtrBoxed->data.Boxed[1]);
     CHECK2NULL(naoPtr2, "m4NAME: Undefined middle operand. x?NULL:z");
     CHECK2NULL(naoPtr3, "m4NAME: Undefined right-hand operand. x?y:NULL");
     Nap_IncrRefCount(nap_cd, naoPtr1);
     Nap_IncrRefCount(nap_cd, naoPtr2);
     Nap_IncrRefCount(nap_cd, naoPtr3);
+    Nap_DecrRefCount(nap_cd, naoPtrBoxed);
     if (naoPtr1->rank == 0) {
 	if (IsMissing(naoPtr1, 0)) {
 	    new = Nap_NewNAO(nap_cd, NAP_I8, 0, NULL);
@@ -183,6 +189,5 @@ Nap_Choice(
     Nap_DecrRefCount(nap_cd, naoPtr2);
     Nap_DecrRefCount(nap_cd, naoPtr3);
     -- new->count;
-    Tcl_SetResult(nap_cd->interp, new->id, TCL_VOLATILE);
     return new->id;
 }

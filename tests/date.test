@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: date.test,v 1.6 2004/10/25 01:37:46 dav480 Exp $
+# $Id: date.test,v 1.7 2005/06/16 07:37:06 dav480 Exp $
 
 Test date-1.1 {date to MJD} {[nap "dateTime2mjd{1997 03 21}"]} 50528
 Test date-1.2 {date to MJD} {[nap "dateTime2mjd{1997 03 21 12}"]} 50528.5
@@ -65,7 +65,26 @@ Test date-7.2 {format_jdn} {format_jdn "{0 7} + date2jdn{2004 10 22}" "%y %m %d"
 {04 10 22
 04 10 29}
 
-unset mjd dt mjd2 bad 
+nap "dim = {31 28 31 30 31 30 31 31 30 31 30 31}"
+
+Test date-8.1 {dateTime2days} {[nap "dateTime2days({2 03 21}, dim)"]} 809
+Test date-8.2 {dateTime2days} {[nap "dateTime2days({2 03 21 12}, dim)"]} 809.5
+Test date-8.3 {dateTime2days} {[nap "dateTime2days({0 1 1 11 59 59.99}, dim)"] -f %.10f} \
+0.4999998843
+
+Test date-9.1 {days2dateTime} {[nap "days2dateTime(809, dim)"]} {2 3 21 0 0 0}
+Test date-9.2 {days2dateTime} {[nap "days2dateTime(809.5, dim)"]} {2 3 21 12 0 0}
+Test date-9.3 {days2dateTime} {[nap "days2dateTime(0.99999988, dim, 1e-2)"]} {0 1 1 23 59 59.99}
+
+Test date-10.1 {Every 98.765 days from year -1000 to 1000} {
+    nap "days = dateTime2days({-1000 1 1}, dim) ..  dateTime2days({1000 1 1}, dim) ... 98.765"
+    nap "dt = days2dateTime(days, dim)"
+    nap "days2 = dateTime2days(dt, dim)"
+    nap "bad = abs(days - days2) > 1e-8"
+    [nap "sum(bad)"]
+} 0
+
+unset mjd dt mjd2 bad dim days days2
 
 Test convert_date-1.1 {date to MJD} {
     convert_date 1997-03-21T} 50528

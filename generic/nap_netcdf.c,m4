@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.60 2005/02/22 01:47:14 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.69 2005/07/08 01:27:52 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -43,13 +43,21 @@ static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.60 2005/02/22 01:47:14 dav480 
 #endif
 
 
-m4define(`m4ForAllNcNumericDataType', `
+m4define(`m4ForAllNcIntegerDataType', `
 $1`'U8$2
 $1`'I8$2
 $1`'I16$2
 $1`'I32$2
+')
+
+m4define(`m4ForAllNcRealDataType', `
 $1`'F32$2
 $1`'F64$2
+')
+
+m4define(`m4ForAllNcNumericDataType', `
+m4ForAllNcIntegerDataType(`$1',`$2')
+m4ForAllNcRealDataType(`$1',`$2')
 ')
 
 m4define(`m4ForAllNcDataType', `
@@ -309,7 +317,7 @@ Nap_NetcdfGetScalingInfo(
 
 m4define(`m4NAME', `Nap_NetcdfOpenFile')
 
-static int
+EXTERN int
 Nap_NetcdfOpenFile(
     NapClientData       *nap_cd,
     char		*fileName,		/* netCDF file name */
@@ -352,7 +360,7 @@ Nap_NetcdfOpenFile(
 
 m4define(`m4NAME', `Nap_NetcdfCloseFile')
 
-static int
+EXTERN int
 Nap_NetcdfCloseFile(
     NapClientData       *nap_cd,
     int			ncid)			/* file handle */
@@ -374,7 +382,7 @@ Nap_NetcdfCloseFile(
 
 m4define(`m4NAME', `Nap_NetcdfOpenVar')
 
-static int
+EXTERN int
 Nap_NetcdfOpenVar(
     NapClientData       *nap_cd,
     int			ncid,			/* file handle */
@@ -456,11 +464,11 @@ m4begin
 
 m4define(`m4NAME', `Nap_NetcdfCreateVar')
 
-#  m4putFill(dataType)  e.g. m4putFill(f32)
+#  m4putFill(dataType)  e.g. m4putFill(I32)
 m4define(`m4putFill', `
         case m4DataTypeEnum($1):
 	    status = nc_put_att_`'m4ncName($1)(ncid, varid, "_FillValue", xtype, 1,
-		    tmp_NAO->data.$1);
+		    missingValue_NAO->data.$1);
 	    CHECK2NC(status, "m4NAME: Error calling nc_put_att_`'m4ncName($1)");
             break;')
 
@@ -479,16 +487,14 @@ Nap_NetcdfCreateVar(
     Nap_NAO		*scale_factor_NAO,	/* (may be NULL) */
     Nap_NAO		*add_offset_NAO,	/* (may be NULL) */
     Nap_NAO		*valid_range_NAO,	/* (may be NULL) */
-    Nap_NAO		*missingValue_NAO,	/* fill value (may be NULL) */
-    char		*format,		/* (may be NULL) */
-    char		*label,			/* (may be NULL) */
-    char		*unit,			/* (may be NULL) */
+    Nap_NAO		*main_NAO,		/* main nao (in) */
     int			isRecord)               /* Want unlimited dim in new var? */
 {
     char		dim_name[20];
     int			dimid[NAP_MAX_RANK];
     size_t		edge[1];
     int			i;
+    Nap_NAO		*missingValue_NAO;	/* fill value (may be NULL) */
     char		*p_dim_name;
     size_t		start[1];
     int			status;
@@ -578,93 +584,46 @@ Nap_NetcdfCreateVar(
 	    Nap_FreeNAO(nap_cd, tmp_NAO);
 	}
     }
+    if (scale_factor_NAO || add_offset_NAO) {
+	missingValue_NAO = Nap_StandardMissingValueNAO(nap_cd, dataType);
+    } else {
+	missingValue_NAO = Nap_GetNaoFromSlot(main_NAO->missingValueSlot);
+	if (missingValue_NAO) {
+	    if (main_NAO->dataType == NAP_RAGGED) {
+		missingValue_NAO = Nap_CastNAO(nap_cd, missingValue_NAO, dataType);
+	    } else if (missingValue_NAO->dataType != dataType) {
+		missingValue_NAO = Nap_StandardMissingValueNAO(nap_cd, dataType);
+	    }
+	}
+    }
+    Nap_IncrRefCount(nap_cd, missingValue_NAO);
     if (missingValue_NAO) {
-	tmp_NAO = Nap_CastNAO(nap_cd, missingValue_NAO, dataType);
-	CHECK2(tmp_NAO, "m4NAME: Error calling Nap_CastNAO");
 	switch (dataType) {
 	    case NAP_C8:
-		status = nc_put_att_text(ncid, varid, "_FillValue", 1, tmp_NAO->data.c);
+		status = nc_put_att_text(ncid, varid, "_FillValue", 1,
+			missingValue_NAO->data.c);
 		CHECK2NC(status, "m4NAME: Error calling nc_put_att_text");
 		break;
 	    m4ForAllNcNumericDataType(`m4putFill(', `)')
 	    default:            /* error */
 		assert(FALSE);
 	}
-	if (tmp_NAO != missingValue_NAO) {
-	    Nap_FreeNAO(nap_cd, tmp_NAO);
-	}
     }
-    if (format) {
-	status = nc_put_att_text(ncid, varid, "C_format", strlen(format), format);
+    if (main_NAO->format) {
+	status = nc_put_att_text(ncid, varid, "C_format", strlen(main_NAO->format),
+		main_NAO->format);
 	CHECK2NC(status, "m4NAME: Error calling nc_put_att_text");
     }
-    if (label) {
-	status = nc_put_att_text(ncid, varid, "long_name", strlen(label), label);
+    if (main_NAO->label) {
+	status = nc_put_att_text(ncid, varid, "long_name", strlen(main_NAO->label),
+		main_NAO->label);
 	CHECK2NC(status, "m4NAME: Error calling nc_put_att_text");
     }
-    if (unit) {
-	status = nc_put_att_text(ncid, varid, "units", strlen(unit), unit);
+    if (main_NAO->unit) {
+	status = nc_put_att_text(ncid, varid, "units", strlen(main_NAO->unit), main_NAO->unit);
 	CHECK2NC(status, "m4NAME: Error calling nc_put_att_text");
     }
-    return TCL_OK;
-}
-
-
-/*
- *	Nap_CreateVar --
- *
- *	Create netCDF variable
- */
-
-m4define(`m4NAME', `Nap_CreateVar')
-
-static int
-Nap_CreateVar(
-    NapClientData       *nap_cd,
-    int			ncid,			/* file handle */
-    char		*var_name,		/* Var name */
-    Nap_dataType	dataType,		/* Netcdf data type */
-    int			rank,			/* required rank */
-    size_t		shape_t[],		/* required shape */
-    Nap_NAO		*cv[],			/* coord. vars (may be NULL) */
-    char		*dimName[],		/* dim. names (may be NULL) */
-    Nap_NAO		*scale_factor_NAO,	/* (may be NULL) */
-    Nap_NAO		*add_offset_NAO,	/* (may be NULL) */
-    Nap_NAO		*valid_range_NAO,	/* (may be NULL) */
-    Nap_NAO		*missingValue_NAO,	/* fill value */
-    char		*format,		/* (may be NULL) */
-    char		*label,			/* (may be NULL) */
-    char		*unit,			/* (may be NULL) */
-    int			isRecord,               /* Want unlimited dim in new var? */
-    int			*varid)			/* Var handle (out) */
-{
-    int			exists;			/* Var exists? */
-    int			status;
-
-    assert(var_name);
-    assert(varid);
-    status = Nap_NetcdfCreateVar(
-	    nap_cd,
-	    ncid,
-	    var_name,
-	    dataType,
-	    rank,
-	    shape_t,
-	    cv,
-	    dimName,
-	    scale_factor_NAO,
-	    add_offset_NAO,
-	    valid_range_NAO,
-	    missingValue_NAO,
-	    format,
-	    label,
-	    unit,
-	    isRecord);
-    CHECK(status == TCL_OK);
-    status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, varid);
-    CHECK(status == TCL_OK);
-    CHECK2(exists, "m4NAME: Var does not exist");
-    CHECK(status == TCL_OK);
+    Nap_DecrRefCount(nap_cd, missingValue_NAO);
     return TCL_OK;
 }
 
@@ -971,9 +930,6 @@ Nap_NetcdfPutAttribute(
     nc_type		xtype;			/* External netcdf data type */
 
     CHECK2(main_NAO, "m4NAME: Pointer to main NAO is NULL");
-    if (main_NAO->nels == 0) {
-	return TCL_OK;
-    }
     CHECK2(main_NAO->rank < 2, "m4NAME: main NAO rank > 1");
     CHECK2(strlen(name) <= 2*NC_MAX_NAME+1, "m4NAME: <Var:ATTRIBUTE> is too long");
     (void) strcpy(name_var, name);
@@ -1090,29 +1046,110 @@ Nap_NetcdfGetDim(
     status = nc_inq_dimname(ncid, dimid[dim_index], name);
     CHECK2NC(status, "m4NAME: Error calling nc_inq_dimname");
     if (cv_nc_NAO) {
+	*cv_nc_NAO = NULL;
 	status = Nap_NetcdfOpenVar(nap_cd, ncid, name, &exists, &cv_varid);
 	CHECK(status == TCL_OK);
 	status = nc_inq_varname(ncid, varid, varname);
 	CHECK2NC(status, "m4NAME: Error calling nc_inq_varname");
 	if (exists  &&  strcmp(varname, name) != 0) {
-	    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, cv_varid, &rank, shape, &number_type, NULL);
+	    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, cv_varid, &rank, shape,
+		    &number_type, NULL);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
-	    CHECK2(rank == 1, "m4NAME: rank of coordinate variable is not 1");
-	    dataType = Nap_Netcdf2NapDataType(number_type);
-	    CHECK2(Nap_ValidDataType(dataType), "m4NAME: Illegal datatype");
-	    *cv_nc_NAO = Nap_NewNAO(nap_cd, dataType, 1, shape);
-	    CHECK2(*cv_nc_NAO, "m4NAME: Error calling Nap_NewNAO");
-	    start[0] = 0;
-	    edge[0] = shape[0];
-	    status = Nap_NetcdfGetVar(nap_cd, ncid, cv_varid, 0, (*cv_nc_NAO)->data.c,
-		    NULL, start, edge);
-	    CHECK(status == TCL_OK);
-	    status = Nap_NetcdfGetStdAtts(nap_cd, ncid, cv_varid, *cv_nc_NAO);
-	    CHECK(status == TCL_OK);
-	} else {
-	    *cv_nc_NAO = NULL;
+	    if (rank == 1) {
+		dataType = Nap_Netcdf2NapDataType(number_type);
+		CHECK2(Nap_ValidDataType(dataType), "m4NAME: Illegal datatype");
+		*cv_nc_NAO = Nap_NewNAO(nap_cd, dataType, 1, shape);
+		CHECK2(*cv_nc_NAO, "m4NAME: Error calling Nap_NewNAO");
+		start[0] = 0;
+		edge[0] = shape[0];
+		status = Nap_NetcdfGetVar(nap_cd, ncid, cv_varid, 0, (*cv_nc_NAO)->data.c,
+			NULL, start, edge);
+		CHECK(status == TCL_OK);
+		status = Nap_NetcdfGetStdAtts(nap_cd, ncid, cv_varid, *cv_nc_NAO);
+		CHECK(status == TCL_OK);
+	    }
 	}
     }
+    return TCL_OK;
+}
+
+/*
+ * nap_NetcdfGetIndex --
+ *
+ *	Get index NAO from index arg.
+ */
+
+m4define(`m4NAME', `nap_NetcdfGetIndex')
+
+EXTERN int
+nap_NetcdfGetIndex(
+    NapClientData       *nap_cd,
+    int			ncid,			/* file handle */
+    int			varid,			/* netCDF var ID */
+    Tcl_Obj		*indexObj,		/* index arg. */
+    Nap_NAO		**index_nao)		/* result (out) */
+{
+    Nap_NAO		*boxedCV;		/* boxed NAO of CVs */
+    Nap_NAO		*cv_netcdf_NAO;		/* cv from netcdf file */
+    int			i;
+    nc_type		number_type;
+    int			rank;
+    size_t		shape[NAP_MAX_RANK];
+    int			status;
+    char		*str;
+    Nap_NAO		*tmp_nao;
+
+    assert(indexObj);
+    assert(index_nao);
+    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank, shape, &number_type, NULL);
+    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
+    shape[0] = rank;
+    boxedCV = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+    CHECK2(boxedCV, "m4NAME: Error calling Nap_NewNAO");
+    Nap_IncrRefCount(nap_cd, boxedCV);
+    for (i = 0; i < rank; i++) {
+	status = Nap_NetcdfGetDim(nap_cd, ncid, varid, i, &cv_netcdf_NAO, NULL);
+	CHECK(status == TCL_OK);
+	boxedCV->data.Boxed[i] = cv_netcdf_NAO ? cv_netcdf_NAO->slot : 0;
+	Nap_IncrRefCount(nap_cd, cv_netcdf_NAO);
+    }
+    if (rank < 2) {
+	*index_nao = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	CHECK2(*index_nao, "m4NAME: Error calling Nap_NewNAO");
+    }
+    if (rank == 1) {
+	if (indexObj->length == 0) {
+	    (*index_nao)->data.Boxed[0] = 0;
+	} else {
+	    str = Nap_expression(nap_cd, indexObj, boxedCV);
+	    CHECK2(str, "m4NAME: Error evaluating index expression");
+	    tmp_nao = Nap_GetNaoFromId(nap_cd, str);
+	    CHECK2(tmp_nao, "m4NAME: Error calling Nap_GetNaoFromId");
+	    CHECK2(!Nap_IsBoxed(tmp_nao), "m4NAME: Illegal index expression");
+	    (*index_nao)->data.Boxed[0] = tmp_nao->slot;
+	    Nap_IncrRefCount(nap_cd, tmp_nao);
+	}
+    } else if (rank > 1) {
+	if (indexObj->length == 0) {
+	    *index_nao = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	    CHECK2(*index_nao, "m4NAME: Error calling Nap_NewNAO");
+	    for (i = 0; i < rank; i++) {
+		(*index_nao)->data.Boxed[i] = 0;
+	    }
+	} else {
+	    str = Nap_expression(nap_cd, indexObj, boxedCV);
+	    CHECK2(str, "m4NAME: Error evaluating index expression");
+	    tmp_nao = Nap_GetNaoFromId(nap_cd, str);
+	    CHECK2(tmp_nao, "m4NAME: Error calling Nap_GetNaoFromId");
+	    CHECK2(Nap_IsBoxed(tmp_nao) && tmp_nao->nels == rank,
+		    "m4NAME: Illegal index expression");
+	    *index_nao = tmp_nao;
+	}
+    }
+    Nap_DecrRefCount(nap_cd, boxedCV);
+    assert(*index_nao);
+    assert(Nap_IsBoxed(*index_nao));
+    assert((*index_nao)->nels == rank);
     return TCL_OK;
 }
 
@@ -1163,7 +1200,8 @@ Nap_NetcdfDefineSubscript(
     Nap_NAO		*tmp_NAO2;
 
     assert(subscript_NAO);
-    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t, &number_type, &isRecord);
+    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t, &number_type,
+	    &isRecord);
     CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
     if (rank32 > 0) {
 	if (subscript_NAO->dataType == NAP_BOXED) {
@@ -1176,14 +1214,34 @@ Nap_NetcdfDefineSubscript(
 	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	}
 	Nap_IncrRefCount(nap_cd, boxed_subscript_NAO);
-	CHECK2(boxed_subscript_NAO->rank <= 1, "m4NAME: Subscript rank > 1");
-	CHECK2(boxed_subscript_NAO->nels <= rank32,
-		"m4NAME: # elements in subscript > nc rank");
-	for (i = 0; i < rank32; i++) {
-	    shape1[i] = 1;
-	}
-	for (i = main_NAO->rank - 1; i >= 0; i--) {
-	    shape1[rank32 - main_NAO->rank + i] = main_NAO->shape[i];
+	CHECK2(boxed_subscript_NAO->rank == 1, "m4NAME: Subscript rank != 1");
+	CHECK2(boxed_subscript_NAO->nels == rank32,
+		"m4NAME: # elements in subscript != nc rank");
+	CHECK2(main_NAO->rank <= rank32, "m4NAME: rank of NAO exceeds rank of netCDF variable");
+	if (main_NAO->rank == rank32) {
+	    for (i = 0; i < rank32; i++) {
+		shape1[i] = main_NAO->shape[i];
+	    }
+	} else {
+	    j = main_NAO->rank - 1;
+	    for (i = rank32-1; i >= 0; i--) {
+		shape1[i] = 1;
+		if (j >= 0) {
+		    el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
+		    if (el_NAO) {
+			CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript element rank > 1");
+			Nap_IncrRefCount(nap_cd, el_NAO);
+			if (el_NAO->rank > 0) {
+			    shape1[i] = main_NAO->shape[j--];
+			    CHECK2(el_NAO->nels == shape1[i],
+				    "m4NAME: Subscript element does not match NAO dimension");
+			}
+			Nap_DecrRefCount(nap_cd, el_NAO);
+		    } else {
+			shape1[i] = main_NAO->shape[j--];
+		    }
+		}
+	    }
 	}
 	for (i = 0; i < rank32; i++) {
 	    cv_nc_NAO = el_NAO = sub_NAO = tmp_NAO = NULL;
@@ -1195,6 +1253,7 @@ Nap_NetcdfDefineSubscript(
 	    if (i < boxed_subscript_NAO->nels	 &&  boxed_subscript_NAO->data.Boxed[i]) {
 		el_NAO = Nap_GetNaoFromSlot(boxed_subscript_NAO->data.Boxed[i]);
 		CHECK2(el_NAO->rank <= 1, "m4NAME: Subscript element rank > 1");
+		Nap_IncrRefCount(nap_cd, el_NAO);
 		if (!cv_nc_NAO) {
 		    cv_nc_NAO = Nap_NewNAO(nap_cd, NAP_I32, 1, shape_t+i);
 		    CHECK2(cv_nc_NAO, "m4NAME: Error calling Nap_NewNAO");
@@ -1202,40 +1261,8 @@ Nap_NetcdfDefineSubscript(
 			cv_nc_NAO->data.I32[j] = j;
 		    }
 		}
-		linkNao = Nap_GetNaoFromSlot(el_NAO->linkSlot);
-		if (linkNao) {
-		    if (cv_nc_NAO) {
-			CHECK2(linkNao->rank == 0, "m4NAME: Subscript link-nao has rank > 0");
-			CHECK2(linkNao->dataType == NAP_I8,
-				"m4NAME: Subscript link-nao has data-type other than I8");
-			CHECK2(linkNao->data.I8[0] == 2,
-				"m4NAME: Subscript link-nao has value other than 2");
-			++cv_nc_NAO->count;
-			++el_NAO->count;
-			str = Nap_Closest(nap_cd, cv_nc_NAO->id, el_NAO->id);
-			CHECK2(str, "m4NAME: Error in @@ operation");
-			--cv_nc_NAO->count;
-			--el_NAO->count;
-			tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
-			CHECK2(tmp_NAO,
-			    "m4NAME: Error calling Nap_GetNumericNaoFromId");
-			sub_NAO = Nap_CastNAO(nap_cd, tmp_NAO, NAP_I32);
-			CHECK2(sub_NAO, "m4NAME: Error calling Nap_CastNAO");
-			if (sub_NAO != tmp_NAO) {
-			    Nap_FreeNAO(nap_cd, tmp_NAO);
-			    tmp_NAO = NULL;
-			}
-		    } else {
-			sub_NAO = Nap_NewNAO(nap_cd, NAP_I32, 1, shape1+i);
-			CHECK2(sub_NAO, "m4NAME: Error calling Nap_NewNAO");
-			for (j = 0; j < shape1[i]; j++) {
-			    sub_NAO->data.I32[j] = j;
-			}
-		    }
-		} else {
-		    sub_NAO = Nap_CastNAO(nap_cd, el_NAO, NAP_I32);
-		    CHECK2(sub_NAO, "m4NAME: Error calling Nap_CastNAO");
-		}
+		sub_NAO = Nap_CastNAO(nap_cd, el_NAO, NAP_I32);
+		CHECK2(sub_NAO, "m4NAME: Error calling Nap_CastNAO");
 	    } else {
 		sub_NAO = Nap_NewNAO(nap_cd, NAP_I32, 1, shape1+i);
 		CHECK2(sub_NAO, "m4NAME: Error calling Nap_NewNAO");
@@ -1243,7 +1270,9 @@ Nap_NetcdfDefineSubscript(
 		    sub_NAO->data.I32[j] = j;
 		}
 	    }
+	    Nap_IncrRefCount(nap_cd, cv_nc_NAO);
 	    assert(sub_NAO);
+	    Nap_IncrRefCount(nap_cd, sub_NAO);
 	    for (j = 0; j < shape1[i]; j++) {
 		if (i == 0  &&  isRecord  &&  sub_NAO->data.I32[j] >= 0) {
 		    subscript_ptr[i][j] = sub_NAO->data.I32[j];
@@ -1253,39 +1282,35 @@ Nap_NetcdfDefineSubscript(
 	    }
 	    if (mode == 'r') {
 		if (cv_nc_NAO) {
-		    ++cv_nc_NAO->count;
-		    ++sub_NAO->count;
-		    str = Nap_Func(nap_cd, cv_nc_NAO->id , sub_NAO->id);
+		    str = Nap_Index(nap_cd, cv_nc_NAO->id , sub_NAO->id);
 		    CHECK2(str,
 			    "m4NAME: Error defining new coordinate variable");
-		    --cv_nc_NAO->count;
-		    --sub_NAO->count;
 		    tmp_NAO = Nap_GetNumericNaoFromId(nap_cd, str);
-		    CHECK2(tmp_NAO,
-			    "m4NAME: Error calling Nap_GetNumericNaoFromId");
+		    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_GetNumericNaoFromId");
+		    Nap_IncrRefCount(nap_cd, tmp_NAO);
 		    if (tmp_NAO->rank == 0) {
 			tmp_NAO2 = tmp_NAO;
 			j = shape1[0];
 			shape1[0] = 1;
 			tmp_NAO = Nap_ReshapeNAO(nap_cd, tmp_NAO2, tmp_NAO2->dataType, 1, shape1);
 			CHECK2(tmp_NAO, "m4NAME: Error calling Nap_ReshapeNAO");
-			Nap_FreeNAO(nap_cd, tmp_NAO2);
+			Nap_IncrRefCount(nap_cd, tmp_NAO);
+			Nap_DecrRefCount(nap_cd, tmp_NAO2);
 			shape1[0] = j;
 		    }
+		    tmp_NAO->format = Nap_StrDup(cv_nc_NAO->format);
 		    tmp_NAO->unit = Nap_StrDup(cv_nc_NAO->unit);
 		    status = Nap_AttachCoordVar(nap_cd, main_NAO, tmp_NAO, name, i);
 		    CHECK(status == TCL_OK);
-		    Nap_FreeNAO(nap_cd, tmp_NAO);
+		    Nap_DecrRefCount(nap_cd, tmp_NAO);
 		} else {
 		    status = Nap_AttachCoordVar(nap_cd, main_NAO, NULL, name, i);
 		    CHECK(status == TCL_OK);
 		}
 	    }
-	    Nap_FreeNAO(nap_cd, cv_nc_NAO);
-	    Nap_FreeNAO(nap_cd, el_NAO);
-	    if (sub_NAO != el_NAO) {
-		Nap_FreeNAO(nap_cd, sub_NAO);
-	    }
+	    Nap_DecrRefCount(nap_cd, cv_nc_NAO);
+	    Nap_DecrRefCount(nap_cd, el_NAO);
+	    Nap_DecrRefCount(nap_cd, sub_NAO);
 	}
 	i = rank32-1;
 	if (subscript_ptr[i]) {
@@ -1501,12 +1526,12 @@ Nap_NetcdfPutSubscriptingRagged(
  *	If var does not exist then create it with dimensions & coordinate
  *	variables defined by cv_nc[0], cv_nc[1], ... cv_nc[rank].
  *	If cv_nc or cv_nc[i] is NULL then use main_NAO->shape[i] &
- *	(if defined) main_NAO->coordVarSlot[i].
+ *	(if defined) CV for dim i defined by main_NAO->boxedCV
  *
  *	If external_dataType is undefined then use type corresponding to that of
  *	main_NAO.
  *
- *	Use main_NAO->coordVarSlot[i] to define start, etc.
+ *	Use CV for dim i defined by main_NAO->boxedCV to define start, etc.
  */
 
 m4define(`m4NAME', `Nap_NetcdfPut')
@@ -1522,7 +1547,7 @@ Nap_NetcdfPut(
     Nap_NAO		*valid_range_NAO,	/* for new Var */
     Nap_NAO		*main_NAO,		/* pointer to main nao */
     Nap_NAO		*boxed_cv_nc,		/* pointers to CV NAOs */
-    Nap_NAO		*subscript_NAO,		/* pointer to subscript nao */
+    Tcl_Obj		*indexObj,		/* index arg. */
     int			isRecord)               /* Want unlimited dim in new var? */
 {
     Nap_NAO		*add_offset_NAO2;	/* type = internalDataType */
@@ -1533,22 +1558,20 @@ Nap_NetcdfPut(
     int			exists;			/* Var exists? */
     size_t		count_t[NAP_MAX_RANK];
     char		*dimName[NAP_MAX_RANK];	/* external dimension names */
+    double		fill_value;
     int			i;
     int			id;
     Nap_dataType	internalDataType;
     nc_type		number_type;
-    Nap_NAO		*missingValue_NAO;	/* for fill value */
     int			rank;			/* external rank */
     int			rank32;			/* external rank */
     Nap_NAO		*scale_factor_NAO2;	/* type = internalDataType */
     Nap_NAO		*scaled_NAO;
-    size_t		shape[NAP_MAX_RANK];	/* shape of subscript_NAO */
     size_t		shape_t[NAP_MAX_RANK];	/* shape of Var */
     size_t		shape1[NAP_MAX_RANK];	/* shape of main_NAO (with leading 1s) */
-    int			slot;
     int			status;
     size_t		start_t[NAP_MAX_RANK];
-    char		*str;
+    Nap_NAO		*subscript_NAO;		/* pointer to subscript nao */
     int			*subscript_ptr[NAP_MAX_RANK];
     Nap_NAO		*tmp_NAO;
     int			varid;
@@ -1610,20 +1633,11 @@ Nap_NetcdfPut(
 	    if (externalDataType == NAP_NULL_TYPE) {
 		externalDataType = internalDataType;
 	    }
-	    if (main_NAO->missingValueSlot > 0) {
-		missingValue_NAO = Nap_GetMissingValueNAO(nap_cd, main_NAO);
-		if (missingValue_NAO->dataType != externalDataType) {
-		    missingValue_NAO = Nap_StandardMissingValueNAO(nap_cd, externalDataType);
-		}
-		Nap_IncrRefCount(nap_cd, missingValue_NAO);
-	    } else {
-		missingValue_NAO = NULL;
-	    }
 	    scale_factor_NAO2 = Nap_CastNAO(nap_cd, scale_factor_NAO, internalDataType);
 	    Nap_IncrRefCount(nap_cd, scale_factor_NAO2);
 	    add_offset_NAO2   = Nap_CastNAO(nap_cd, add_offset_NAO,   internalDataType);
 	    Nap_IncrRefCount(nap_cd, add_offset_NAO2);
-	    status = Nap_CreateVar(
+	    status = Nap_NetcdfCreateVar(
 		    nap_cd,
 		    ncid,
 		    var_name,
@@ -1635,16 +1649,15 @@ Nap_NetcdfPut(
 		    scale_factor_NAO2,
 		    add_offset_NAO2,
 		    valid_range_NAO,
-		    missingValue_NAO,
-		    main_NAO->format,
-		    main_NAO->label,
-		    main_NAO->unit,
-		    isRecord,
-		    &varid);
+		    main_NAO,
+		    isRecord);
+	    CHECK(status == TCL_OK);
+	    status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, &varid);
+	    CHECK(status == TCL_OK);
+	    CHECK2(exists, "m4NAME: Var does not exist");
 	    CHECK(status == TCL_OK);
 	    Nap_DecrRefCount(nap_cd, scale_factor_NAO2);
 	    Nap_DecrRefCount(nap_cd, add_offset_NAO2);
-	    Nap_DecrRefCount(nap_cd, missingValue_NAO);
 	    for (i = 0; i < rank; i++) {
 		Nap_DecrRefCount(nap_cd, cv_nc_local[i]);
 	    }
@@ -1653,28 +1666,24 @@ Nap_NetcdfPut(
 	    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t,
 		    &number_type, NULL);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
-	    if (subscript_NAO) {
-		Nap_IncrRefCount(nap_cd, subscript_NAO);
-	    } else {
-		shape[0] = rank;
-		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-		CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
-		Nap_IncrRefCount(nap_cd, subscript_NAO);
+	    if (!indexObj) {
+		indexObj = Tcl_NewStringObj("", 0);
 		for (i = 0; i < rank; i++) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
 		    if (tmp_NAO) {
-			str = Nap_Indirect(nap_cd, 2, tmp_NAO->id);
-			CHECK2(str, "m4NAME: error in '@@' operation");
-			tmp_NAO = Nap_GetNaoFromId(nap_cd, str);
-			CHECK2(tmp_NAO, "m4NAME: error in '@@' operation");
-			Nap_IncrRefCount(nap_cd, tmp_NAO);
-			slot = tmp_NAO->slot;
-		    } else {
-			slot = 0;
+			Tcl_AppendStringsToObj(indexObj, "@@", tmp_NAO->id, (char *) NULL);
 		    }
-		    subscript_NAO->data.Boxed[i] = slot;
+		    if (i < rank-1) {
+			Tcl_AppendStringsToObj(indexObj, ",", (char *) NULL);
+		    }
 		}
 	    }
+	    assert(indexObj);
+	    Tcl_IncrRefCount(indexObj);
+	    status = nap_NetcdfGetIndex(nap_cd, ncid, varid, indexObj, &subscript_NAO);
+	    CHECK2(status == TCL_OK, "m4NAME: Error evaluating index");
+	    assert(subscript_NAO);
+	    Nap_IncrRefCount(nap_cd, subscript_NAO);
 	    status = Nap_NetcdfDefineSubscript(nap_cd, ncid, varid, main_NAO, 'w',
 		    subscript_NAO, subscript_ptr, start_t, count_t, shape1, &buffer);
 	    CHECK(status == TCL_OK);
@@ -1694,9 +1703,18 @@ Nap_NetcdfPut(
 		CHECK(status == TCL_OK);
 		Nap_DecrRefCount(nap_cd, scaled_NAO);
 	    }
+	    	/* If fill value attribute is NaN then delete it (to keep some packages happy) */
+	    status = nc_get_att_double(ncid, varid, "_FillValue", &fill_value);
+	    if (status == NC_NOERR  &&  IsNaN_F64(fill_value)) {
+		status = nc_redef(ncid);        /* enter define mode */
+		status = nc_del_att(ncid, varid, "_FillValue");
+		CHECK2(status == NC_NOERR, "m4NAME: Error calling nc_del_att");
+		status = nc_enddef(ncid);       /* leave define mode */
+	    }
 	    for (i = 0; i < rank32; i++) {
 		FREE(subscript_ptr[i]);
 	    }
+	    Tcl_DecrRefCount(indexObj);
 	    Nap_DecrRefCount(nap_cd, subscript_NAO);
 	    Nap_DecrRefCount(nap_cd, boxed_cv_nc);
 	}
@@ -1790,11 +1808,11 @@ m4end
 EXTERN int
 Nap_NetcdfGet(
     NapClientData       *nap_cd,
-    char		*fileName,	/* netCDF file name */
-    char		*var_name,	/* netCDF var (var) name */
-    Nap_NAO		*subscript_NAO, /* pointer to subscript nao */
-    int                 raw,            /* 1 to request raw data */
-    Nap_NAO		*main_NAO)	/* pointer to main nao (out) */
+    int			ncid,			/* file handle */
+    char		*var_name,		/* netCDF var (var) name */
+    Nap_NAO		*subscript_NAO, 	/* pointer to subscript nao */
+    int			raw,			/* 1 to request raw data */
+    Nap_NAO		*main_NAO)		/* pointer to main nao (out) */
 {
     char		*buffer;		/* For actual read */
     double		cal;			/* scale factor */
@@ -1810,7 +1828,6 @@ Nap_NetcdfGet(
     nc_type		number_type;
     double		off;			/* offset */
     int			rank32;
-    int			ncid;
     int			varid;
     size_t		shape_t[NAP_MAX_RANK];	/* shape of nc var */
     size_t		shape1[NAP_MAX_RANK];	/* shape of main_NAO (with leading 1s) */
@@ -1819,14 +1836,11 @@ Nap_NetcdfGet(
     int			*subscript_ptr[NAP_MAX_RANK];
     double		valid_range[2];		/* min, max */
 
-    CHECK2(fileName, "m4NAME: Pointer to file name is NULL");
     CHECK2(var_name, "m4NAME: Pointer to Var name is NULL");
     CHECK2(main_NAO, "m4NAME: Pointer to main NAO is NULL");
     if (main_NAO->nels == 0) {
 	return TCL_OK;
     }
-    status = Nap_NetcdfOpenFile(nap_cd, fileName, 'r', &ncid);
-    CHECK(status == TCL_OK);
     if (strchr(var_name, ':')) {
 	status = Nap_NetcdfGetAttribute(nap_cd, ncid, var_name, main_NAO);
 	CHECK(status == TCL_OK);
@@ -1888,8 +1902,6 @@ Nap_NetcdfGet(
 	    }
 	}
     }
-    status = Nap_NetcdfCloseFile(nap_cd, ncid);
-    CHECK(status == TCL_OK);
     return TCL_OK;
 }
 
@@ -2133,7 +2145,7 @@ Nap_NetcdfCoordVar(
     char		*name_var,		/* netCDF variable name */
     char		*dim_str)		/* dimension name or number */
 {
-    Nap_NAO		*cv_nao;		/* cv from hdf file */
+    Nap_NAO		*cv_nao;		/* cv from netcdf file */
     int			dim_index;
     char		dim_name[NC_MAX_NAME];
     int			exists;			/* var exists? */
@@ -2221,6 +2233,7 @@ Nap_OOC_netcdf(
     char		*file_name = NULL;
     int			i;
     int			index;
+    Tcl_Obj		*indexObj = NULL;		/* index */
     int			isRecord = 0;			/* Want unlimited dim in new var? */
     int			ncid;				/* File handle */
     Nap_NAO		*scale_factor_NAO = NULL;	/* For new netcdf var */
@@ -2229,7 +2242,6 @@ Nap_OOC_netcdf(
     int			status_close;			/* Indicates whether file closed OK */
     int			status_open;			/* Indicates whether file opened OK */
     char		*str;
-    Nap_NAO		*subscript_NAO = NULL;	/* pointers to subscripts */
     Nap_NAO		*valid_range_NAO = NULL;	/* For new netcdf var */
 
     CONST char		*switches[] = {
@@ -2243,7 +2255,7 @@ Nap_OOC_netcdf(
 				"-unlimited",
 				(char *) NULL};
 
-    CHECK2(objc >= 4  ||  objc <= 6, "m4NAME: wrong # arguments");
+    CHECK2(objc >= 4, "m4NAME: wrong # arguments");
     for (i = 2; i < objc; i++) {
 	status = Tcl_GetIndexFromObj(nap_cd->interp, objv[i], switches,
 				"switch", 0, &index);
@@ -2258,8 +2270,7 @@ Nap_OOC_netcdf(
 		    dataType = Nap_TextToDataType(str);
 		    break;
 		case 2:			/* -index */
-		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
-		    Nap_IncrRefCount(nap_cd, subscript_NAO);
+		    indexObj = objv[++i];
 		    break;
 		case 3:			/* -offset */
 		    add_offset_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
@@ -2274,8 +2285,7 @@ Nap_OOC_netcdf(
 		    Nap_IncrRefCount(nap_cd, scale_factor_NAO);
 		    break;
 		case 6:			/* -subscript (old name for -index) */
-		    subscript_NAO = Nap_GetNaoFromObj(nap_cd, objv[++i]);
-		    Nap_IncrRefCount(nap_cd, subscript_NAO);
+		    indexObj = objv[++i];
 		    break;
 		case 7:                 /* -unlimited */
 		    isRecord = 1;
@@ -2288,8 +2298,9 @@ Nap_OOC_netcdf(
 	} else if (!var_name) {
 	    var_name  = Tcl_GetStringFromObj(objv[i], NULL);
 	} else {
-		CHECK(FALSE);
+	    CHECK(FALSE);
 	}
+	Tcl_ResetResult(nap_cd->interp); /* Delete any message from Tcl_GetIndexFromObj */
     }
     CHECK2(file_name, "m4NAME: Filename not specified");
     CHECK2(var_name, "m4NAME: var_name not specified");
@@ -2297,14 +2308,13 @@ Nap_OOC_netcdf(
     if (status_open == TCL_OK) {
 	status = Nap_NetcdfPut(nap_cd, ncid, var_name, dataType, scale_factor_NAO,
 		add_offset_NAO, valid_range_NAO, naoPtr, boxed_cv_netcdf,
-		subscript_NAO, isRecord);
+		indexObj, isRecord);
 	status_close = Nap_NetcdfCloseFile(nap_cd, ncid);
     }
     Nap_DecrRefCount(nap_cd, scale_factor_NAO);
     Nap_DecrRefCount(nap_cd, add_offset_NAO);
     Nap_DecrRefCount(nap_cd, valid_range_NAO);
     Nap_DecrRefCount(nap_cd, boxed_cv_netcdf);
-    Nap_DecrRefCount(nap_cd, subscript_NAO);
     CHECK3(status_open  == TCL_OK, "m4NAME: Unable to open file %s", file_name);
     CHECK3(status_close == TCL_OK, "m4NAME: Unable to close file %s", file_name);
     CHECK3(status       == TCL_OK, "m4NAME: Error writing file %s", file_name);

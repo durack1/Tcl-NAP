@@ -8,7 +8,7 @@
  *
  * Author: Harvey Davies, CSIRO Mathematical and Information Sciences
  *
- * $Id: nap_check.h,v 1.18 2003/11/24 08:02:21 dav480 Exp $
+ * $Id: nap_check.h,v 1.19 2005/06/23 08:33:59 dav480 Exp $
  */
 
 #include <tcl.h>
@@ -210,7 +210,7 @@
 
 EXTERN void	Nap_Check(NapClientData *nap_cd, const char *file, const int line,
 			const char *format, ...);
-EXTERN void	Nap_CheckAppendLine(NapClientData *nap_cd, const char *str);
+EXTERN void	Nap_CheckAppendLine(NapClientData *nap_cd, char *str);
 EXTERN void	*Nap_Alloc(size_t size);
 EXTERN void	*Nap_Alloc0(size_t size);
 EXTERN void	Nap_Free(void *p);

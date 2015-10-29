@@ -75,7 +75,7 @@ if {$dst ne ""} {
     }
     set bin_files     [glob -nocomplain -types f $dst/bin/nap*.dll]
     set include_files [glob -nocomplain -types f $dst/include/nap*.h]
-    set lib_files     [glob -nocomplain -types f $dst/lib/nap*.lib $dst/lib/libnap*.so]
+    set lib_files     [glob -nocomplain -types f $dst/lib/nap*.lib $dst/lib/libnap*.s?]
     set lib_dirs      [glob -nocomplain -types d $dst/lib/nap*]
     set files "$bin_files $include_files $lib_files $lib_dirs"
     if {[llength $files] > 0} {

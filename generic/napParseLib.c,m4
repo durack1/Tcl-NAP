@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.54 2004/11/17 23:18:20 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.58 2005/06/23 08:29:56 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -40,24 +40,95 @@ m4define(`m4NAME', `Nap_NewPNode')
 static Nap_PNode *
 Nap_NewPNode(
     NapClientData       *nap_cd,
-    Nap_PNclass         class,          /* node type: NAP_VALUE or NAP_LIST */
-    int                 repCount,       /* repetition count */
-    Nap_Number          number,		/* numeric value */
-    Nap_PNode		*list,          /* list of lower level */
-    Nap_PNode		*next)          /* next element in same list */
+    Nap_PNclass         class)          /* node type: NAP_VALUE, NAP_LIST, etc. */
 {
+    int			level;			/* parse level */
     Nap_PNode		*node;
 
     CHECK2NULL(Nap_ValidPNclass(class), "m4NAME: bad class");
-    CHECK2NULL(repCount >= 0, "m4NAME: bad repCount");
     node = (Nap_PNode *) MALLOC(sizeof(Nap_PNode));
     CHECK2NULL(node, "m4NAME: Error calling MALLOC");
     node->class = class;
-    node->repCount = repCount;
-    node->number = number;
-    node->list = list;
-    node->next = next;
+    level = nap_cd->parseLevel;
+    assert(level >= 0);
+    assert(level < nap_cd->recursionLimit);
+    node->scanPtr = nap_cd->token[level];
+    node->str = NULL;
+    node->op = NULL_OP;
+    node->left = NULL;
+    node->right = NULL;
+    node->repCount = 0;
+    node->list = NULL;
+    node->next = NULL;
     node->tail = NULL;
+    ++ nap_cd->numberPNodes;
+    return node;
+}
+
+/*
+ * FreePNode --
+ *
+ *	Free Nap_PNode.
+ */
+
+m4define(`m4NAME', `FreePNode')
+
+void
+FreePNode(
+    NapClientData       *nap_cd,
+    Nap_PNode		*node)
+{
+    assert(Nap_ValidPNclass(node->class));
+    FREE(node);
+    -- nap_cd->numberPNodes;
+}
+
+m4define(`m4NAME', `Nap_NewExprPNode')
+
+Nap_PNode *
+Nap_NewExprPNode(
+    NapClientData	*nap_cd,
+    Nap_PNode		*left,          /* left operand */
+    int                 op,		/* operator */
+    Nap_PNode		*right)		/* right operand */
+{
+    Nap_PNode           *node;
+
+    node = Nap_NewPNode(nap_cd, NAP_EXPR);
+    assert(node);
+    node->op = op;
+    node->left = left;
+    node->right = right;
+    return node;
+}
+
+m4define(`m4NAME', `Nap_NewNamePNode')
+
+Nap_PNode *
+Nap_NewNamePNode(
+    NapClientData	*nap_cd,
+    char		*name)
+{
+    Nap_PNode           *node;
+
+    node = Nap_NewPNode(nap_cd, NAP_NAME);
+    assert(node);
+    node->str = name;
+    return node;
+}
+
+m4define(`m4NAME', `Nap_NewNaoPNode')
+
+Nap_PNode *
+Nap_NewNaoPNode(
+    NapClientData	*nap_cd,
+    char		*naoID)
+{
+    Nap_PNode           *node;
+
+    node = Nap_NewPNode(nap_cd, NAP_NAO);
+    assert(node);
+    node->str = naoID;
     return node;
 }
 
@@ -75,8 +146,11 @@ Nap_NewValuePNode(
 
     status = Tcl_GetInt(nap_cd->interp, repCount, &n);
     CHECK2NULL(status == TCL_OK, "m4NAME: Error parsing repetition count");
-    node = Nap_NewPNode(nap_cd, NAP_VALUE, n, number, NULL, NULL);
+    CHECK2NULL(n >= 0, "m4NAME: bad repetition count");
+    node = Nap_NewPNode(nap_cd, NAP_VALUE);
     assert(node);
+    node->repCount = n;
+    node->number = number;
     return node;
 }
 
@@ -90,16 +164,15 @@ Nap_NewListPNode(
 {
     int			n;
     Nap_PNode           *node;
-    Nap_Number          number;
     int                 status;
 
-    status = Nap_StringToNumber(nap_cd, "0", &number);
-    CHECK1NULL(status == TCL_OK);
     status = Tcl_GetInt(nap_cd->interp, repCount, &n);
     CHECK2NULL(status == TCL_OK, "m4NAME: Error parsing repetition count");
     assert(!list || Nap_ValidPNclass(list->class));
-    node = Nap_NewPNode(nap_cd, NAP_LIST, n, number, list, NULL);
+    node = Nap_NewPNode(nap_cd, NAP_LIST);
     assert(node);
+    node->repCount = n;
+    node->list = list;
     return node;
 }
 
@@ -396,42 +469,28 @@ Nap_ScalarConstant(
 	m4ForAllNumericDataType(`M4DEF_RESULT(', `)')
 	default: assert(FALSE);
     }
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
 
 /*
- * Nap_FreePNodeList --
+ * Nap_FreePNodeTree --
  *	Free whole tree.
  */
 
-m4define(`m4NAME', `Nap_FreePNodeList')
+m4define(`m4NAME', `Nap_FreePNodeTree')
 
-static int
-Nap_FreePNodeList(
+EXTERN void
+Nap_FreePNodeTree(
+    NapClientData       *nap_cd,
     Nap_PNode           *tree)
 {
-    Nap_PNode		*next;
-    int			status;
-    Nap_PNode		*t;
-
-    for (t = tree ;t; t = next) {
-	switch (t->class) {
-	    case NAP_LIST:
-		status = Nap_FreePNodeList(t->list);
-		if (status != TCL_OK) {
-		    return status;
-		}
-		break;
-	    case NAP_VALUE:
-		break;
-	    default:
-		assert(FALSE);
-	}
-	next = t->next;
-	FREE(t);
+    if (tree) {
+	Nap_FreePNodeTree(nap_cd, tree->left);
+	Nap_FreePNodeTree(nap_cd, tree->right);
+	Nap_FreePNodeTree(nap_cd, tree->next);
+	Nap_FreePNodeTree(nap_cd, tree->list);
+	FreePNode(nap_cd, tree);
     }
-    return TCL_OK;
 }
 
 /*
@@ -500,7 +559,6 @@ Nap_StringConstant(
     shape[0] = strlen(str);
     result = Nap_NewNAO(nap_cd, NAP_C8, 1, shape);
     (void) strncpy(result->data.c, str, shape[0]);
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
 
@@ -544,10 +602,9 @@ Nap_ArrayConstant(
 	}
 	maxDataType = m4DataTypeEnum(m4MinNumericDataType);
 	status = Nap_ElementsPNodeList(nap_cd, tree, &maxDataType, &dPtr, dPtrMax);
-	i = Nap_FreePNodeList(tree);
+	Nap_FreePNodeTree(nap_cd, tree);
 	CHECK1NULL(status == TCL_OK);
 	CHECK2NULL(dPtr == dPtrMax, "m4NAME: Invalid array constant");
-	CHECK1NULL(i == TCL_OK);
 	if (maxDataType != m4DataTypeEnum(m4MaxRealDataType)) {
 	    old = result;
 	    result = Nap_ReshapeNAO(nap_cd, old, maxDataType, rank, shape);
@@ -557,7 +614,6 @@ Nap_ArrayConstant(
 	shape[0] = 0;
 	result = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
     }
-    Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
 
@@ -1078,7 +1134,10 @@ Nap_lex(
 	    lvalp->str = startPtr + nc + 2;  /* Use 2nd copy of whole string */
 	    lvalp->str[n-2] = '\0';
 	    break;
+	default:
+	    lvalp->op = result;
     }
+    nap_cd->token[level] = startPtr;
     nap_cd->scanString[level] = startPtr + n;
     return result;
 }

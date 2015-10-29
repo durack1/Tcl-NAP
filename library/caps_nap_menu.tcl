@@ -2,7 +2,7 @@
 #
 # Copyright (c) 1998-2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: caps_nap_menu.tcl,v 1.14 2005/01/16 22:43:46 dav480 Exp $
+# $Id: caps_nap_menu.tcl,v 1.15 2005/07/08 00:06:00 dav480 Exp $
 
 
 # caps_nap_menu --
@@ -134,8 +134,10 @@ namespace eval NAP {
 		-command ::NAP::help_menu
 	set label "Tcl/Tk Local documentation"
 	if {$::tcl_platform(platform) eq "windows"} {
-	    set file "[file dirname [file dirname $::tcl_library]]/doc/ActiveTclHelp.chm"
 	    set hh {C:/WINDOWS/hh.exe}
+	    set doc_dir "[file dirname [file dirname $::tcl_library]]/doc"
+	    set files [glob -nocomplain $doc_dir/ActiveTclHelp*.chm]
+	    set file [lindex $files end]
 	    if {[file readable $file]  &&  [file readable $hh]} {
 		set command [list exec $hh $file &]
 		$help add command -label $label \

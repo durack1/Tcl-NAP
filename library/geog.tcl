@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001-2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: geog.tcl,v 1.4 2004/11/18 03:41:05 dav480 Exp $
+# $Id: geog.tcl,v 1.6 2005/05/26 01:19:59 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -169,9 +169,13 @@ namespace eval ::NAP {
     # get_gridascii --
     #
     # Read a file in ARC/INFO GRIDASCII format
+    # Argument "unit" specifies unit of x and y. If this argument is omitted then:
+    #   x has unit "degrees_east"
+    #   y has unit "degrees_north"
 
     proc get_gridascii {
 	filename
+	{unit ""}
     } {
 	set f [open [$filename value]]
 	foreach var_name {ncols nrows xllcorner yllcorner cellsize nodata_value} {
@@ -183,27 +187,34 @@ namespace eval ::NAP {
 	    }
 	    set $var_name [lindex $line 1]
 	}
-	nap "z = f32{}"
-	while {[gets $f line] > 0} {
-	    nap "z = z // f32{$line}"
+	nap "z = reshape(f32(nodata_value), nrows // ncols)"
+	nap "xmin = xllcorner + 0.5 * cellsize"
+	nap "xmax = xmin + (ncols - 1.0) * cellsize"
+	nap "ymin = yllcorner + 0.5 * cellsize"
+	nap "ymax = ymin + (nrows - 1.0) * cellsize"
+	nap "x = ncols ... xmin .. xmax"
+	nap "y  = nrows ... ymax .. ymin"
+	if {$unit eq ""} {
+	    $z set dim latitude longitude
+	    $x set unit degrees_east
+	    $y set unit degrees_north
+	} else {
+	    $x set unit [[nap "$unit"] value]
+	    $y set unit [[nap "$unit"] value]
+	}
+	$z set coo y x
+	$z set miss $nodata_value
+	for {set i 0} {$i < $nrows} {incr i} {
+	    if {[gets $f line] < 0} {
+		error "Premature end-of-file"
+	    }
+	    nap "row = f32{$line}"
+	    if {[$row nels] != $ncols} {
+		error "Number of values in line $i is not $ncols"
+	    }
+	    $z set value row "i,"
 	}
 	close $f
-	set ne [expr $nrows * $ncols]
-	set na [$z nels]
-	if {$na != $ne} {
-	    error "Expected to read $ne values, but actually read $na values"
-	}
-	nap "z = reshape(z, nrows // ncols)"
-	nap "xmin = xllcorner + 0.5 * cellsize"
-	nap "xmax = xmin + (ncols - 1) * cellsize"
-	nap "ymin = yllcorner + 0.5 * cellsize"
-	nap "ymax = ymin + (nrows - 1) * cellsize"
-	nap "longitude = ncols ... xmin .. xmax"
-	nap "latitude  = nrows ... ymax .. ymin"
-	$longitude set unit degrees_east
-	$latitude  set unit degrees_north
-	$z set coo latitude longitude
-	$z set miss $nodata_value
 	nap "z"
     }
 
@@ -333,8 +344,8 @@ proc put_gridascii {
     set f [open $filename w]
     puts $f "NCOLS [$x nels]"
     puts $f "NROWS [$y nels]"
-    puts $f "XLLCORNER [[nap "x(0)       - 0.5 * xstep"]]"
-    puts $f "YLLCORNER [[nap "y(row(-1)) - 0.5 * ystep"]]"
+    puts $f "XLLCORNER [[nap "x(0)       - 0.5 * xstep"] -format %.9g]"
+    puts $f "YLLCORNER [[nap "y(row(-1)) - 0.5 * ystep"] -format %.9g]"
     puts $f "CELLSIZE $xstep"
     puts $f "NODATA_VALUE $missing_value_string"
     foreach i [$row value] {

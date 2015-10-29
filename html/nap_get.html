@@ -1,4 +1,4 @@
-<!-- $Id: nap_get.html,v 1.9 2005/01/17 03:48:25 dav480 Exp $ -->
+<!-- $Id: nap_get.html,v 1.10 2005/06/28 06:56:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -146,7 +146,11 @@ NetCDF data is read using the command<br>
 
 <p>
 If <var>index</var> is omitted then the entire variable is read in.
-Otherwise <var>index</var> selects using cross-product indexing.
+Otherwise <var>index</var> selects using 
+<a href="indexing.html#Shape_Preserving">shape-preserving</a>
+or
+<a href="indexing.html#Cross_product_index">cross-product</a>
+indexing.
 
 <p>
 If <var>raw</var> is 1 then the result contains raw data read from the file.
@@ -195,6 +199,21 @@ Value:
 </pre>
 
 <p>
+The following shows the different effects of a single-element vector index and a scalar index
+with the same value:
+<pre>
+% [nap_get netcdf int.nc vec "{1}"] all
+::NAP::65-65  i32  MissingValue: -2147483648  References: 0
+Dimension 0   Size: 1      Name: n         Coordinate-variable: ::NAP::69-69
+Value:
+-9
+% [nap_get netcdf int.nc vec "1"] all
+::NAP::83-83  i32  MissingValue: -2147483648  References: 0
+Value:
+-9
+</pre>
+
+<p>
 The following is an 
 <a href="http://www.opendap.org/">OPeNDAP (a.k.a. DODS)</a>
 example.
@@ -228,7 +247,11 @@ HDF data is read using the command<br>
 
 <p>
 If <var>index</var> is omitted then the entire SDS is read in.
-Otherwise <var>index</var> selects using cross-product indexing.
+Otherwise <var>index</var> selects using 
+<a href="indexing.html#Shape_Preserving">shape-preserving</a>
+or
+<a href="indexing.html#Cross_product_index">cross-product</a>
+indexing.
 
 <p>
 If <var>raw</var> is 1 then the result contains raw data read from the file.
@@ -243,17 +266,44 @@ if any of these are present.
 
 <p>
 The following example writes data to an HDF file using the OOC <code>hdf</code> method.
-Then <code>nap_get hdf</code> reads the data back into a temporary NAO which is deleted
-after being displayed:
+Then <code>nap_get hdf</code> is used with various index values (including default) to
+read the data back into temporary NAOs (which are deleted after being displayed):
+
 <pre>
-% [nap "f64{{1 0 9}{3#-1}}"] hdf mat.hdf mat64
-% [nap_get hdf mat.hdf mat64] all
-::NAP::74-74  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+% [nap "f64{{1 0 9}{3 2 -1}}"] hdf mat.hdf mat64
+% [nap_get hdf mat.hdf mat64] all; # default index giving whole SDS
+::NAP::47-47  f64  MissingValue: NaN  References: 0
 Dimension 0   Size: 2      Name: fakeDim0  Coordinate-variable: (NULL)
 Dimension 1   Size: 3      Name: fakeDim1  Coordinate-variable: (NULL)
 Value:
  1  0  9
--1 -1 -1
+ 3  2 -1
+% [nap_get hdf mat.hdf mat64 "1,0"] all; # select element giving scalar
+::NAP::78-78  f64  MissingValue: NaN  References: 0
+Value:
+3
+% [nap_get hdf mat.hdf mat64 "{1},0"] all; # select element giving vector
+::NAP::102-102  f64  MissingValue: NaN  References: 0
+Dimension 0   Size: 1      Name: fakeDim0  Coordinate-variable: ::NAP::92-92
+Value:
+3
+% [nap_get hdf mat.hdf mat64 "0,"] all; # select row
+::NAP::123-123  f64  MissingValue: NaN  References: 0
+Dimension 0   Size: 3      Name: fakeDim1  Coordinate-variable: (NULL)
+Value:
+1 0 9
+% [nap_get hdf mat.hdf mat64 ",2"] all; # select column
+::NAP::147-147  f64  MissingValue: NaN  References: 0
+Dimension 0   Size: 2      Name: fakeDim0  Coordinate-variable: (NULL)
+Value:
+9 -1
+% [nap_get hdf mat.hdf mat64 ",{0 2}"] all; # select sub-matrix
+::NAP::154-154  f64  MissingValue: NaN  References: 0
+Dimension 0   Size: 2      Name: fakeDim0  Coordinate-variable: (NULL)
+Dimension 1   Size: 2      Name: fakeDim1  Coordinate-variable: ::NAP::161-161
+Value:
+ 1  9
+ 3 -1
 </pre>
 
 <h3>
@@ -353,7 +403,7 @@ dimension of a specified variable/SDS in the specified file.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.9 2005/01/17 03:48:25 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.10 2005/06/28 06:56:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

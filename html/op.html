@@ -1,4 +1,4 @@
-<!-- $Id: op.html,v 1.9 2005/03/07 06:06:07 dav480 Exp $ -->
+<!-- $Id: op.html,v 1.13 2005/06/28 04:34:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -23,7 +23,7 @@ Operators
 	Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</a>
     <li><a href="#Inverse_Indexing">
 	Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quot;
-	and &quot;<code>@@@</code>&quot;</a3>
+	and &quot;<code>@@@</code>&quot;</a>
     <ol>
 	<li><a href="#Interpolated_Subscript">Interpolated Subscript &quot;<code>@</code>&quot;</a>
 	<li><a href="#Subscript_of_Closest">Subscript of Closest &quot;<code>@@</code>&quot;</a>
@@ -104,6 +104,25 @@ The nature of operands is indicated as follows:
 	    <td>
 		Logical NOT: 1 if <var>a</var> is zero, else 0
 	<tr valign=top> <td>
+		<code>|</code><var>a</var>
+	    <td>
+		Absolute value of <var>a</var> = <code>abs(</code><var>a</var><code>)</code>
+	<tr valign=top> <td>
+		<code>^</code><var>a</var>
+	    <td>
+		Nearest integer to <var>a</var>
+		= <code>i32(nint(</code><var>a</var><code>))</code>
+	<tr valign=top> <td>
+		<code><</code><var>a</var>
+	    <td>
+		Largest integer not greater than <var>a</var>
+		= <code>i32(floor(</code><var>a</var><code>))</code>
+	<tr valign=top> <td>
+		<code>></code><var>a</var>
+	    <td>
+		Smallest integer not less than <var>a</var>
+		= <code>i32(ceil(</code><var>a</var><code>))</code>
+	<tr valign=top> <td>
 		<code>~</code><var>a</var>
 	    <td>
 		Bit-wise complement of <var>a</var>
@@ -139,37 +158,6 @@ The nature of operands is indicated as follows:
 	    <td>
 		smallest <code>i32</code> <var>s</var> for which
 		<var>v<sub>s</sub>=b</var>
-
-	<tr valign=top> <td nowrap>
-		[<var>a</var>]<code>...</code>[<var>b</var>]
-	    <td>
-		Boxed vector pointing to <var>a</var>
-		and <var>b</var>
-
-    <tr><td><hr><td><hr>
-
-	<tr valign=top> <td>
-		<var>x</var><code>..</code><var>y</var>
-	    <td>
-		AP from <var>x</var> to <var>y</var>
-		in steps of <code>+1</code> or <code>-1</code>
-
-	<tr valign=top> <td>
-		<var>x</var><code>..</code><var>p</var>
-	    <td>
-		AP from <var>x</var> to 
-		<var>a</var><sub>0</sub>
-		in steps of 
-		<var>a</var><sub>1</sub>
-
-	<tr valign=top> <td>
-		<var>p</var><code>..</code><var>y</var>
-	    <td>
-		AP from
-		<var>a</var><sub>1</sub>
-		to <var>y</var>
-		with
-		<var>a</var><sub>0</sub> elements
 
     <tr><td><hr><td><hr>
 
@@ -325,6 +313,39 @@ The nature of operands is indicated as follows:
 
     <tr><td><hr><td><hr>
 
+	<tr valign=top> <td nowrap>
+		[<var>a</var>]<code>...</code>[<var>b</var>]
+	    <td>
+		Boxed vector pointing to <var>a</var>
+		and <var>b</var>
+
+    <tr><td><hr><td><hr>
+
+	<tr valign=top> <td>
+		<var>x</var><code>..</code><var>y</var>
+	    <td>
+		AP from <var>x</var> to <var>y</var>
+		in steps of <code>+1</code> or <code>-1</code>
+
+	<tr valign=top> <td>
+		<var>x</var><code>..</code><var>p</var>
+	    <td>
+		AP from <var>x</var> to 
+		<var>a</var><sub>0</sub>
+		in steps of 
+		<var>a</var><sub>1</sub>
+
+	<tr valign=top> <td>
+		<var>p</var><code>..</code><var>y</var>
+	    <td>
+		AP from
+		<var>a</var><sub>1</sub>
+		to <var>y</var>
+		with
+		<var>a</var><sub>0</sub> elements
+
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>?</code><var>b</var><code>:</code><var>c</var>
 	    <td>
@@ -432,11 +453,11 @@ is in conjunction with the
 which is discussed in the next section.
 
 <P>
-The left operand of 
+The left-hand operand of 
 &quot;<code>...</code>&quot; 
 or
 &quot;<code>,</code>&quot;
-generates one boxed vector and the right operand generates another.
+generates one boxed vector and the right-hand operand generates another.
 These two boxed vectors are concatenated to form the result, which is also a boxed vector.
 If the data-type of an operand is not boxed then it generates a single-element boxed
 vector pointing to it.
@@ -453,8 +474,8 @@ The operator
 generates an arithmetic progression.
 If both operands are simple numeric scalars 
 then the step size is +1 or &minus;1,
-the left operand specifies the first value and
-the right operand specifies the final value.
+the left-hand operand specifies the first value and
+the right-hand operand specifies the final value.
 For example:
 
 <PRE>
@@ -476,7 +497,7 @@ This is shown by:
 </PRE>
 
 <P>
-The right operand can be a boxed two-element vector pointing to the final value and the step size.
+The right-hand operand can be a boxed two-element vector pointing to the final value and the step size.
 Such a boxed operand is usually generated using the operator
 &quot;<code>...</code>&quot;,
 as in:
@@ -489,7 +510,7 @@ as in:
 </PRE>
 
 <P>
-The left operand can be a boxed two-element vector pointing to the number of elements
+The left-hand operand can be a boxed two-element vector pointing to the number of elements
 and the first value.
 Such a boxed operand is also usually generated using the operator
 &quot;<code>...</code>&quot;,
@@ -510,7 +531,7 @@ It is legal to specify a non-integral number of elements, as in:
 
 Note that 3.5 elements means 2.5 steps.
 There are two full steps of 4, followed by a half step of 2.
-When the left operand is boxed the step size is calculated using
+When the left-hand operand is boxed the step size is calculated using
 (<var>final</var>&nbsp;&minus;&nbsp;<var>first</var>)/(<var>n</var>&nbsp;&minus;&nbsp;1),
 where <var>n</var> is the number of elements.
 
@@ -627,12 +648,23 @@ Inverse Indexing Operators &quot;<code>@</code>&quot;, &quot;<code>@@</code>&quo
 and &quot;<code>@@@</code>&quot;</h3>
 
 <P>
-These three operators all take an optional vector left operand.
-(The &quot;<code>@</code>&quot; operator also allows the left operand to have a rank
+These three operators all take an optional vector left-hand operand.
+(The &quot;<code>@</code>&quot; operator also allows the left-hand operand to have a rank
 greater than 1.)
 The result is a subscript of this vector.
-The left operand defaults to the coordinate-variable of the dimension (only relevant to 
+The left-hand operand defaults to the coordinate-variable of the dimension (only relevant to 
 <a href="indexing.html#indirect_indexing">indirect indexing</a>).
+
+<P>
+The right-hand operand is attached to the result using its
+<a href="nao.html"><em>link slot</em></a>.
+This enables the right-hand operand
+to be automatically used as a coordinate variable if the result is directly
+used as an index.
+Note that the results of operators/functions do not normally retain any links in their
+operands/arguments, so this only applies to <em>direct</em> use.
+(The right-hand operand would not be an appropriate coordinate variable if there were further
+arithmetic prior to indexing.)
 
 <h4><a name=Interpolated_Subscript>Interpolated Subscript &quot;<code>@</code>&quot;</h4>
 
@@ -683,7 +715,7 @@ In this case the result is defined as the mean of the matching subscripts.
 
 <p>
 The following example shows how extrapolation is used to define the result
-when the right operand is outside the range of the left operand:
+when the right-hand operand is outside the range of the left-hand operand:
 
 <PRE>
 % [nap "{-1 0 2} @ {-2 5}"]
@@ -709,7 +741,7 @@ _ 1 1.5 2 _ 4 4.5 5 _
 </PRE>
 
 <p>
-If the left operand is not monotonic (sorted) then the result is defined by the first match, as in:
+If the left-hand operand is not monotonic (sorted) then the result is defined by the first match, as in:
 
 <PRE>
 % [nap "{2 4 5 3} @ (1 .. 6)"]
@@ -717,8 +749,8 @@ If the left operand is not monotonic (sorted) then the result is defined by the 
 </PRE>
 
 <p>
-The left operand can have a rank greater than 1.
-In this case the search takes place over the most significant dimension (0) of the left operand.
+The left-hand operand can have a rank greater than 1.
+In this case the search takes place over the most significant dimension (0) of the left-hand operand.
 The following example seaches down each column for the value <code>0.7</code>.
 
 <PRE>
@@ -746,9 +778,9 @@ _
 </PRE>
 
 <p>
-The right operand can have any rank, but trailing dimensions (excluding dimension 0
-of the left operand) must match.
-The following example has a right operand with the same number (3) of columns as
+The right-hand operand can have any rank, but trailing dimensions (excluding dimension 0
+of the left-hand operand) must match.
+The following example has a right-hand operand with the same number (3) of columns as
 <code>mat</code>.
 
 <PRE>
@@ -793,6 +825,26 @@ For example:
 
 Element 3 has the value 2.4, which is the closest to 2.
 Element 4 has the value -1, which is the closest to -99.
+
+<P>
+The following example shows how the right-hand operand becomes the coordinate variable
+if the result is used directly as an index, but not if there is further arithmetic.
+
+<PRE>
+% nap "coarse = {4 8 7}"
+::NAP::14-14
+% nap "time = {2 3 5}"
+::NAP::16-16
+% $coarse set coo time
+% [nap "fine = coarse(time@@(2.4 .. 4.6 ... 0.2))"] value
+4 8 8 8 8 8 8 8 8 7 7 7
+% [$fine coo] value; # Display coordinate variable
+2.4 2.6 2.8 3 3.2 3.4 3.6 3.8 4 4.2 4.4 4.6
+% [nap "fine = coarse(time@@(2.4 .. 4.6 ... 0.2)+1)"] value; # Do further arithmetic
+8 7 7 7 7 7 7 7 7 4 4 4
+% [$fine coo] value; # Display coordinate variable
+3 5 5 5 5 5 5 5 5 2 2 2
+</PRE>
 
 <h4><a name=Subscript_of_Match>Subscript of Match &quot;<code>@@@</code>&quot;</h4>
 
@@ -897,8 +949,8 @@ The <code>#</code> operator has a related meaning, as shown by:
 </PRE>
 
 <P>
-Each element of the left operand defines the number of replications of the corresponding
-element of the right operand.
+Each element of the left-hand operand defines the number of replications of the corresponding
+element of the right-hand operand.
 The operands can be vectors or scalars.
 The result is a vector.
 
@@ -989,7 +1041,7 @@ Thus:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: op.html,v 1.9 2005/03/07 06:06:07 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: op.html,v 1.13 2005/06/28 04:34:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

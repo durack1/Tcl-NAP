@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: all.tcl,v 1.21 2004/10/21 03:01:08 dav480 Exp $
+# $Id: all.tcl,v 1.24 2005/05/02 05:37:36 dav480 Exp $
 
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
@@ -19,8 +19,6 @@ set ::tcltest::testsDirectory [file dir [info script]]
 ::tcltest::configure -verbose bp;	# p = Print line for each  passed test
 ::tcltest::configure -verbose b;	# b = Print line for each  failed test
 
-set data_dir [file join $::tcltest::testsDirectory data]
-
 # if no nap then load nap shared lib from current working directory
 if {![info exists nap_version]} {
     if {[info exists env(PACKAGE_SHLIB)]} {
@@ -31,6 +29,10 @@ if {![info exists nap_version]} {
     } else {
         error "No shared library defined"
     }
+}
+
+if {[info command nap] eq ""} {
+    package require nap
     namespace import ::NAP::*
 }
 

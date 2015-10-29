@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: bin_io.test,v 1.3 2002/11/28 12:20:31 dav480 Exp $
+# $Id: bin_io.test,v 1.4 2005/05/02 05:38:24 dav480 Exp $
 
 proc put_info text {
     # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
@@ -13,7 +13,7 @@ proc put_info text {
 source $env(LIBRARY_DIR)/bin_io.tcl
 
 Test bin_io-1.1 {get_cif big-endian file} {
-    nap "in = [get_cif $data_dir/1.cif]"
+    nap "in = [get_cif $env(TEST_DATA_DIR)/1.cif]"
     $in
 } { 7.0 -2.0  0.0  1.0
  0.0 -1.0 -2.0 -3.0

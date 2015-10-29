@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.157 2005/04/05 00:11:04 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.164 2005/07/04 07:30:36 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -41,6 +41,7 @@ HDRS = $(GENERIC_HDRS) $(UNIX_HDRS)
 #------------------------------------------------------------------------------
 
 GENERIC_M4_C_TARGETS = \
+	$(GENERIC_DIR)/function.c \
 	$(GENERIC_DIR)/geometry.c \
 	$(GENERIC_DIR)/linsys.c \
 	$(GENERIC_DIR)/nap.c \
@@ -56,6 +57,7 @@ GENERIC_M4_C_TARGETS = \
 	$(GENERIC_DIR)/nap_hdf.c
 
 GENERIC_PERM_C = \
+	$(GENERIC_DIR)/eval_tree.c \
 	$(GENERIC_DIR)/land_flag.c \
 	$(GENERIC_DIR)/land_flag_i.c \
 	$(GENERIC_DIR)/napImgNAO.c \
@@ -82,6 +84,8 @@ SRCS = $(GENERIC_SRCS) $(UNIX_SRCS)
 #------------------------------------------------------------------------------
 
 OBJS = \
+	eval_tree$(OBJEXT) \
+	function$(OBJEXT) \
 	geometry$(OBJEXT) \
 	land_flag$(OBJEXT) \
 	land_flag_i$(OBJEXT) \
@@ -125,13 +129,13 @@ OBJS = \
 #------------------------------------------------------------------------------
 
 PACKAGE = nap
-MAJOR_VERSION = 4
-MINOR_VERSION = 1
+MAJOR_VERSION = 5
+MINOR_VERSION = 0
 PATCHLEVEL = .0
-VERSION = 4.1
-NODOT_VERSION = 4_1
+VERSION = 5.0
+NODOT_VERSION = 5_0
 NODOT_PATCHLEVEL = 0
-USE_VERSION = 4_1
+USE_VERSION = 5_0
 USE_PATCHLEVEL = 0
 
 #------------------------------------------------------------------------------
@@ -156,7 +160,7 @@ TEST_DIR = $(TOP_DIR)/tests
 
 HOST_OS = CYGWIN_NT-5.1
 PLATFORM = windows
-system = CYGWIN_NT-5.1-1.5.13(0.122/4/2)
+system = CYGWIN_NT-5.1-1.5.15(0.127/4/2)
 
 #------------------------------------------------------------------------------
 # miscellaneous platform-specific items
@@ -167,7 +171,7 @@ DEBUGGER = dbx
 ECHO = printf '%s\n'
 M4 = /usr/bin/m4 -s -B999000
 MKDIR = mkdir -p
-NATIVE_PATH = /cygdrive/c/dav480/tcl/bin/windows_path
+NATIVE_PATH = cygpath -m
 RANLIB = ranlib
 RM = rm -f
 TOUCH = touch
@@ -201,10 +205,10 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"4.1\" -DPATCHLEVEL=\".0\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".0\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
 HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
 NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
-TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include
+TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include8.4
 INCLUDES = \
 	-I`$(NATIVE_PATH) $(GENERIC_DIR)` \
 	-I`$(NATIVE_PATH) $(NC_HEADER_DIR)` \
@@ -350,7 +354,7 @@ bindir = ${exec_prefix}/bin
 datadir = ${prefix}/share
 libdir = ${exec_prefix}/lib
 mandir = ${prefix}/man
-includedir = ${prefix}/include
+includedir = $(TCL_HEADER_DIR)
 PACKAGE_LIBRARY_DIR = $(libdir)/$(PACKAGE)$(VERSION)
 PACKAGE_HTML_DIR = $(PACKAGE_LIBRARY_DIR)/html
 SHLIB_DIR = ${bindir}
@@ -564,6 +568,11 @@ $(GENERIC_DIR)/napParse.tab.h: $(GENERIC_DIR)/napParse.y
 
 M4INCLUDE_FILES = $(GENERIC_DIR)/include.m4
 
+$(GENERIC_DIR)/function.c: $(GENERIC_DIR)/function.c,m4 $(M4INCLUDE_FILES)
+	rm -f $@; \
+	$(M4) $(M4FLAGS) $(M4INCLUDE_FILES) $@,m4 > $@; \
+	chmod -w $@
+
 $(GENERIC_DIR)/geometry.c: $(GENERIC_DIR)/geometry.c,m4 $(M4INCLUDE_FILES)
 	rm -f $@; \
 	$(M4) $(M4FLAGS) $(M4INCLUDE_FILES) $@,m4 > $@; \
@@ -646,6 +655,12 @@ $(GENERIC_DIR)/nap_ooc.c: $(GENERIC_DIR)/nap_ooc.c,m4 $(M4INCLUDE_FILES)
 $(PACKAGE)sh$(OBJEXT):	$(GENERIC_DIR)/$(PACKAGE)sh.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/$(PACKAGE)sh.c`
 
+eval_tree$(OBJEXT):		$(GENERIC_DIR)/eval_tree.c
+	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/eval_tree.c`
+
+function$(OBJEXT):		$(GENERIC_DIR)/function.c
+	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/function.c`
+
 geometry$(OBJEXT):		$(GENERIC_DIR)/geometry.c
 	$(COMPILE) `$(NATIVE_PATH) $(GENERIC_DIR)/geometry.c`
 
@@ -719,11 +734,15 @@ TEST_COMMAND = ::NAP::nap 2+2
 TEST_SCRIPT = $(TEST_DIR)/all.tcl
 
 test0.tcl:
+	$(RM) $@
 	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
+	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
+	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
 	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_SCRIPT)`'}' >> $@
 
 test1.tcl:
+	$(RM) $@
 	$(ECHO) "load `$(NATIVE_PATH) $(PWD)/$(PACKAGE_SHLIB)`" >> $@
 	$(ECHO) 'puts ""' >> $@
 	$(ECHO) 'if [catch {$(TEST_COMMAND)}] {' >> $@
@@ -739,11 +758,15 @@ test1.tcl:
 	$(ECHO) '}' >> $@
 
 test2.tcl:
+	$(RM) $@
 	$(ECHO) 'set env(PACKAGE_SHLIB) {$(PACKAGE_SHLIB)}' >> $@
 	$(ECHO) 'source test0.tcl' >> $@
 
 test3.tcl:
+	$(RM) $@
 	$(ECHO) 'set env(DATA_DIR) {'`$(NATIVE_PATH) $(DATA_DIR)`'}' >> $@
+	$(ECHO) 'set env(LAND_FLAG_DATA_DIR) {'`$(NATIVE_PATH) $(LAND_FLAG_DATA_DIR)`'}' >> $@
+	$(ECHO) 'set env(TEST_DATA_DIR) {'`$(NATIVE_PATH) $(TEST_DIR)/data`'}' >> $@
 	$(ECHO) 'set env(LIBRARY_DIR) {'`$(NATIVE_PATH) $(LIBRARY_DIR)`'}' >> $@
 	$(ECHO) 'set env(PACKAGE_SHLIB) {'`$(NATIVE_PATH) $(PACKAGE_SHLIB)`'}' >> $@
 	$(ECHO) 'source {'`$(NATIVE_PATH) $(TEST_DIR)/wish_tests.tcl`'}' >> $@
@@ -751,16 +774,20 @@ test3.tcl:
 test: test1 test2 test3
 
 test1: $(PACKAGE_SHLIB) test1.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
 	$(TCLSH_PROG) test1.tcl
 
 test2: $(PACKAGE_SHLIB) test0.tcl test2.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) test2.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
+	$(TCLSH_PROG) test2.tcl
 
 test3: $(PACKAGE_SHLIB) test3.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(WISH_PROG) test3.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
+	$(WISH_PROG) test3.tcl
 
 test0: $(PACKAGE_SHELL) test0.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(PACKAGE_SHELL) test0.tcl
+	TCL_LIBRARY=$(TCL_LIBRARY_DIR) \
+	$(PACKAGE_SHELL) test0.tcl
 
 #------------------------------------------------------------------------------
 # Installer (tcl starpack)

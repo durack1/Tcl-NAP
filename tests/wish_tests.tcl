@@ -4,9 +4,9 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.26 2004/10/21 03:01:09 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.29 2005/07/07 04:40:33 dav480 Exp $
 
-puts "\n******* At end click on 'cancel' button in window .win11 *******\n"
+puts "\n******* At end click on 'cancel' button in window .plot_nao12 *******\n"
 
 # if no nap then load nap shared lib from current working directory
 if {![info exists nap_version]} {
@@ -24,6 +24,8 @@ if {![info exists nap_version]} {
 
 source $env(LIBRARY_DIR)/choose_file.tcl
 source $env(LIBRARY_DIR)/colour.tcl
+source $env(LIBRARY_DIR)/geog.tcl
+source $env(LIBRARY_DIR)/land.tcl
 source $env(LIBRARY_DIR)/nap_function_lib.tcl
 source $env(LIBRARY_DIR)/old.tcl
 source $env(LIBRARY_DIR)/pal.tcl
@@ -88,11 +90,13 @@ set window [plot_nao z]
 
 # land_flag
 
-source $env(LIBRARY_DIR)/geog.tcl
-source $env(LIBRARY_DIR)/land.tcl
 nap "land_flag_data_dir = '$env(DATA_DIR)/land_flag'"
 plot_nao "is_land(-90 .. 90, 0 .. 360, land_flag_data_dir)" -overlay N
-set window [plot_nao "is_coast(-90.0 .. 90.0, -180 .. 180, land_flag_data_dir)" -overlay N]
+set window [plot_nao "is_coast(-90.0 .. 90.0, -180 .. 180)" -overlay N]
+
+# get_gridascii
+
+set window [plot_nao "get_gridascii('$env(TEST_DATA_DIR)/mx1950-01.gridascii')"]
 
 # inPolygon
 

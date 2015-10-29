@@ -1,4 +1,4 @@
-<!-- $Id: ooc_write.html,v 1.1 2004/08/27 07:14:38 dav480 Exp $ -->
+<!-- $Id: ooc_write.html,v 1.4 2005/07/05 02:37:46 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -19,6 +19,24 @@ OOC Methods which Write to File
     <li><a href="#netcdf">Method <code>netcdf</code></a>
     <li><a href="#swap">Method <code>swap</code></a>
 </ol>
+
+The examples in this section use the NAOs created by:
+
+<pre>
+% nap "x = 0 .. 2 ... 0.5"
+::NAP::21-21
+% nap "y = x ** 2"
+::NAP::24-24
+% $y set coord x
+% $y set unit m^2
+% $y set label "areas of squares"
+% $y all
+::NAP::24-24  f64  MissingValue: NaN  References: 1  Unit: m^2
+areas of squares
+Dimension 0   Size: 5      Name: x         Coordinate-variable: ::NAP::21-21
+Value:
+0 0.25 1 2.25 4
+</pre>
 
 <h3><a name=binary>Method <code>binary</code></h3>
 <p>
@@ -44,13 +62,23 @@ Value:
 % close $file
 </pre>
 
-  <h3><a name=hdf>Method <code>hdf</code></h3>
+<h3><a name=hdf>Method <code>hdf</code></h3>
+
 <p>
-<VAR>ooc_name</VAR><CODE> hdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>sds</VAR><br>
+<VAR>ooc_name</VAR><CODE> hdf</CODE> ?<VAR>switches</VAR>?
+<VAR>filename</VAR> <VAR>name</VAR><br>
 
 <p>
 This writes data from the NAO to 
-an SDS named <VAR>sds</VAR> within an HDF file named <VAR>filename</VAR>.<br>
+an SDS or attribute within an HDF file named <VAR>filename</VAR>.
+
+<p>
+<var>name</var> is the name of an SDS or attribute and has the form:
+<ul>
+    <li> <var>varname</var> for an SDS
+    <li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of an SDS
+    <li> <code>:</code><var>attribute</var> for a global attribute<br>
+</ul>
 
 <p>
     <VAR>switches</VAR> can be: <BR>
@@ -61,11 +89,11 @@ specifies coordinate variables.
 <code>c8, i8, i16, i32, u8, u16, u32, f32 </code>
 or
 <code>f64</code>
-<BR><CODE>-range</CODE> <VAR>float</VAR>: HDF
+<BR><CODE>-range</CODE> <VAR>expr</VAR>: HDF
 <code> valid_range </code>
-<BR><CODE>-scale</CODE> <VAR>float</VAR>: HDF 
+<BR><CODE>-scale</CODE> <VAR>expr</VAR>: HDF 
 <code> scale_factor </code>
-<BR><CODE>-offset</CODE> <VAR>float</VAR>: HDF 
+<BR><CODE>-offset</CODE> <VAR>expr</VAR>: HDF 
 <code> add_offset </code>
 <BR><CODE>-index</CODE> <VAR>expr</VAR>: position within SDS where
 data is to be written. 
@@ -79,6 +107,19 @@ of the main NAO are used if these exist.
 <p>
 If 
 &quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
+is specified then 
+<var>expr</var> must be an index compatible with the rank <var>r</var> of the SDS.
+If <var>r</var>&nbsp;=&nbsp;1 then 
+<var>expr</var> must be a <a href="indexing.html#Shape_Preserving">shape-preserving</a> index.
+If <var>r</var>&nbsp;&gt;&nbsp;1 then 
+<var>expr</var> must be a <a href="indexing.html#Cross_product_index">cross-product</a> index
+contaning <var>r</var> scalar and vector elements.
+The vector elements correspond to dimensions which exist in both the SDS and the NAO.
+The scalar elements correspond to dimensions which exist in the SDS but not the NAO.
+
+<p>
+If 
+&quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
 is not specified then the coordinate variables
 of the main NAO are used if these exist,
 otherwise writing starts at the beginning of the SDS.
@@ -86,36 +127,64 @@ otherwise writing starts at the beginning of the SDS.
 <p>
 Example:
 <pre>
-% [nap "3 .. 7"] hdf simple.hdf vec
-% exec hdp dumpsds simple.hdf
-File name: simple.hdf 
+% $y hdf y.hdf y
+% exec hdp dumpsds y.hdf
+File name: y.hdf 
 
-Variable Name = vec
+Variable Name = y
 	 Index = 0
-	 Type= 32-bit signed integer
+	 Type= 64-bit floating point
 	 Ref. = 2
 	 Rank = 1
-	 Number of attributes = 1
-	 Dim0: Name=fakeDim0
+	 Number of attributes = 3
+	 Dim0: Name=x
 		 Size = 5
-		 Scale Type = number-type not set
+		 Scale Type = 64-bit floating point
 		 Number of attributes = 0
 	 Attr0: Name = _FillValue
-		 Type = 32-bit signed integer 
+		 Type = 64-bit floating point 
 		 Count= 1
-		 Value = -2147483648 
+		 Value = DoubleInf 
+	 Attr1: Name = long_name
+		 Type = 8-bit signed char 
+		 Count= 16
+		 Value = areas of squares
+	 Attr2: Name = units
+		 Type = 8-bit signed char 
+		 Count= 3
+		 Value = m^2
 	 Data : 
-                3 4 5 6 7
+                0.000000 0.250000 1.000000 2.250000 4.000000 
+
+
+Dimension Variable Name = x
+	 Index = 1
+	 Scale Type= 64-bit floating point
+	 Ref. = 3
+	 Rank = 1
+	 Number of attributes = 0
+	 Dim0: Name=x
+		 Size = 5
+	 Data : 
+                0.000000 0.500000 1.000000 1.500000 2.000000 
 </pre>
 
 <h3><a name=netcdf>Method <code>netcdf</code></h3>
-<p>
-<VAR>ooc_name</VAR><CODE> netcdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>var</VAR><br>
+
+<VAR>ooc_name</VAR><CODE> netcdf</CODE> ?<VAR>switches</VAR>?
+<VAR>filename</VAR> <VAR>name</VAR>
 
 <p>
-This writes data from the NAO to 
-a netCDF variable named <VAR>var</VAR> within 
-the netCDF file named <VAR>filename</VAR>.<br>
+This writes data from the NAO to a variable or attribute within 
+a netCDF file named <VAR>filename</VAR>.
+
+<p>
+<var>name</var> is the name of a netCDF variable or attribute and has the form:
+<ul>
+    <li> <var>varname</var> for a variable
+    <li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of a variable
+    <li> <code>:</code><var>attribute</var> for a global attribute<br>
+</ul>
 
 <p>
 <VAR>switches</VAR> can be:
@@ -126,11 +195,11 @@ specifies coordinate variables.
 <code>c8, i16, i32, u8, f32 </code>
 or
 <code>f64</code>
-<BR><CODE>-range</CODE> <VAR>float</VAR>: netCDF 
+<BR><CODE>-range</CODE> <VAR>expr</VAR>: netCDF 
 <code> valid_range </code>
-<BR><CODE>-scale</CODE> <VAR>float</VAR>: netCDF
+<BR><CODE>-scale</CODE> <VAR>expr</VAR>: netCDF
 <code> scale_factor </code>
-<BR><CODE>-offset</CODE> <VAR>float</VAR>: netCDF
+<BR><CODE>-offset</CODE> <VAR>expr</VAR>: netCDF
 <code> add_offset </code>
 
 <BR><CODE>-index</CODE> <VAR>expr</VAR>: position within netCDF variable
@@ -145,6 +214,19 @@ of the main NAO are used if these exist.
 <p>
 If 
 &quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
+is specified then 
+<var>expr</var> must be an index compatible with the rank <var>r</var> of the netCDF variable.
+If <var>r</var>&nbsp;=&nbsp;1 then 
+<var>expr</var> must be a <a href="indexing.html#Shape_Preserving">shape-preserving</a> index.
+If <var>r</var>&nbsp;&gt;&nbsp;1 then 
+<var>expr</var> must be a <a href="indexing.html#Cross_product_index">cross-product</a> index
+contaning <var>r</var> scalar and vector elements.
+The vector elements correspond to dimensions which exist in both the netCDF variable and the NAO.
+The scalar elements correspond to dimensions which exist in the netCDF variable but not the NAO.
+
+<p>
+If 
+&quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
 is not specified then the coordinate variables
 of the main NAO are used if these exist,
 otherwise writing starts at the beginning of the netCDF variable.
@@ -152,23 +234,22 @@ otherwise writing starts at the beginning of the netCDF variable.
 <p>
 Example:
 <pre>
-% $y net sq.nc area -coordinateVariable "x // {3 6 9}"
-::NAP::241-241
-% exec ncdump sq.nc
-netcdf sq {
+% $y netcdf y.nc y -coordinateVariable "x // {3 6 9}"
+% exec ncdump y.nc
+netcdf y {
 dimensions:
 	x = 8 ;
 variables:
 	double x(x) ;
-	double area(x) ;
-		area:_FillValue = nan ;
-		area:long_name = "areas of squares" ;
-		area:units = "seconds" ;
+	double y(x) ;
+		y:_FillValue = nan ;
+		y:long_name = "areas of squares" ;
+		y:units = "m^2" ;
 data:
 
  x = 0, 0.5, 1, 1.5, 2, 3, 6, 9 ;
 
- area = 0, 0.25, 1, 2.25, 4, nan, nan, nan ;
+ y = 0, 0.25, 1, 2.25, 4, _, _, _ ;
 }
 </pre>
 Note that the netCDF variable <code>area</code> is dimensioned to 8 
@@ -198,7 +279,7 @@ This enables writing of data to be read on a machine with opposite byte-order wi
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: ooc_write.html,v 1.1 2004/08/27 07:14:38 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: ooc_write.html,v 1.4 2005/07/05 02:37:46 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

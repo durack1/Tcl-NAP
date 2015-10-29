@@ -1,4 +1,4 @@
-<!-- $Id: date_function.html,v 1.2 2004/10/26 00:32:56 dav480 Exp $ -->
+<!-- $Id: date_function.html,v 1.4 2005/06/16 09:11:34 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -340,6 +340,108 @@ The following examples are the inverses of the first three examples for
 1 1 1 0 0 0
 </pre>
 
+<h3>
+<a name=fixed_years>
+Calendars with Fixed-length Years
+</h3>
+
+Computer models (of climate etc.) sometimes use simplified calendars in which every year
+has the same number of days (e.g. 360, 365 or 366).
+The following two functions 
+<code>dateTime2days</code> and <code>days2dateTime</code>,
+handle such calendars.
+In each case there is a 12-element vector argument specifying the number of days in each month
+of the year.
+Time is measured relative to the start of the base year (year 0) and can be negative.
+
+<h4><a name=dateTime2days>
+<code>dateTime2days(</code><var>ymdhms, ndim</var><code>)</code>
+</h4>
+
+This returns the time in days since the start of year 0.
+This function is similar to the above 
+<a href="#dateTime2mjd"><code>dateTime2mjd</code></a>
+except that it uses the unconventional calendar defined by
+<var>ndim</var>.
+
+<p>
+The argument
+<var>ymdhms</var>
+is an array whose final dimension has a size from 1 to 6.
+<br>
+Column 0 contains the (possibly negative) integer year relative to year 0
+<br>
+Column 1 contains the month of year (1 for Jan, 2 for Feb, ...) (Default: 1)
+<br>
+Column 2 contains the day of month (0 to 31) (0: day before 1st) (Default: 1)
+<br>
+Column 3 contains the hour of day (0 to 23) (default: 0)
+<br>
+Column 4 contains the minute of hour (0 to 59) (default: 0)
+<br>
+Column 5 contains the (possibly fractional) second of minute (0 to 60) (default: 0)
+
+<p>
+The argument
+<var>ndim</var>
+is a 12-element vector giving <em>number of days in month</em>.
+
+<P>
+Examples:
+
+<pre>
+% nap "ndim = {31 28 31 30 31 30 31 31 30 31 30 31}"; # number of days in month
+% [nap "dateTime2days({1 1 1 18}, ndim)"]
+365.75
+% [nap "dateTime2days({{1 1 1}{1 4 10}{0 1 1}{-1 1 1}}, ndim)"]
+365 464 0 -365
+</pre>
+
+<h4><a name=days2dateTime>
+<code>days2dateTime(</code><var>days, ndim [, delta]</var><code>)</code>
+</h4>
+
+This converts a 
+time (in days since the start of year 0)
+to a calendar date and time-of-day.
+This function is similar to the above 
+<a href="#mjd2dateTime"><code>mjd2dateTime</code></a>
+except that it uses the unconventional calendar defined by
+<var>ndim</var>.
+
+<p>
+The argument
+<var>days</var>
+is the (possibly negative) time in days since the start of the year 0.
+
+<p>
+The argument
+<var>ndim</var>
+is a 12-element vector giving <em>number of days in month</em>.
+
+<p>
+The optional argument
+<var>delta</var>
+controls rounding.
+The result is rounded to the nearest multiple of <var>delta</var> seconds.
+The default value is 1, which rounds to the nearest second.
+A value of 60 would round to the nearest minute.
+A value of 1e-3 would round to the nearest millisecond.
+
+<P>
+Examples:
+
+<pre>
+% nap "ndim = {31 28 31 30 31 30 31 31 30 31 30 31}"; # number of days in month
+% [nap "days2dateTime(365.75, ndim)"]
+1 1 1 18 0 0
+% [nap "days2dateTime({365 464 0 -365}, ndim)"]
+ 1  1  1  0  0  0
+ 1  4 10  0  0  0
+ 0  1  1  0  0  0
+-1  1  1  0  0  0
+</pre>
+
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
   <TR>
@@ -351,7 +453,7 @@ The following examples are the inverses of the first three examples for
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: date_function.html,v 1.2 2004/10/26 00:32:56 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: date_function.html,v 1.4 2005/06/16 09:11:34 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>
