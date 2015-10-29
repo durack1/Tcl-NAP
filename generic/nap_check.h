@@ -8,7 +8,7 @@
  *
  * Author: Harvey Davies, CSIRO Mathematical and Information Sciences
  *
- * $Id: nap_check.h,v 1.17 2002/05/14 00:32:03 dav480 Exp $
+ * $Id: nap_check.h,v 1.18 2003/11/24 08:02:21 dav480 Exp $
  */
 
 #include <tcl.h>
@@ -42,7 +42,7 @@
 #endif /* MALLOC0 */
 
 #ifndef REALLOC
-#define REALLOC(p, n)	Nap_Realloc((void *) p), n)
+#define REALLOC(p, n)	Nap_Realloc((void *) p, n)
 #endif /* REALLOC */
 
 #ifndef FREE
@@ -214,5 +214,6 @@ EXTERN void	Nap_CheckAppendLine(NapClientData *nap_cd, const char *str);
 EXTERN void	*Nap_Alloc(size_t size);
 EXTERN void	*Nap_Alloc0(size_t size);
 EXTERN void	Nap_Free(void *p);
+EXTERN void	*Nap_Realloc(void *p, size_t size);
 
 #endif /* _NAP_CHECK */

@@ -8,13 +8,12 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: P.J. Turner CSIRO Atmospheric Research August 1998
-# $Id: browse_var.tcl,v 1.13 2003/05/20 15:14:13 dav480 Exp $
+# $Id: browse_var.tcl,v 1.15 2004/02/06 09:07:34 dav480 Exp $
 
 package require BWidget
 
 # Usage
-#   browse_var ?<MASTER>?
-#       <MASTER>: widget in which to pack. If none (default) then toplevel.
+#   browse_var ?<PARENT>? ?<GEOMETRY>?
 #
 # Example
 #   browse_var .
@@ -22,9 +21,9 @@ package require BWidget
 # browse_var --
 
 proc browse_var {
-    {master {}}
+    args
 } {
-    Browse_var::main $master
+    eval Browse_var::main $args
 }
 
 namespace eval Browse_var {
@@ -36,50 +35,42 @@ namespace eval Browse_var {
     # main --
 
     proc main {
-	{master {}}
+	{parent {}}
+        {geometry ""}
     } {
-
-	    # Create a new window called .lv
-	destroy .lv
-	if {$master == ""} {
-	    toplevel .lv
-	} else {
-	    frame .lv -relief raised -borderwidth 4
-	    pack .lv -in $master -side top -padx 2 -pady 2 -fill x
-	}
-
-	label .lv.heading -text "Tcl Variable Browser"
+        set top [create_window lv $parent $geometry "Tcl Variable Browser"]
+	label $top.heading -text "Tcl Variable Browser"
 
 	    # frame for pattern, show radiobuttons, menu
-	frame .lv.control
+	frame $top.control
 
 	    # Define a frame to place the entry box in.
 	    # This contains grid to allow entry widget to expand
-	frame .lv.control.pattern
-	pack .lv.control.pattern \
+	frame $top.control.pattern
+	pack $top.control.pattern \
 	    -expand true -fill x -side top
-	label .lv.control.pattern.namespace_l -text "namespace:"
-	entry .lv.control.pattern.namespace_e \
+	label $top.control.pattern.namespace_l -text "namespace:"
+	entry $top.control.pattern.namespace_e \
 	    -relief sunken \
 	    -textvariable Browse_var::namespace
-	label .lv.control.pattern.pattern_l -text "pattern:"
-	entry .lv.control.pattern.pattern_e \
+	label $top.control.pattern.pattern_l -text "pattern:"
+	entry $top.control.pattern.pattern_e \
 	    -relief sunken \
 	    -textvariable Browse_var::pattern
-	grid .lv.control.pattern.namespace_l .lv.control.pattern.namespace_e
-	grid .lv.control.pattern.namespace_l -sticky e
-	grid .lv.control.pattern.namespace_e -sticky w
-	grid .lv.control.pattern.pattern_l .lv.control.pattern.pattern_e
-	grid .lv.control.pattern.pattern_l -sticky e
-	grid .lv.control.pattern.pattern_e -sticky w
-	grid columnconfigure .lv.control.pattern 0 -weight 0
-	grid columnconfigure .lv.control.pattern 1 -weight 1
+	grid $top.control.pattern.namespace_l $top.control.pattern.namespace_e
+	grid $top.control.pattern.namespace_l -sticky e
+	grid $top.control.pattern.namespace_e -sticky w
+	grid $top.control.pattern.pattern_l $top.control.pattern.pattern_e
+	grid $top.control.pattern.pattern_l -sticky e
+	grid $top.control.pattern.pattern_e -sticky w
+	grid columnconfigure $top.control.pattern 0 -weight 0
+	grid columnconfigure $top.control.pattern 1 -weight 1
 
-	frame .lv.control.option
-	label .lv.control.option.l -text "Display NAO as: "
-	pack .lv.control.option.l -side left -anchor w
+	frame $top.control.option
+	label $top.control.option.l -text "Display NAO as: "
+	pack $top.control.option.l -side left -anchor w
 	foreach opt {text image} {
-	    radiobutton .lv.control.option.$opt \
+	    radiobutton $top.control.option.$opt \
 		-text $opt \
 		-selectcolor orange \
 		-variable Browse_var::show_choice \
@@ -87,47 +78,37 @@ namespace eval Browse_var {
 		-anchor w \
 		-pady 4 \
 		-relief groove
-	    pack .lv.control.option.$opt -side left
+	    pack $top.control.option.$opt -side left
 	}
 
-	pack .lv.control.pattern .lv.control.option  -anchor w -expand true -fill x
+	pack $top.control.pattern $top.control.option  -anchor w -expand true -fill x
 
-	frame .lv.do
-	button .lv.do.namespace \
+	frame $top.do
+	button $top.do.namespace \
 		-text namespace \
-		-command "Browse_var::create_namespace_treeview .lv"
-	button  .lv.do.list \
+		-command "Browse_var::create_namespace_treeview $top"
+	button  $top.do.list \
 	    -text list \
-	    -command Browse_var::select
-	button  .lv.do.help \
+	    -command "Browse_var::select $top"
+	button  $top.do.help \
 	    -text help \
-	    -command Browse_var::lv_help
-	button  .lv.do.cancel \
+	    -command "Browse_var::lv_help $top"
+	button  $top.do.cancel \
 	    -text cancel \
-	    -command "destroy .lv"
-	pack .lv.do.namespace .lv.do.list .lv.do.help .lv.do.cancel -side left -expand 1 -fill x
+	    -command "destroy $top"
+	pack $top.do.namespace $top.do.list $top.do.help $top.do.cancel -side left -expand 1 -fill x
 
     #
     # define a new frame for the variable name list and the
     # variable value.
     #
-	pack .lv.heading .lv.do .lv.control -expand true -fill x
+	pack $top.heading $top.do $top.control -expand true -fill x
 
-    #
     # Key bindings - When we hit return list all the names that
     # match the regular expression.
-    #
-    # Programming note: the parameters supplied to the
-    # proceedure select must be defined at the time
-    # the proceedure is initiated when the <CR> is hit.
-    # Placing the "command in {}"s stops the $pattern from being evaluated
-    # evaluated until the key is hit. Normally you would
-    # enclose the ecommand in "" to force evaluation of 
-    # $variables.
-    #
-	bind .lv.control.pattern.pattern_e <Return> Browse_var::select
-	bind .lv.control.pattern.namespace_e <Return> Browse_var::select
-	focus .lv.control.pattern.pattern_e
+	bind $top.control.pattern.pattern_e   <Return> "Browse_var::select $top"
+	bind $top.control.pattern.namespace_e <Return> "Browse_var::select $top"
+	focus $top.control.pattern.pattern_e
     }
 
 
@@ -148,6 +129,7 @@ namespace eval Browse_var {
     #
 
     proc select {
+	top
     } {
 	global Browse_var::namespace
 	global Browse_var::pattern
@@ -155,7 +137,7 @@ namespace eval Browse_var {
 
 	set max_height 20;	# max no. lines in listbox
 	set max_width 70;	# max no. columns in listbox
-	set f .lv.list
+	set f $top.list
 	set r $f
 	destroy $f
 	pack forget $f
@@ -281,7 +263,9 @@ namespace eval Browse_var {
     #
     # Display help.
 
-    proc lv_help {} {
+    proc lv_help {
+	top
+    } {
 	set text \
 	"The Tcl Variable Browser displays the names and values of tcl variables (including \
 	\narrays).\
@@ -300,16 +284,17 @@ namespace eval Browse_var {
 	\nYou can click on a line to display\
 	\n - full value of an ordinary tcl variable or array whose line is truncated as above\
 	\n - a NAO as either text or graph/image as specified by the radio-button."
-	message_window $text -label "Help on Tcl Variable Browser" -width 90
+	message_window $text -label "Help on Tcl Variable Browser" \
+		-width 90 -parent $top -geometry nw
     }
 
 
     # create_namespace_treeview --
 
     proc create_namespace_treeview {
-	parent
+	top
     } {
-	set f $parent.frame
+	set f $top.frame
 	pack forget $f
 	destroy $f
 	frame $f
@@ -324,14 +309,15 @@ namespace eval Browse_var {
 	grid $f.xscroll -sticky news
 	grid rowconfigure $f 0 -weight 1
 	grid columnconfigure $f 0 -weight 1
-	$t bindText <ButtonPress-1> "Browse_var::button_command $t"
-	pack $f -fill both -expand true -after .lv.heading
+	$t bindText <ButtonPress-1> "Browse_var::button_command $top $t"
+	pack $f -fill both -expand true -after $top.heading
     }
 
 
     # button_command --
 
     proc button_command {
+	top
 	t
 	node
     } {
@@ -340,7 +326,7 @@ namespace eval Browse_var {
 	$t itemconfigure $old -fill black
 	set namespace [$t itemcget $node -data]
 	$t itemconfigure $node -fill red
-	Browse_var::select
+	Browse_var::select $top
     }
 
 

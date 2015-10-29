@@ -1,4 +1,4 @@
-<!-- $Id: install.html,v 1.9 2003/05/20 05:28:44 dav480 Exp $ -->
+<!-- $Id: install.html,v 1.12 2005/01/11 06:51:11 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -16,127 +16,277 @@ Installing NAP
 <ol>
     <li><a href="#Introduction">Introduction</a>
     <li><a href="#Installing_Tcl_Tk">Installing Tcl/Tk</a>
-    <li><a href="#Installing_Printer">Installing Printer</a>
+    <li><a href="#doc">Tcl/Tk Documentation</a>
     <li><a href="#Installing_nap">Installing nap</a>
+    <li><a href="#source">Source Code</a>
+    <li><a href="#Related_Packages">Related Packages</a>
 </ol>
 
 <h3><a name=Introduction>Introduction</h3>
 
-The graphics procedure <code>plot_nao</code> uses the
-<b>printer</b> extension.
-The following instructions explain how to install these three extensions with <b>Tcl/Tk</b>.
+<em>Tcl/Tk</em> and <em>nap</em> are available without charge in both 
+binary (compiled) and source-code form.
+The following instructions explain how to install Tcl/Tk and then nap.
 
 <h3><a name=Installing_Tcl_Tk>Installing Tcl/Tk</h3>
 
-Download <b>Tcl/Tk</b> from
+<a href="http://aspn.activestate.com/ASPN//">ActiveState Corporation</a>
+provides free binary distributions of <em>Tcl/Tk</em> with many extensions.
+There are versions for Windows, Linux (on Intel 386), SunOS (Solaris) and HP-UX.
+HTML documentation is also available.
+These can all be downloaded from
 <a href="http://aspn.activestate.com/ASPN/Tcl/Downloads/">ActiveState Tcl Downloads</a>.
-Installation instructions are available from this site.
-
-<h3><a name=Installing_Printer>Installing Printer</h3>
-
-Download <b>print(er)</b> from
-Michael Schwartz's
-<a href="http://www.du.edu/~mschwart/tcl-tk.htm">Tcl/Tk Extensions & Information Page</a>.
-Select <b>Print</b>, then press the <b>i</b> information button.
-For windows, select the <code>.zip</code> file matching your version of Tcl and
-unzip it into directory <code>lib</code>.
-(There are instructions in file <code>printer/install.txt</code>.)
-For unix, select the link labelled <b>Unix</b>, giving file 
-<code>printUnix.tar.gz</code> and
-unpack it into directory <code>lib</code> using a command such as
-<pre>
-    zcat printUnix.tar.gz | tar -xvf - 
-</pre>
-
-<h3><a name=Installing_nap>Installing nap</h3>
-
-Download <b>nap</b> from
-<a href="http://sourceforge.net/project/showfiles.php?group_id=55616">Tcl-NAP Files</a>.
-Binary installation files are available for:
 
 <p>
+Read the
+<a href="http://aspn.activestate.com/ASPN/docs/ActiveTcl/at.install.html">
+installation instructions</a>.
+Note that these explain how to uninstall any existing version of Tcl/Tk,
+which should be done before installing the new one.
+(If this method of uninstalling fails then it is usually best to delete the whole
+<em>tcl root directory</em>.)
+
+<p>
+The <em>tcl root directory</em> is the directory in which Tcl is installed.
+Tcl extensions (e.g. nap) are usually also installed in it.
+Note that it is denoted below by the variable <var>tcl_root</var>.
+A typical value for Windows is <code>C:\Program&nbsp;Files\Tcl</code>.
+Typical values for Unix (including Linux) are <code>~/tcl</code> (personal installation)
+and <code>/usr/local/tcl</code> (system installation).
+
+<p>
+Unix users should include 
+<var>tcl_root</var><code>/bin</code> in the list defined by the standard environment variable
+<code>PATH</code>.
+If there are problems with dynamic loading then try including
+<var>tcl_root</var><code>/lib</code>
+in the list defined by the standard environment variable
+<code>LD_LIBRARY_PATH</code>.
+
+<p>
+The following three executables will be installed in
+<var>tcl_root</var><code>/bin</code>:
+<dl>
+    <dt> <code>tclsh</code>
+    <dd>
+	This provides a bare-bones command-line <em>Tcl shell</em> without Tk.
+	(Tk provides GUI facilities.)
+	It is useful for non-interactive applications such as Unix shell scripts and
+	automatically run (e.g. <code>cron</code>) jobs.
+    <dt> <code>wish</code>
+    <dd>
+	This <em>window shell</em> provides a full Tcl shell including Tk.
+    <dt> <code>tkcon</code>
+    <dd>
+	This provides all the facilities of <code>wish</code>, but in a better console.
+	It is recommended as the normal way of running Tcl.
+</dl>
+
+<p>
+
+Each executable will execute a startup script file with the name listed in the following table,
+if this file is found in the home directory:
+
 <table border>
-
-<tr>
-    <th>
-	Operating System
-    <th>
-	Processor
-
-<tr>
-    <td>
-	Irix 64
-    <td>
-	SGI MIPS
-
-<tr>
-    <td>
-	Linux
-    <td>
-	Intel 386 
-
-<tr>
-    <td>
-	SunOS 5.8
-    <td>
-	Sun sparc
-
-<tr>
-    <td>
-	Windows
-    <td>
-	Intel 386 
-
-</table>
-
-<P>
-(There is also a source file for those who want to access the source without using CVS.)
-All these files have the extension <code>.tgz</code>, which means they were created using
-<code>tar</code>, then compressed using <code>gzip</code>.
-They can be directly unpacked using many recent versions of <b>tar</b>
-and Windows programs such as <b>WinZip</b>.
-Unix users can also use:
-<pre>
-    zcat nap*src.tgz | tar -xvf - 
-</pre>
-You should unpack into the Tcl root directory (parent of 
-<code>bin</code>
-and
-<code>lib</code>).
-
-<P>
-It is convenient to include the following 
-
-<pre>
-    package require nap
-    namespace import ::NAP::*
-</pre>
-
-in your startup file,
-which is normally stored in your home directory with the following name:
-
-<P>
-<table border>
-
 <tr>
     <th> Operating System
     <th> tclsh
     <th> wish
     <th> tkcon
-
 <tr>
     <td> <b>Windows</b>
     <td> <code>tclshrc.tcl</code>
     <td> <code>wishrc.tcl</code>
     <td> <code>tkcon.cfg</code>
-
 <tr>
     <td> <b>Unix</b>
     <td> <code>.tclshrc</code>
     <td> <code>.wishrc</code>
     <td> <code>.tkconrc</code>
-
 </table>
+
+<p>
+If you are unsure of which directory is <em>home</em>, then enter the following two commands:
+<code>
+<br>
+cd
+<br>
+pwd
+</code>
+
+<h3><a name=doc>Tcl/Tk Documentation</h3>
+
+The 
+<a href="caps_nap_menu.html">CAPS/NAP Menu</a>
+<em>help</em> menu includes
+the web version of the
+<a href="http://aspn.activestate.com/ASPN/Tcl/Reference/">Tcl Documentation</a>.
+
+<p>
+The above installation process for Windows installs this documentation
+in the form of the compiled HTML help file
+<code>ActiveTclHelp.chm</code>.
+Under Windows, the above help menu does include this local copy of the documentation.
+
+<p>
+The standard installation for Unix installs <code>man</code> pages in the directory
+<var>tcl_root</var><code>/man</code>.
+If you want to use these then include this directory in <code>MANPATH</code>.
+
+<p>
+It is also possible to create a local copy of this documentation in HTML form.
+Under Unix, this allows the
+<a href="caps_nap_menu.html">CAPS/NAP Menu</a>
+to provide a local copy of the Tcl Documentation (similar to that for Windows).
+To do this, download the the HTML documentation into the directory
+<var>tcl_root</var><code>/doc</code>.
+Then unpack the tar file and create a symbolic link 
+<var>tcl_root</var><code>/doc/html</code> pointing
+to the root directory of the unpacked files.
+
+<p>
+For example, if the Tcl root directory is 
+<code>~/tcl</code>
+then download the version 8.4.9 file
+<code>
+ActiveTcl8.4.9.0.121397-html.tar.gz
+</code>
+into the directory
+<code>~/tcl/doc/</code>.
+<br>
+Change to this directory and then unpack the file using a command such as
+<br>
+<code>
+gtar zxf ActiveTcl8.4.9.0.121397-html.tar.gz
+</code>
+<br>
+or
+<br>
+<code>
+gunzip < gtar zxf ActiveTcl8.4.9.0.121397-html.tar.gz | tar xf - 
+</code>
+<br>
+Then create the symbolic link using
+<br>
+<code>
+ln -s ActiveTcl8.4.9.0.121397-html html
+</code>
+<br>
+
+<p>
+
+<h3><a name=Installing_nap>Installing nap</h3>
+
+<em>Nap installers</em> are available for Windows, Linux and SunOS.
+It is hoped to support HP-UX in the near future.
+The SGI Irix platform is no longer supported.
+
+<P>
+These installers can be downloaded from
+<a href="http://sourceforge.net/project/showfiles.php?group_id=55616">Tcl-NAP Files</a>.
+They are in the form of <em>starpacks</em>,
+which are self-contained binary executables which contain the files to be installed.
+Starpacks are themselves based on Tcl and are described in 
+<A HREF="http://www.equi4.com/papers/skpaper1.html">
+<em>Beyond TclKit - Starkits, Starpacks and other *stuff</em></A>.
+
+<P>
+Then you simply execute the installer.
+It will first prompt you for the directory in which to install nap, which
+is usually the <em>Tcl root directory</em>.
+Then it will check for existing nap files and offer to delete them 
+(strongly recommended) if any are found.
+
+<P>
+Finally it will offer to install three 
+<em>standard nap startup script files</em>
+(with the names in the above table) in your home directory.
+It is recommended that you install these unless you have alternative startup files.
+Such alternative files can include the following commands to facilitate use of nap:
+<code>
+<br>
+package require nap
+<br>
+namespace import ::NAP::*
+</code>
+
+<p>
+These standard nap startup scripts are interrelated.
+The script
+<code>tkcon.cfg</code> (<code>.tkconrc</code>)
+sources
+<code>wishrc.tcl</code> (<code>.wishrc</code>),
+which in turn sources 
+<code>tclshrc.tcl</code> (<code>.tclshrc</code>).
+The latter will execute any file named
+<code>my.tcl</code>
+found in the home directory.
+You can create 
+<code>~/my.tcl</code>
+to tailor the Tcl and nap systems to your personal requirements.
+
+<p>
+On Unix systems it is possible to install nap in a directory 
+(which we will denote by <var>nap_root</var>)
+other than the <em>Tcl root directory</em>.
+If
+<var>nap_root</var>&nbsp;&ne;&nbsp;<var>tcl_root</var>
+then
+<var>nap_root</var><code>/lib</code>
+must be included in the lists defined by:
+<ul>
+    <li> the standard Tcl variable <code>auto_path</code>
+    <li> the standard environment variable <code>LD_LIBRARY_PATH</code>.
+</ul>
+
+For example, assume nap is installed in <code>~/alt</code>.
+The following two commands are included in 
+<code>tclshrc.tcl</code>
+or
+<code>.tclshrc</code>:
+
+<p>
+<code>
+lappend auto_path ~/alt/lib
+<br>
+set env(LD_LIBRARY_PATH) ":~/alt/lib:$env(LD_LIBRARY_PATH)"
+</code>
+
+<h3><a name=source>Source Code</h3>
+
+Source code for nap is maintained using CVS and can be accessed by:
+
+<ul>
+    <li> <a href="http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tcl-nap/">Browsing
+	    CVS Source Repository</a>
+    <li> <a href="http://sourceforge.net/cvs/?group_id=55616">Using
+	    CVS to access CVS Source Repository</a>
+    <li> Downloading tar file from
+	<a href="http://sourceforge.net/project/showfiles.php?group_id=55616">Tcl-NAP Files</a>.
+</ul>
+
+<h3><a name=Related_Packages>Related Packages</h3>
+
+Nap now provides the functionality previously provided by the (now obsolete) separate packages
+<em>convert_date</em>, <em>inform</em> and <em>land_flag</em>.
+However 
+<A HREF="http://www.dar.csiro.au/rs/Capshome.html">CAPS</A>
+is still separate.
+
+<p>
+The Windows nap distribution now includes the 
+<a href="http://lbayuk.home.mindspring.com/ezprint/"><em>ezprint</em></a>
+utility, which provides access to printers.
+No such separate printing package is needed for Unix.
+Previous versions of nap used the
+<em>printer</em> package to provide access to printers on all platforms.
+
+<p>
+Previous versions of nap provided an interface to the vector facility in the package
+<a href="http://sourceforge.net/projects/blt/">BLT</a>.
+This allowed use of the BLT <em>graph</em> commmand, which was used at that time by
+the nap procedure <em>plot_nao</em>.
+NAP no longer provides an interface to BLT or uses it in any way.
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -149,7 +299,7 @@ which is normally stored in your home directory with the following name:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: install.html,v 1.9 2003/05/20 05:28:44 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: install.html,v 1.12 2005/01/11 06:51:11 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

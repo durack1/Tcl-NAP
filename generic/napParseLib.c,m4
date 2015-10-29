@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.48 2003/03/13 07:37:10 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.54 2004/11/17 23:18:20 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -229,6 +229,26 @@ Nap_DataTypeOfSuffix(
 }
 
 /*
+ * Nap_UnsignedInt --
+ *
+ * If part-token is unsigned decimal integer then return its length, else return 0
+ */
+
+static size_t
+Nap_UnsignedInt(
+    char                *str)          /* input stream */
+{
+    size_t		n;
+
+    assert(str);
+    n = 0;
+    while (isdigit(str[n])) {
+	++n;
+    }
+    return n;
+}
+
+/*
  * Nap_StringToNumber --
  *
  * Define result of type Nap_Number
@@ -258,8 +278,7 @@ Nap_StringToNumber(
     assert(str);
     str = Nap_StrDup(str);
     result->dataType = Nap_HexInt(str) > 0 ? NAP_U32 : Nap_DataTypeOfSuffix(str);
-    status = Tcl_GetInt(nap_cd->interp, str, &i);
-    is_integer = status == TCL_OK;
+    is_integer = Nap_UnsignedInt(str) == strlen(str);
     if (strcmp(str, "_") == 0) {
 	m4ForAllNumericDataType(`M4Nap_StringToNumberMissing(', `)')
 	result->dataType = NAP_I32;
@@ -277,10 +296,11 @@ Nap_StringToNumber(
 	    result->dataType = NAP_F64;
 	}
 	CHECK2(Nap_TypeIsReal(result->dataType), "m4NAME: Invalid constant");
+    } else if (Nap_HexInt(str) > 0) {
+	result->U32 = strtoul(str, (char**)NULL, 16);
+	result->F64 = result->U32;
     } else if (is_integer) {
-	if (str[0] == '0'  &&  isdigit(str[1])) {
-	    i = atoi(str);
-	}
+	i = atoi(str);
 	m4ForAllNumericDataType(`M4Nap_StringToNumber(', `)')
 	if (result->dataType == NAP_NULL_TYPE ) {
 	    result->dataType = NAP_I32;
@@ -636,26 +656,6 @@ Nap_RealSuffix(
 }
 
 /*
- * Nap_UnsignedInt --
- *
- * If part-token is unsigned decimal integer then return its length, else return 0
- */
-
-static size_t
-Nap_UnsignedInt(
-    char                *str)          /* input stream */
-{
-    size_t		n;
-
-    assert(str);
-    n = 0;
-    while (isdigit(str[n])) {
-	++n;
-    }
-    return n;
-}
-
-/*
  * Nap_Int --
  *
  * If token is (signed or unsigned) decimal integer then return its length,
@@ -887,7 +887,7 @@ Nap_lexID(
  * digits.  The string "_" by itself is not a valid name.
  */
 
-static size_t
+EXTERN size_t
 Nap_lexSimpleName(
     char                *str)          /* input stream */
 {
@@ -1029,7 +1029,7 @@ Nap_lex(
     startPtr = nap_cd->scanString[level];
     assert(startPtr);
     lvalp->str = NULL;
-    while (isspace(*startPtr)) {		/* skip white space */
+    while (isspace(*startPtr)  ||  *startPtr == '$') {	/* skip white space and $s */
 	++startPtr;
     }
     n = 0;
@@ -1059,6 +1059,7 @@ Nap_lex(
     else if ((n = Nap_lexCompare(startPtr, "//")) > 0)	result = CAT;
     else if ((n = Nap_lexCompare(startPtr, "@@@")) > 0)	result = MATCH;
     else if ((n = Nap_lexCompare(startPtr, "@@")) > 0)	result = CLOSEST;
+    else if ((n = Nap_lexCompare(startPtr, ".")) > 0)	result = INNER_PROD;
     else if ((n = Nap_lexCompare(startPtr, "+*")) > 0)	result = INNER_PROD;
     else if ((n = Nap_lexCompare(startPtr, "_")) > 0)	result = UNUMBER;
     else {

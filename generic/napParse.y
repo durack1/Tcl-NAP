@@ -13,7 +13,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParse.y,v 1.60 2003/07/19 14:19:35 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParse.y,v 1.61 2003/11/14 06:57:12 dav480 Exp $";
 #endif /* not lint */
 
 #ifdef WIN32
@@ -53,7 +53,7 @@ static char *rcsid="@(#) $Id: napParse.y,v 1.60 2003/07/19 14:19:35 dav480 Exp $
 %token <str>	AND			/* && */
 %token <str>	OR			/* || */
 %token <str>	POWER			/* ** */
-%token <str>	INNER_PROD		/* +* */
+%token <str>	INNER_PROD		/* . (or +* for compatibility) */
 %token <str>	FUNCTION		/* used only for prec */
 %token <str> ' ' '!' '"' '#' '$' '%' '&' '(' ')' '*' '+' ',' '-' '.' '/'
 %token <str> ':' ';' '<' '=' '>' '?' '@'

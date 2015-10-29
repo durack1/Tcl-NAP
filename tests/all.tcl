@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: all.tcl,v 1.16 2002/11/27 06:07:21 dav480 Exp $
+# $Id: all.tcl,v 1.21 2004/10/21 03:01:08 dav480 Exp $
 
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
@@ -31,15 +31,19 @@ if {![info exists nap_version]} {
     } else {
         error "No shared library defined"
     }
+    namespace import ::NAP::*
 }
-namespace import ::NAP::*
 
 set files "\
 	$env(LIBRARY_DIR)/nap_proc_lib.tcl \
-	$env(LIBRARY_DIR)/nap_function_lib.tcl \
 	$env(LIBRARY_DIR)/proc_lib.tcl \
+	$env(LIBRARY_DIR)/date.tcl \
+	$env(LIBRARY_DIR)/geog.tcl \
+	$env(LIBRARY_DIR)/land.tcl \
+	$env(LIBRARY_DIR)/nap_function_lib.tcl \
 	$env(LIBRARY_DIR)/old.tcl \
-	[::tcltest::getMatchingFiles]"
+	$env(LIBRARY_DIR)/stat.tcl \
+	[lsort [::tcltest::getMatchingFiles]]"
 foreach file $files {
     puts stdout "[clock format [clock seconds] -format %H:%M:%S] Sourcing file $file"
     if {[catch {source $file} msg]} {

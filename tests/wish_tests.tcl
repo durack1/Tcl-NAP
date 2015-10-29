@@ -4,9 +4,9 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.19 2003/07/21 23:51:10 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.26 2004/10/21 03:01:09 dav480 Exp $
 
-puts "\n******* At end click on 'cancel' button in window .win7 *******\n"
+puts "\n******* At end click on 'cancel' button in window .win11 *******\n"
 
 # if no nap then load nap shared lib from current working directory
 if {![info exists nap_version]} {
@@ -17,50 +17,12 @@ if {![info exists nap_version]} {
     } else {
         error "No shared library defined"
     }
-}
-namespace import ::NAP::*
-
-
-# Work-around problem with "puts stdout" under windows
-# Environment variable TMP_STDOUT is "" under unix but defined under windows
-
-if {[string length $env(TMP_STDOUT)] > 0} {
-    file delete $env(TMP_STDOUT)
-    set ::tmp_stdout [open $env(TMP_STDOUT) w]
-    rename puts old_puts
-    proc puts_write {nonewline channelId string} {
-	switch $channelId {
-	    stderr	-
-	    stdout	{set channelId $::tmp_stdout}
-	}
-	if $nonewline {
-	    old_puts -nonewline $channelId $string
-	} else {
-	    old_puts $channelId $string
-	}
-    }
-    proc puts args {
-	set channelId stdout
-	set n [llength $args]
-	if {$n == 1} {
-	    set nonewline 0
-	} elseif {$n == 2} {
-	    set nonewline [string match -n* $args]
-	    if {! $nonewline} {
-		set channelId [lindex $args 0]
-	    }
-	} elseif {$n == 3} {
-	    set nonewline 1
-	    set channelId [lindex $args 1]
-	} else {
-	    error "wrong number of arguments"
-	}
-	puts_write $nonewline $channelId [lindex $args end]
-    }
+    namespace import ::NAP::*
 }
 
 # Test plot_nao
 
+source $env(LIBRARY_DIR)/choose_file.tcl
 source $env(LIBRARY_DIR)/colour.tcl
 source $env(LIBRARY_DIR)/nap_function_lib.tcl
 source $env(LIBRARY_DIR)/old.tcl
@@ -69,6 +31,7 @@ source $env(LIBRARY_DIR)/plot_nao.tcl
 source $env(LIBRARY_DIR)/plot_nao_procs.tcl
 source $env(LIBRARY_DIR)/proc_lib.tcl
 source $env(LIBRARY_DIR)/print_gui.tcl
+source $env(LIBRARY_DIR)/select_font.tcl
 
 # xy vector
 
@@ -123,10 +86,46 @@ set window [plot_nao z -type t]
 
 set window [plot_nao z]
 
-tkwait window $window
+# land_flag
 
-if [info exists ::tmp_stdout] {
-    close $::tmp_stdout
-}
+source $env(LIBRARY_DIR)/geog.tcl
+source $env(LIBRARY_DIR)/land.tcl
+nap "land_flag_data_dir = '$env(DATA_DIR)/land_flag'"
+plot_nao "is_land(-90 .. 90, 0 .. 360, land_flag_data_dir)" -overlay N
+set window [plot_nao "is_coast(-90.0 .. 90.0, -180 .. 180, land_flag_data_dir)" -overlay N]
+
+# inPolygon
+
+set s 1r32
+nap "xv = 0 .. 8 ... s"
+nap "yv = (1 .. 10 ... s)(-)"
+nap "x = reshape(xv, nels(yv) // nels(xv))"
+nap "y = reshape(nels(xv) # yv, nels(yv) // nels(xv))"
+$x set value _ "0 .. 31, 0 .. 31"
+$y set value _ "-1 .. -64, 0 .. 63"
+$y set coo yv xv
+nap "p = {
+{7 4 _}
+{3 4 _}
+{6 7 _}
+{6 9 _}
+{5 7 _}
+{3 7 _}
+{2 9 _}
+{3 5 _}
+{1 2 _}
+}"
+nap "z = inPolygon(x, y, p)"
+set window [plot_nao z]
+
+# scattered2grid
+
+nap "x = 0 .. 25 ... 1r4"
+nap "y = 0 .. 20 ... 1r4"
+nap "xyz = gets_matrix('../tests/data/xyz.txt')"
+nap "grid = scattered2grid(xyz, y, x)"
+set window [plot_nao grid]
+
+tkwait window $window
 
 exit

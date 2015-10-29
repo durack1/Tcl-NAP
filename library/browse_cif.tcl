@@ -7,15 +7,14 @@
 # Author:
 # Harvey Davies, CSIRO Atmospheric Research
 #
-# $Id: browse_cif.tcl,v 1.2 2003/07/28 04:22:24 dav480 Exp $
+# $Id: browse_cif.tcl,v 1.3 2004/02/06 05:40:17 dav480 Exp $
 
 
 # browse_cif --
 #
 # Create window with browse_cif menu, etc.
 # Usage
-#   browse_cif ?<MASTER>?
-#       <MASTER>: widget in which to pack. If none (default) then toplevel.
+#   browse_cif ?<PARENT>? ?<GEOMETRY>?
 #
 # Example
 #   browse_cif .
@@ -37,17 +36,11 @@ namespace eval Cif {
     # Create window with browse_cif menu, etc.
 
     proc main {
-	{master {}}
+	{parent {}}
+	{geometry ""}
     } {
 	set Cif::filename ""
-	set top .cif
-	destroy $top
-	if {$master == ""} {
-	    toplevel $top
-	} else {
-	    frame $top -relief raised -borderwidth 4
-	    pack $top -in $master -side top -padx 2 -pady 2 -fill x
-	}
+	set top [create_window cif $parent $geometry CIF]
         frame $top.head
 	label $top.head.heading -text "CIF File Browser"
         button $top.head.help -text "Help" -command {::Cif::help}

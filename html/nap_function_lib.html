@@ -1,4 +1,4 @@
-<!-- $Id: nap_function_lib.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $ -->
+<!-- $Id: nap_function_lib.html,v 1.7 2004/07/19 00:10:49 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -15,13 +15,12 @@ Miscellaneous Functions
 
 <ol>
     <li><a href="#Introduction">Introduction</a>
-    <li><a href="#acof2boxed"><code>acof2boxed(</code><var>filename</var><code>)</code></a>
-    <li><a href="#area_on_globe"><code>area_on_globe(</code><var>latitude</var><code>,
-	</code><var>longitude</var><code>)</code></a>
     <li><a href="#color_wheel"><code>color_wheel(</code><var>n</var><code>,</code><var>v</var><code>,</code><var>b</var><code>)</code></a>
     <li><a href="#cv">
 	<code>cv(</code><var>main_nao</var>[<code>,</code><var>dim_number</var>]<code>)</code></a>
-    <li><a href="#fix_longitude"><code>fix_longitude(</code><var>longitude</var><code>)</code></a>
+    <li><a href="#derivative">
+	<code>derivative(</code><var>a</var>[<code>,</code><var>dim_number</var>]<code>)</code></a>
+    <li><a href="#fill_holes"><code>fill_holes(</code><var>x</var><code>)</code></a>
     <li><a href="#fuzzy_floor">
 	<code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code></a>
     <li><a href="#fuzzy_ceil">
@@ -32,53 +31,20 @@ Miscellaneous Functions
     <li><a href="#isMissing"><code>isMissing(</code><var>x</var><code>)</code></a>
     <li><a href="#isPresent"><code>isPresent(</code><var>x</var><code>)</code></a>
     <li><a href="#magnify_interp"><code>magnify_interp(</code><var>a</var><code>, </code><var>mag_factor</var><code>)</code></a>
-    <li><a href="#merid_wt"><code>merid_wt(</code><var>longitude</var><code>)</code></a>
     <li><a href="#mixed_base">
 	<code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code></a>
+    <li><a href="#nub"><code>nub(</code><var>x</var><code>)</code></a>
     <li><a href="#outer"><code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code></a>
-    <li><a href="#reverse">
-	<code>reverse(</code><var>x</var>[<code>,</code><var>verb_rank</var>]<code>)</code></a>
-    <li><a href="#scaleAxis><code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
+    <li><a href="#scattered2grid"><code>scattered2grid(</code><var>xyz</var><code>,</code><var>ycv</var><code>,</code><var>xcv</var><code>)</code></a>
+    <li><a href="#scaleAxis"><code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
     <li><a href="#scaleAxisSpan"><code>scaleAxisSpan(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code></a>
     <li><a href="#range"><code>range(</code><var>a</var><code>)</code></a>
     <li><a href="#tail"><code>tail(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code></a>
-    <li><a href="#zone_wt"><code>zone_wt(</code><var>latitude</var><code>)</code></a>
 </ol>
 
 <h3><a name=Introduction>Introduction</h3>
 
 The following functions are defined in the file <code>nap_function_lib.tcl</code>.
-
-<h3><a name=acof2boxed>
-<code>acof2boxed(</code><var>filename</var><code>)</code>
-</h3>
-
-Read ascii cof (.acof) file and return boxed nao.
-<p>
-Example:
-<br>
-<code>
-nap "i = acof2boxed('abc.acof')"
-</code>
-
-<h3><a name=area_on_globe>
-<code>area_on_globe(</code><var>latitude</var><code>, </code><var>longitude</var><code>)</code>
-</h3>
-
-Given latitude and longitude vectors, this function calculates a matrix whose values
-are fractions of the Earth's surface area.
-<p>
-Example:
-<br>
-<code>
-% [nap "area_on_globe(-90 .. 0 ... 45, 0 .. 180 ... 45)"] value -format %.4f
-<br>
-0.0229 0.0092 0.0092 0.0092 0.0229
-<br>
-0.0781 0.0312 0.0312 0.0312 0.0781
-<br>
-0.2115 0.0846 0.0846 0.0846 0.2115
-</code>
 
 <h3><a name=color_wheel>
 <code>color_wheel(</code><var>n</var><code>,</code><var>v</var><code>,</code><var>b</var><code>)</code>
@@ -107,17 +73,55 @@ This produces a <code>u8</code> array with shape
 
 This is simply an alias for <code>coordinate_variable</code>.
 
-<h3><a name=fix_longitude>
-<code>fix_longitude(</code><var>longitude</var><code>)</code>
+<h3><a name=derivative>
+<code>derivative(</code><var>a</var>[<code>,</code><var>dim_number</var>]<code>)</code>
 </h3>
 
-Adjust elements of longitude vector by adding or subtracting multiple of 360 to ensure:
+Estimate derivative along dimension <var>dim_number</var> (default is 0) of array <var>a</var>.
+The result has the same shape as <var>a</var>.
+
+<p>
+Example (assuming <code>vector</code> has dimension (& coordinate variable) <code>time</code>:
 <br>
-&minus;180 &le; <var>x</var><sub>0</sub> < 180
+<pre>
+derivative(vector); # result is derivative with respect to time
+</pre>
+
+<p>
+Examples (assuming <code>matrix</code> has dimensions
+<code>latitude</code> & <code>longitude</code>):
 <br>
-0 &le; <var>x</var><sub>i+1</sub>&minus;<var>x</var><sub>i</sub> < 360
+<pre>
+derivative(matrix, 'latitude');	# result is derivative with respect to latitude
+derivative(matrix, 0);		# result is derivative with respect to latitude
+derivative(matrix);		# result is derivative with respect to latitude
+derivative(matrix,'longitude');	# result is derivative with respect to longitude
+derivative(matrix, 1);		# result is derivative with respect to longitude
+</pre>
+
+<p>
+Based on quadratic through 3 points (provided size of dimension is > 2 -- if only 2 then
+based on straight line). These always include the point corresponding to the result.
+For interior points, the other 2 are the closest neighbour on each side.  For boundry
+points, these are the 2 closest neighbours.
+
+<p>
+Let D(x) be the derivative of quadratic through points
+<code>(x0,y0), (x1,y1), (x2,y2)</code>.
 <br>
-Also ensure unit is <code>degrees_east</code>.
+<pre>
+D1 = D(x1) = a0 * y0 + a1 * y1 + a2 * y2
+where the coefficients a0, a1, a2 are defined by:
+	a0 = (x1 - x2) / ((x1 - x0) * (x2 - x0))
+	a1 = 1 / (x1 - x0) - 1 / (x2 - x1)
+	a2 = (x1 - x0) / ((x2 - x0) * (x2 - x1))
+</pre>
+
+<h3><a name=fill_holes>
+<code>fill_holes(</code><var>x</var><code>)</code>
+</h3>
+
+Replace missing values by estimates based on means of neighbours.
 
 <h3><a name=fuzzy_floor>
 <code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code>
@@ -228,7 +232,7 @@ Example:
 <code>isMissing(</code><var>x</var><code>)</code>
 </h3>
 
-1 if <var>x</var> misssing, 0 if present.
+1 if <var>x</var> missing, 0 if present.
 <br>
 <p>
 Example:
@@ -243,7 +247,7 @@ Example:
 <code>isPresent(</code><var>x</var><code>)</code>
 </h3>
 
-0 if <var>x</var> misssing, 1 if present.
+0 if <var>x</var> missing, 1 if present.
 <br>
 <p>
 Example:
@@ -298,21 +302,6 @@ Example:
 4 4 5 5 5 6 6
 </code>
 
-<h3><a name=merid_wt>
-<code>merid_wt(</code><var>longitude</var><code>)</code>
-</h3>
-
-Calculate normalised (so sum weights = 1) meridional weights from longitudes.
-<br>
-<p>
-Example:
-<br>
-<code>
-% [nap "merid_wt {-180 -90 -45 0 90 180}"]
-<br>
-0.125 0.1875 0.125 0.1875 0.25 0.125
-</code>
-
 <h3><a name=mixed_base>
 <code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code>
 </h3>
@@ -327,6 +316,12 @@ Following example converts 87 inches to yards, feet & inches:
 <br>
 2 1 3
 </code>
+
+<h3><a name=nub>
+<code>nub(</code><var>x</var><code>)</code>
+</h3>
+
+Result is vector of distinct values in argument (in same order).
 
 <h3><a name=outer>
 <code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code>
@@ -359,23 +354,54 @@ Following example produces a multiplication table:
  5 10 15 20 25
 </pre>
 
-<h3><a name=reverse>
-<code>reverse(</code><var>x</var>[<code>,</code><var>verb_rank</var>]<code>)</code>
+<h3><a name=scattered2grid>
+<code>scattered2grid(</code><var>xyz</var><code>,</code><var>ycv</var><code>,</code><var>xcv</var><code>)</code>
 </h3>
 
-Reverse order of items in array <var>x</var>.
-<br>
 <p>
-Examples:
+Produce a matrix grid from scattered (<var>x,y,z</var>) data using triangulation.
+Grid points within each triangle are defined by interpolating using a plane
+through the three vertices of the triangle.
+
+<p>
+<var>xyz</var>
+is an <var>n</var>&times;<var>m</var>
+matrix containing data corresponding to
+<var>n</var>
+points
+(<var>x,y,z</var>).
+The number of columns
+(<var>m</var>)
+must be at least 3.
+Columns 0, 1 and 2 contain x, y and z values respectively.
+Any further columns are ignored.
+
+<p>
+<var>ycv</var> and <var>xcv</var> specify the coordinate-variables for the grid.
+
+<p>
+The following example defines a grid from the four points
+(2,2,0), (6,4,0), (2,4,4) and (4,5,3). 
+Note that the missing values in the result correspond to points which are outside
+of both the triangles produced by the triangulation.
+You could eliminate these missing values by defining values at all four corners of the grid.
+
 <pre>
-% [nap "reverse {1 9 0 7}"]
-7 0 9 1
-% [nap "reverse {{1 2 3}{4 5 6}}"]
-4 5 6
-1 2 3
-% [nap "reverse({{1 2 3}{4 5 6}}, 1)"]
-3 2 1
-6 5 4
+% nap "z = scattered2grid({{2 2 0}{6 4 0}{2 4 4}{4 5 3}}, 2 .. 5, 2 .. 6)"
+::NAP::1020-1020
+% $z
+0.00    _    _    _    _
+2.00 0.75 0.00    _    _
+4.00 2.50 1.50 0.75 0.00
+   _    _ 3.00    _    _
+% [nap "z(@2, @2)"]; # Check value at x=2, y=2
+0
+% [nap "z(@4, @6)"]; # Check value at x=6, y=4
+0
+% [nap "z(@4, @2)"]; # Check value at x=2, y=4
+4
+% [nap "z(@5, @4)"]; # Check value at x=4, y=5
+3
 </pre>
 
 <h3><a name=scaleAxis>
@@ -481,21 +507,6 @@ Example:
 9 2 7
 </pre>
 
-<h3><a name=zone_wt>
-<code>zone_wt(</code><var>latitude</var><code>)</code>
-</h3>
-
-Calculate normalised (so sum weights = 1) zonal weights from latitudes.
-<br>
-<p>
-Example:
-<br>
-<code>
-% [nap "zone_wt(-90 .. 90 ... 30)"] value
-<br>
-0.0334936 0.125 0.216506 0.25 0.216506 0.125 0.0334936
-</code>
-
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
   <TR>
@@ -507,7 +518,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.7 2004/07/19 00:10:49 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

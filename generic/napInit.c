@@ -7,7 +7,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napInit.c,v 1.15 2002/10/27 07:00:21 dav480 Exp $";
+static char *rcsid="@(#) $Id: napInit.c,v 1.16 2004/08/11 02:48:17 dav480 Exp $";
 #endif /* not lint */
 
 #include <signal.h>
@@ -86,6 +86,13 @@ Nap_Init(
     if (Tcl_GetVar(interp, "tk_version", 0)) {
         Nap_CreatePhotoImageFormat();
     }
+
+/*
+ *      land_flag stuff
+ */
+
+    status = Land_flag_Init(interp);
+    assert(status == TCL_OK);
 
     return TCL_OK;
 }

@@ -1,0 +1,292 @@
+<!-- $Id: geog.html,v 1.6 2004/11/17 00:48:50 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP Library: Geographic
+</title> </head>
+
+<body>
+
+<h2> <center>
+Geographic Functions
+</center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Wind">Divergence and Vorticity of Wind</a>
+    <ul>
+	<li><a href="#wind"><code>div_wind(</code><var>u</var><code>,
+	    </code></code><var>v</var><code>)</code></a>
+	<li><a href="#wind"><code>vorticity_wind(</code><var>u</var><code>,
+	    </code></code><var>v</var><code>)</code></a>
+    </ul>
+    <li><a href="#land">Land, Sea and Coast</a>
+    <ul>
+	<li><a href="#is_land"><code>is_land(</code><var>latitude</var><code>,
+	    </code><var>longitude</var>[<code>,
+	    </code></code><var>data_dir</var>]<code>)</code></a>
+	<li><a href="#is_coast"><code>is_coast(</code><var>latitude</var><code>,
+	    </code><var>longitude</var>[<code>,
+	    </code></code><var>data_dir</var>]<code>)</code></a>
+    </ul>
+    <li><a href="#latlon">Things related to Latitude and Longitude</a>
+    <ul>
+	<li><a href="#area_on_globe"><code>area_on_globe(</code><var>latitude</var><code>,
+	    </code><var>longitude</var><code>)</code></a>
+	<li><a href="#fix_longitude"><code>fix_longitude(</code><var>longitude</var><code>)</code>
+	    </a>
+	<li><a href="#merid_wt"><code>merid_wt(</code><var>longitude</var><code>)</code></a>
+	<li><a href="#zone_wt"><code>zone_wt(</code><var>latitude</var><code>)</code></a>
+    </ul>
+    <li><a href="#Reading">Reading Geographic Files</a>
+    <ul>
+	<li><a href="#acof2boxed"><code>acof2boxed(</code><var>filename</var><code>)</code></a>
+	<li><a href="#get_gridascii"><code>get_gridascii(</code><var>filename</var><code>)</code>
+	    </a>
+    </ul>
+
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
+
+The following functions are defined in the files
+<code>geog.tcl</code>
+and
+<code>land.tcl</code>.
+Note that 
+<code>geog.tcl</code>
+also defines 
+<a href="geog_proc.html">Geographic Procedures</a>.
+
+<h3>
+<a name=Wind>
+Divergence and Vorticity of Wind
+</h3>
+
+Functions
+<code>div_wind(</code><var>u</var><code>,</code></code><var>v</var><code>)</code>
+and
+<code>vorticity_wind(</code><var>u</var><code>,</code></code><var>v</var><code>)</code>
+gives the divergence (/second) and vorticity (/second) of a 2D wind, where
+<br>
+<var>u</var> is matrix containing zonal      (x-component i.e. from west  to  east) wind
+in metres/sec.
+<br>
+<var>v</var> is matrix containing meridional (y-component i.e. from south to north) wind
+in metres/sec.
+<br>
+Coordinate variables of <var>u</var> and <var>v</var> are latitude (&deg;N) and longitude (&deg;E).
+
+<p>
+Let
+<FONT FACE="Symbol">q</FONT> be latitude in radians,
+<FONT FACE="Symbol">j</FONT> be longitude in radians,
+<var>r</var> be radius of earth in metres.
+
+<p>
+The divergence of a 2D wind is defined as
+<br>
+<FONT FACE="Symbol">&#182;</FONT><var>u</var>/<FONT FACE="Symbol">&#182;</FONT><var>x</var> +
+<FONT FACE="Symbol">&#182;</FONT><var>v</var>/<FONT FACE="Symbol">&#182;</FONT><var>y</var>
+<br>
+Function
+<code>div_wind</code>
+uses the equivalent formula
+<br>
+(<FONT FACE="Symbol">&#182;</FONT><var>u</var>/<FONT FACE="Symbol">&#182;</FONT><FONT
+FACE="Symbol">j</FONT> +
+<FONT FACE="Symbol">&#182;</FONT>(<var>v</var>
+cos <FONT FACE="Symbol">q</FONT>)/<FONT FACE="Symbol">&#182;</FONT><FONT FACE="Symbol">q</FONT>) /
+(<var>r</var> cos <FONT FACE="Symbol">q</FONT>)
+
+<p>
+The vorticity of a 2D wind is defined as
+<br>
+<FONT FACE="Symbol">&#182;</FONT><var>v</var>/<FONT FACE="Symbol">&#182;</FONT><var>x</var> -
+<FONT FACE="Symbol">&#182;</FONT><var>u</var>/<FONT FACE="Symbol">&#182;</FONT><var>y</var>
+<br>
+Function
+<code>vorticity_wind</code>
+uses the equivalent formula
+<br>
+(<FONT FACE="Symbol">&#182;</FONT><var>v</var>/<FONT FACE="Symbol">&#182;</FONT><FONT
+FACE="Symbol">j</FONT> -
+<FONT FACE="Symbol">&#182;</FONT>(<var>u</var>
+cos <FONT FACE="Symbol">q</FONT>)/<FONT FACE="Symbol">&#182;</FONT><FONT FACE="Symbol">q</FONT>) /
+(<var>r</var> cos <FONT FACE="Symbol">q</FONT>)
+
+
+<h3>
+<a name=land>
+Land, Sea and Coast
+</h3>
+
+<h4>
+<a name=is_land>
+<code>is_land(</code><var>latitude</var><code>,
+</code><var>longitude</var>[<code>,
+</code></code><var>data_dir</var>]<code>)</code>
+</h4>
+
+Produce a land/sea mask in the form of an
+<code>i8</code>
+(8-bit signed integer) matrix with 1 for land and 0 for sea.
+The data has an accuracy of 0.01&deg;.
+
+<p>
+The arguments
+<var>latitude</var>
+and
+<var>longitude</var>
+can be scalars, vectors or matrices.
+If they are either both vectors,  or one is a vector
+and the other is a scalar, then they are used as the coordinate variables of the matrix result.
+Otherwise the result has the same shape and coordinate variables as the one of higher rank.
+
+<p>
+The optional argument
+<var>data_dir</var>
+is only needed if a non-standard data directory is to be used.
+
+<h4>
+<a name=is_coast>
+<code>is_coast(</code><var>latitude</var><code>,
+</code><var>longitude</var>[<code>,
+</code></code><var>data_dir</var>]<code>)</code>
+</h4>
+
+Produce an
+<code>i8</code>
+(8-bit signed integer) matrix with 1 for coast and 0 otherwise.
+The data has an accuracy of 0.01&deg;.
+
+<p>
+The arguments
+<var>latitude</var>
+and
+<var>longitude</var>
+are vectors.
+These are used to define the coordinate variables of the result.
+
+<p>
+The optional argument
+<var>data_dir</var>
+is only needed if a non-standard data directory is to be used.
+
+<h3>
+<a name=latlon>
+Things related to Latitude and Longitude
+</h3>
+
+<h4><a name=area_on_globe>
+<code>area_on_globe(</code><var>latitude</var><code>, </code><var>longitude</var><code>)</code>
+</h4>
+
+Given latitude and longitude vectors, this function calculates a matrix whose values
+are fractions of the Earth's surface area.
+<p>
+Example:
+<br>
+<code>
+% [nap "area_on_globe(-90 .. 0 ... 45, 0 .. 180 ... 45)"] value -format %.4f
+<br>
+0.0229 0.0092 0.0092 0.0092 0.0229
+<br>
+0.0781 0.0312 0.0312 0.0312 0.0781
+<br>
+0.2115 0.0846 0.0846 0.0846 0.2115
+</code>
+
+<h4><a name=fix_longitude>
+<code>fix_longitude(</code><var>longitude</var><code>)</code>
+</h4>
+
+Adjust elements of longitude vector by adding or subtracting multiple of 360 to ensure:
+<br>
+&minus;180 &le; <var>x</var><sub>0</sub> < 180
+<br>
+0 &le; <var>x</var><sub>i+1</sub>&minus;<var>x</var><sub>i</sub> < 360
+<br>
+Also ensure unit is <code>degrees_east</code>.
+
+<h4><a name=merid_wt>
+<code>merid_wt(</code><var>longitude</var><code>)</code>
+</h4>
+
+Calculate normalised (so sum weights = 1) meridional weights from longitudes.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "merid_wt {-180 -90 -45 0 90 180}"]
+<br>
+0.125 0.1875 0.125 0.1875 0.25 0.125
+</code>
+
+<h4><a name=zone_wt>
+<code>zone_wt(</code><var>latitude</var><code>)</code>
+</h4>
+
+Calculate normalised (so sum weights = 1) zonal weights from latitudes.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "zone_wt(-90 .. 90 ... 30)"] value
+<br>
+0.0334936 0.125 0.216506 0.25 0.216506 0.125 0.0334936
+</code>
+
+<h3>
+<a name=Reading>
+Reading Geographic Files
+</h3>
+
+<h4><a name=acof2boxed>
+<code>acof2boxed(</code><var>filename</var><code>)</code>
+</h4>
+
+Read ascii cof (.acof) coastline file and return boxed nao.
+<p>
+Example:
+<br>
+<code>
+nap "in = acof2boxed('abc.acof')"
+</code>
+
+<h4><a name=get_gridascii>
+<code>get_gridascii(</code><var>filename</var><code>)</code>
+</h4>
+
+Read a file in ARC/INFO GRIDASCII format.
+
+<p>
+Example:
+<br>
+<code>
+% nap "in = get_gridascii('abc.gridascii')"
+</code>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: geog.html,v 1.6 2004/11/17 00:48:50 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

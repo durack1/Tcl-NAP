@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_proc_lib.tcl,v 1.7 2003/07/24 06:26:33 dav480 Exp $
+# $Id: nap_proc_lib.tcl,v 1.10 2004/11/16 23:07:27 dav480 Exp $
 
 
 # compare --
@@ -152,7 +152,7 @@ proc nao2image {
 
 proc print_time {name {text {}}} {
     upvar $name old_times
-    set new_cpu [inform seconds]
+    set new_cpu [nap_info seconds]
     set new_wall [clock seconds]
     set fmt "%-20s %7.1f cpu-sec%5.f wall-clock-sec %7.0fk for %4.0f naos"
     if {[info exists old_times]} {
@@ -169,7 +169,6 @@ proc print_time {name {text {}}} {
     set old_times "$new_cpu $new_wall"
     return
 }
-
 
 # rm_naos0 --
 #

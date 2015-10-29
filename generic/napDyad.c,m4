@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.136 2003/06/13 06:45:26 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.139 2004/07/13 06:50:33 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -111,7 +111,7 @@ Nap_DyadInit(
 {
     Nap_NAO             *coordNaoPtr;           /* coordinate variable */
     char                *dimName;               /* dimension name */
-    size_t		i;
+    int			i;
     int			i1;
     int			i2;
     Nap_NAO		*naoMissingValuePtr;
@@ -122,14 +122,14 @@ Nap_DyadInit(
     size_t              *shape;
     int			status;
 
+    Nap_IncrRefCount(nap_cd, nao1);
     naoPtr1 = Nap_CastNAO(nap_cd, nao1, dataType1);
     Nap_IncrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, nao1);
-
+    Nap_IncrRefCount(nap_cd, nao2);
     naoPtr2 = Nap_CastNAO(nap_cd, nao2, dataType2);
     Nap_IncrRefCount(nap_cd, naoPtr2);
     Nap_DecrRefCount(nap_cd, nao2);
-
     if (naoPtr1->rank > naoPtr2->rank) {
 	rank = naoPtr1->rank;
 	shape = naoPtr1->shape;
@@ -137,10 +137,10 @@ Nap_DyadInit(
 	rank = naoPtr2->rank;
 	shape = naoPtr2->shape;
     }
-    for (i = 0; i < Min(naoPtr1->rank, naoPtr2->rank); i++) {
-	i1 = naoPtr1->rank - i - 1;
-	i2 = naoPtr2->rank - i - 1;
-	CHECK4(naoPtr1->shape[i1] == naoPtr2->shape[i2],
+    for (i = 0; i < rank; i++) {
+	i1 = naoPtr1->rank + i - rank;
+	i2 = naoPtr2->rank + i - rank;
+	CHECK4(i1 < 0  ||  i2 < 0  ||  naoPtr1->shape[i1] == naoPtr2->shape[i2],
 		"m4NAME: Dimension %d of left operand has different size from "
 		"dimension %d of right operand",
 		i1, i2);
@@ -158,16 +158,21 @@ Nap_DyadInit(
 	CHECK(status == TCL_OK);
     }
     for (i = 0; i < rank; i++) {
-	coordNaoPtr = Nap_GetCoordVar(nap_cd, naoPtr1, i);
-	if (!coordNaoPtr) {
-	    coordNaoPtr = Nap_GetCoordVar(nap_cd, naoPtr2, i);
-	}
+	coordNaoPtr = NULL;
 	dimName = NULL;
-	if (i < naoPtr1->rank) {
-	    dimName = naoPtr1->dimName[i];
+	i1 = nao1->rank + i - rank;
+	i2 = nao2->rank + i - rank;
+	if (i1 >= 0) {
+	    coordNaoPtr = Nap_GetCoordVar(nap_cd, nao1, i1);
+	    dimName = nao1->dimName[i1];
 	}
-	if (i < naoPtr2->rank  &&  !dimName) {
-	    dimName = naoPtr2->dimName[i];
+	if (i2 >= 0) {
+	    if (!coordNaoPtr) {
+		coordNaoPtr = Nap_GetCoordVar(nap_cd, nao2, i2);
+	    }
+	    if (!dimName) {
+		dimName = nao2->dimName[i2];
+	    }
 	}
 	status = Nap_AttachCoordVar(nap_cd, naoResultPtr, coordNaoPtr, dimName, i);
 	CHECK(status == TCL_OK);
@@ -175,6 +180,8 @@ Nap_DyadInit(
     *naoPtr1Ptr = naoPtr1;
     *naoPtr2Ptr = naoPtr2;
     *naoResultPtrPtr = naoResultPtr;
+    Nap_DecrRefCount(nap_cd, nao1);
+    Nap_DecrRefCount(nap_cd, nao2);
     return TCL_OK;
 }
 
@@ -902,12 +909,22 @@ Nap_SolveLinear(
 	Nap_IncrRefCount(nap_cd, naoPtr2);
 	dataType = Nap_DataType2(dataType, naoPtr2->dataType);
     }
-    naoA = Nap_CastNAO(nap_cd, naoPtr1, dataType);
-    CHECK2NULL(naoA, "m4NAME: Error calling Nap_CastNAO");
+    if (dataType == naoPtr1->dataType) {
+	naoA = Nap_CopyNAO(nap_cd, naoPtr1);
+	CHECK2NULL(naoA, "m4NAME: Error calling Nap_CopyNAO");
+    } else {
+	naoA = Nap_CastNAO(nap_cd, naoPtr1, dataType);
+	CHECK2NULL(naoA, "m4NAME: Error calling Nap_CastNAO");
+    }
     Nap_IncrRefCount(nap_cd, naoA);
     if (naoPtr2) {
-	naoB = Nap_CastNAO(nap_cd, naoPtr2, dataType);
-	CHECK2NULL(naoB, "m4NAME: Error calling Nap_CastNAO");
+	if (dataType == naoPtr2->dataType) {
+	    naoB = Nap_CopyNAO(nap_cd, naoPtr2);
+	    CHECK2NULL(naoA, "m4NAME: Error calling Nap_CopyNAO");
+	} else {
+	    naoB = Nap_CastNAO(nap_cd, naoPtr2, dataType);
+	    CHECK2NULL(naoB, "m4NAME: Error calling Nap_CastNAO");
+	}
     } else {
 	naoB = Nap_NewNAO(nap_cd, dataType, 2, naoA->shape);
 	CHECK2NULL(naoB, "m4NAME: Error calling Nap_NewNAO");
@@ -1042,6 +1059,126 @@ mixedBase(
 	}
     }
     return 0;
+}
+
+/*
+ * Nap_sort --
+ *	function sort(v) which sorts vector into ascending order
+ *	Consider NaN < -infinity
+ *	Other missing values simply treated as having their numeric value.
+ */
+
+m4begin
+
+#	m4cmpInt(type)
+m4define(`m4cmpInt', `
+int cmp$1(const void *xp, const void *yp) {
+    m4DataTypeName($1) x = **((m4DataTypeName($1) **) xp);
+    m4DataTypeName($1) y = **((m4DataTypeName($1) **) yp);
+    return x < y ? -1 : (x > y ? 1 : 0);
+}')
+
+#	m4cmpReal(type)
+m4define(`m4cmpReal', `
+int cmp$1(const void *xp, const void *yp) {
+    m4DataTypeName($1) x = **((m4DataTypeName($1) **) xp);
+    m4DataTypeName($1) y = **((m4DataTypeName($1) **) yp);
+    if (m4isNaN($1)(x)  ||  x < y)  return -1;
+    if (m4isNaN($1)(y)  ||  y < x)  return  1;
+    return 0;
+}')
+
+#	m4sort(type)
+m4define(`m4sort', `
+	case m4DataTypeEnum($1):
+	    qsort(pv, n, sizeof(char *), cmp$1);
+	    break;')
+
+m4define(`m4NAME', `Nap_sort')
+
+m4end
+
+m4ForAllCharacterDataType(`m4cmpInt(', `)')
+m4ForAllIntegerDataType(`m4cmpInt(', `)')
+m4ForAllRealDataType(`m4cmpReal(', `)')
+
+static char *
+Nap_sort(
+    NapClientData	*nap_cd, 
+    char		*str1,			/* main nao */
+    char		*str2)			/* verb-rank nao */
+{
+    size_t		c;			/* subscript of cell */
+    int			frame_rank;
+    Nap_NAO		*naoPtr;		/* main nao */
+    Nap_NAO		*nao_tmp;
+    Nap_NAO		*nao_verb_rank;		/* verb rank */
+    size_t		nCells;			/* no. cells */
+    size_t		i;			/* subscript of row */
+    size_t		j;			/* subscript of col. */
+    size_t		m;			/* no. elements in each cell */
+    size_t		n;			/* most sig. dim of cell = # in each sort */
+    size_t		nc;			/* prod(other dims of cell) = # cols */
+    size_t		nc_s;			/* # bytes in row = nc * s */
+    char		**pv;			/* vector of pointers to data values */
+    char		*pv0;			/* pointer to sub-array */
+    size_t		s;
+    Nap_NAO		*result;
+    int			verb_rank;
+
+    assert(str1);
+    naoPtr = Nap_GetNaoFromId(nap_cd, str1);
+    CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_GetNaoFromId");
+    Nap_IncrRefCount(nap_cd, naoPtr);
+    if (str2) {
+	nao_verb_rank = Nap_GetNaoFromId(nap_cd, str2);
+	CHECK2NULL(nao_verb_rank, "m4NAME: Error calling Nap_GetNaoFromId");
+	Nap_IncrRefCount(nap_cd, nao_verb_rank);
+	CHECK2NULL(nao_verb_rank->rank == 0, "m4NAME: Verb-rank is not scalar");
+	nao_tmp = Nap_CastNAO(nap_cd, nao_verb_rank, NAP_I32);
+	CHECK2NULL(nao_tmp, "m4NAME: Error calling Nap_CastNAO");
+	Nap_IncrRefCount(nap_cd, nao_tmp);
+	verb_rank = Min(naoPtr->rank, nao_tmp->data.I32[0]);
+	Nap_DecrRefCount(nap_cd, nao_tmp);
+	Nap_DecrRefCount(nap_cd, nao_verb_rank);
+    } else {
+	verb_rank = naoPtr->rank;
+    }
+    result = Nap_DupNAO(nap_cd, naoPtr);
+    CHECK2NULL(result, "m4NAME: error calling Nap_DupNAO");
+    if (verb_rank > 0) {
+	frame_rank = naoPtr->rank - verb_rank;
+	s = Nap_SizeOf(naoPtr->dataType);
+	nCells = 1;
+	for (i = 0; i < frame_rank; i++) {
+	    nCells *= naoPtr->shape[i];
+	}
+	m = naoPtr->nels / nCells;
+	n = naoPtr->shape[frame_rank];
+	nc = m / n;
+	nc_s = nc * s;
+	pv = (char **) MALLOC(n * sizeof(char *));
+	for (c = 0; c < nCells; c++) {
+	    for (j = 0; j < nc; j++) {
+		pv0 = naoPtr->data.c + (c * m + j) * s;
+		for (i = 0; i < n; i++) {
+		    pv[i] = pv0 + i * nc_s;
+		}
+		switch (naoPtr->dataType) {
+		    m4ForAllUnboxedDataType(`m4sort(', `)')
+		    default:                /* error */
+			return NULL;
+		}
+		pv0 = result->data.c + (c * m + j) * s;
+		for (i = 0; i < n; i++) {
+		    (void) memcpy(pv0 + i * nc_s, pv[i], s);
+		}
+	    }
+	}
+	FREE(pv);
+    }
+    Nap_DecrRefCount(nap_cd, naoPtr);
+    return result->id;
 }
 
 /*
@@ -1197,6 +1334,8 @@ Nap_Func2(
 	return Nap_Reshape(nap_cd, str1, str2);
     } else if (strcmp(name, "solve_linear") == 0) {
 	return Nap_SolveLinear(nap_cd, str1, str2);
+    } else if (strcmp(name, "sort") == 0) {
+	return Nap_sort(nap_cd, str1, str2);
     } else if (strcmp(name, "transpose") == 0) {
 	return Nap_Transpose(nap_cd, str1, str2);
     }

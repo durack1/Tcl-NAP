@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.192 2003/09/24 06:22:50 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.201 2004/11/08 22:54:23 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -337,7 +337,7 @@ Nap_Reduce(
 /*
  *  Nap_CorrelationStore --
  *
- *  Called by Nap_Correlation
+ *  Called by Nap_Correlation & Nap_MovingCorrelation
  */
 
 m4begin
@@ -378,26 +378,151 @@ Nap_CorrelationStore(
 /*
  *  Nap_Correlation --
  *
- *  Nap function 'correlation(x, ?y,? ?lag0,? ?lag1,? ...)'
- *  Calculates Pearson product-moment correlations (omitting cases where either value is missing).
- *  If x or y is F64 then result is F64, else it is F32. (But calculation still done using F64.)
- *  Dimension 0 has size 2. Index 0 corresponds to the correlation values themselves, while index 1
- *  corresponds to the sample sizes (n).
+ *  Nap function 'correlation(x, ?y?)'
  *
- *  If there is only one argument (x) then this must be a matrix.  In this case the result
- *  is a matrix such that element (i,j) is the correlation between columns i & j of the argument.
+ *  Calculates Pearson product-moment correlations between x & y.
+ *  If y is not specified then it defaults to x.
  *
- *  If y is defined then smaller of x & y is a window (chip) array which is moved around in other
- *  array.  In this case the result is array of correlations for each position.
- *  Ranks of x and y must be the same.  (Current version supports ranks 1 & 2 only.)
- *  lag0 is vector of row    lags (default: all possible)
- *  lag1 is vector of column lags (default: all possible)
+ *  The 1st (most significant) dimensions of x & y must have the same size, since this corresponds
+ *  to the number of cases. (For time-series this dimensions is time.)
+ *  The remaining dimensions (if any) of x & y are essentially merged into column dimensions,
+ *  but do appear in the result.
+ *
+ *  For example, let x be a matrix with shape {80 3} & y a matrix with shape {80 5}. The command
+ *  nap "r = correlation(x, y)"
+ *  produces an array r with shape {2 3 5}.
+ *  r(0,i,j) is the correlation between column i of x & column j of y.
+ *  r(1,i,j) is the number of cases (sample size 'n') used to calculate r(0,i,j).
+ *  (A case is omitted if either the x or y value is missing.)
+ *
+ *  If x or y is f64 then result is f64, else it is f32.
  */
 
 m4define(`m4NAME', `Nap_Correlation')
 
 static char *
 Nap_Correlation(
+    NapClientData	*nap_cd, 
+    Nap_NAO		*box_nao)		/* points to user's arguments */
+{
+    Nap_NAO		*arg;			/* argument (x or y) */
+    Nap_dataType        dataType;		/* of result */
+    int			i;			/* subscript */
+    int			ix;			/* row of x */
+    int			iz;			/* row of z */
+    int			j;			/* subscript */
+    int			jz;			/* column of z */
+    double		n;			/* # elements in x */
+    int			ncx;			/* # columns in x */
+    int			ncy;			/* # columns in y */
+    int			nr;			/* # rows in x & y (# cases) */
+    size_t		shape[NAP_MAX_RANK];
+    int			status;
+    double		sumx;			/* sum(x) */
+    double		sumx2;			/* sum(x*x) */
+    double		sumxy;			/* sum(x*y) */
+    double		sumy;			/* sum(y) */
+    double		sumy2;			/* sum(y*y) */
+    Nap_NAO		*tmp_nao;
+    Nap_NAO		*xnao;			/* x */
+    Nap_NAO		*ynao;			/* y */
+    Nap_NAO		*znao;			/* z = result */
+
+    assert(box_nao);
+    assert(box_nao->dataType == NAP_BOXED);
+    Nap_IncrRefCount(nap_cd, box_nao);
+    CHECK2NULL(box_nao->rank == 1, "m4NAME: Argument rank not 1");
+    CHECK2NULL(box_nao->nels > 0,  "m4NAME: No arguments");
+    CHECK2NULL(box_nao->nels < 3,  "m4NAME: Too many arguments");
+    arg = Nap_GetNaoFromSlot(box_nao->data.Boxed[0]);
+    CHECK2NULL(arg, "m4NAME: Error calling Nap_GetNaoFromSlot");
+    CHECK2NULL(arg->rank > 0, "m4NAME: Scalar argument");
+    xnao = Nap_CastNAO(nap_cd, arg, NAP_F64);
+    CHECK2NULL(xnao, "m4NAME: Error calling Nap_CastNAO");
+    Nap_IncrRefCount(nap_cd, xnao);
+    dataType = Max(m4DataTypeEnum(m4MinRealDataType), arg->dataType);
+    nr = xnao->shape[0];
+    if (box_nao->nels > 1) {
+	arg = Nap_GetNaoFromSlot(box_nao->data.Boxed[1]);
+	CHECK2NULL(arg, "m4NAME: Error calling Nap_GetNaoFromSlot");
+	CHECK2NULL(arg->rank > 0, "m4NAME: Scalar argument");
+	CHECK2NULL(nr == arg->shape[0], "m4NAME: Leading dimensions of arguments do not match");
+	ynao = Nap_CastNAO(nap_cd, arg, NAP_F64);
+	CHECK2NULL(ynao, "m4NAME: Error calling Nap_CastNAO");
+	dataType = Max(dataType, arg->dataType);
+    } else {
+	ynao = xnao;
+    }
+    Nap_IncrRefCount(nap_cd, ynao);
+    j = 0;
+    shape[j++] = 2;
+    for (i = 1; i < xnao->rank; i++) {
+	shape[j++] = xnao->shape[i];
+    }
+    for (i = 1; i < ynao->rank; i++) {
+	shape[j++] = ynao->shape[i];
+    }
+    znao = Nap_NewNAO(nap_cd, dataType, j, shape);
+    CHECK2NULL(znao, "m4NAME: error calling Nap_NewNAO");
+    j = 1;
+    for (i = 1; i < xnao->rank; i++) {
+	tmp_nao = Nap_GetCoordVar(nap_cd, xnao, i);
+	status = Nap_AttachCoordVar(nap_cd, znao, tmp_nao, NULL, j++);
+	CHECK1NULL(status == TCL_OK);
+    }
+    for (i = 1; i < ynao->rank; i++) {
+	tmp_nao = Nap_GetCoordVar(nap_cd, ynao, i);
+	status = Nap_AttachCoordVar(nap_cd, znao, tmp_nao, NULL, j++);
+	CHECK1NULL(status == TCL_OK);
+    }
+    ncx = xnao->nels / nr;
+    ncy = ynao->nels / nr;
+    for (iz = 0; iz < ncx; iz++) {
+	for (jz = 0; jz < ncy; jz++) {
+	    n = sumx = sumx2 = sumy = sumy2 = sumxy = 0.0;
+	    for (ix = 0; ix < nr; ix++) {
+		i = iz + ncx * ix;
+		j = jz + ncy * ix;
+		if (!IsMissing(xnao, i)  &&  !IsMissing(ynao, j)) {
+		    ++n;
+		    sumx  += xnao->data.F64[i];
+		    sumx2 += Sq(xnao->data.F64[i]);
+		    sumy  += ynao->data.F64[j];
+		    sumy2 += Sq(ynao->data.F64[j]);
+		    sumxy += xnao->data.F64[i] * ynao->data.F64[j];
+		}
+	    }
+	    status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
+		    jz+iz*ncx, jz+iz*ncx+ncy*ncx);
+	    CHECK1NULL(status == TCL_OK);
+	}
+    }
+    Nap_DecrRefCount(nap_cd, xnao);
+    Nap_DecrRefCount(nap_cd, ynao);
+    Nap_DecrRefCount(nap_cd, box_nao);
+    return znao->id;
+}
+
+/*
+ *  Nap_MovingCorrelation --
+ *
+ *  Nap function 'moving_correlation(x, y, ?lag0?, ?lag1?)'
+ *  Calculates Pearson product-moment correlations (omitting cases where either value is missing).
+ *  If x or y is F64 then result is F64, else it is F32. (But calculation still done using F64.)
+ *  Dimension 0 has size 2. Index 0 corresponds to the correlation values themselves, while index 1
+ *  corresponds to the sample sizes (n).
+ *
+ *  Smaller of x & y is a window (chip) array which is moved around in other array.
+ *  In this case the result is array of correlations for each position.
+ *  Ranks of x and y must be the same.  (Current version supports ranks 1 & 2 only.)
+ *  lag0 is vector of row    lags (default: all possible)
+ *  lag1 is vector of column lags (default: all possible)
+ */
+
+m4define(`m4NAME', `Nap_MovingCorrelation')
+
+static char *
+Nap_MovingCorrelation(
     NapClientData	*nap_cd, 
     Nap_NAO		*box_nao)		/* points to user's arguments */
 {
@@ -444,156 +569,116 @@ Nap_Correlation(
     arg0_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[0]);
     CHECK2NULL(arg0_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
     dataType = Max(m4DataTypeEnum(m4MinRealDataType), arg0_nao->dataType);
-    if (box_nao->nels > 1) {
-	arg1_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[1]);
-	CHECK2NULL(arg1_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
-	dataType = Max(dataType, arg1_nao->dataType);
-	CHECK2NULL(arg0_nao->rank == arg1_nao->rank, "m4NAME: Rank of x differs from that of y");
-	CHECK2NULL(arg0_nao->rank > 0, "m4NAME: Rank of x is 0");
-	CHECK2NULL(arg0_nao->rank < 3, "m4NAME: Rank of x > 2 which is not yet supported");
-	CHECK2NULL(box_nao->nels <= 2+arg0_nao->rank, "m4NAME: Too many arguments");
-	if (arg0_nao->nels > arg1_nao->nels) {
-	    tmp_nao = arg0_nao;
-	    arg0_nao = arg1_nao;
-	    arg1_nao = tmp_nao;
-	}
-	shape[0] = arg0_nao->shape[0];
-	shape[1] = arg0_nao->rank > 1 ? arg0_nao->shape[1] : 1;
-	xnao = Nap_ReshapeNAO(nap_cd, arg0_nao, NAP_F64, 2, shape);
-	CHECK2NULL(xnao, "m4NAME: Error calling Nap_ReshapeNAO");
-	Nap_IncrRefCount(nap_cd, xnao);
-	shape[0] = arg1_nao->shape[0];
-	shape[1] = arg1_nao->rank > 1 ? arg1_nao->shape[1] : 1;
-	ynao = Nap_ReshapeNAO(nap_cd, arg1_nao, NAP_F64, 2, shape);
-	CHECK2NULL(ynao, "m4NAME: Error calling Nap_ReshapeNAO");
-	Nap_IncrRefCount(nap_cd, ynao);
-	for (i = 0; i < 2; i++) {
-	    tmp_nao = Nap_GetCoordVar(nap_cd, ynao, i);
-	    if (tmp_nao) {
-		Nap_IncrRefCount(nap_cd, tmp_nao);
-		cvy[i] = Nap_CastNAO(nap_cd, tmp_nao, NAP_F32);
-		CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_CastNAO");
-		Nap_IncrRefCount(nap_cd, cvy[i]);
-		Nap_DecrRefCount(nap_cd, tmp_nao);
-	    } else {
-		cvy[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, ynao->shape + i);
-		CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_NewNAO");
-		Nap_IncrRefCount(nap_cd, cvy[i]);
-		for (j = 0; j < cvy[i]->nels; j++) {
-		    cvy[i]->data.F32[j] = j;
-		}
-	    }
-	    if (box_nao->nels > i+2) {
-		tmp_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[i+2]);
-		CHECK2NULL(tmp_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
-		CHECK3NULL(tmp_nao->rank < 2, "m4NAME: Rank of lag %d > 1", i);
-		Nap_IncrRefCount(nap_cd, tmp_nao);
-		shape[0] = tmp_nao->nels;
-		lag[i] = Nap_ReshapeNAO(nap_cd, tmp_nao, NAP_I32, 1, shape);
-		CHECK2NULL(lag[i], "m4NAME: Error calling Nap_ReshapeNAO");
-		Nap_IncrRefCount(nap_cd, lag[i]);
-		Nap_DecrRefCount(nap_cd, tmp_nao);
-	    } else {
-		shape[0] = 1 + ynao->shape[i] - xnao->shape[i];
-		lag[i] = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
-		CHECK2NULL(lag[i], "m4NAME: Error calling Nap_NewNAO");
-		Nap_IncrRefCount(nap_cd, lag[i]);
-		for (j = 0; j < lag[i]->nels; j++) {
-		    lag[i]->data.I32[j] = j;
-		}
+    arg1_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[1]);
+    CHECK2NULL(arg1_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
+    dataType = Max(dataType, arg1_nao->dataType);
+    CHECK2NULL(arg0_nao->rank == arg1_nao->rank, "m4NAME: Rank of x differs from that of y");
+    CHECK2NULL(arg0_nao->rank > 0, "m4NAME: Rank of x is 0");
+    CHECK2NULL(arg0_nao->rank < 3, "m4NAME: Rank of x > 2 which is not yet supported");
+    CHECK2NULL(box_nao->nels <= 2+arg0_nao->rank, "m4NAME: Too many arguments");
+    if (arg0_nao->nels > arg1_nao->nels) {
+	tmp_nao = arg0_nao;
+	arg0_nao = arg1_nao;
+	arg1_nao = tmp_nao;
+    }
+    shape[0] = arg0_nao->shape[0];
+    shape[1] = arg0_nao->rank > 1 ? arg0_nao->shape[1] : 1;
+    xnao = Nap_ReshapeNAO(nap_cd, arg0_nao, NAP_F64, 2, shape);
+    CHECK2NULL(xnao, "m4NAME: Error calling Nap_ReshapeNAO");
+    Nap_IncrRefCount(nap_cd, xnao);
+    shape[0] = arg1_nao->shape[0];
+    shape[1] = arg1_nao->rank > 1 ? arg1_nao->shape[1] : 1;
+    ynao = Nap_ReshapeNAO(nap_cd, arg1_nao, NAP_F64, 2, shape);
+    CHECK2NULL(ynao, "m4NAME: Error calling Nap_ReshapeNAO");
+    Nap_IncrRefCount(nap_cd, ynao);
+    for (i = 0; i < 2; i++) {
+	tmp_nao = Nap_GetCoordVar(nap_cd, ynao, i);
+	if (tmp_nao) {
+	    Nap_IncrRefCount(nap_cd, tmp_nao);
+	    cvy[i] = Nap_CastNAO(nap_cd, tmp_nao, NAP_F32);
+	    CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_CastNAO");
+	    Nap_IncrRefCount(nap_cd, cvy[i]);
+	    Nap_DecrRefCount(nap_cd, tmp_nao);
+	} else {
+	    cvy[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, ynao->shape + i);
+	    CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_NewNAO");
+	    Nap_IncrRefCount(nap_cd, cvy[i]);
+	    for (j = 0; j < cvy[i]->nels; j++) {
+		cvy[i]->data.F32[j] = j;
 	    }
 	}
-	shape[0] = 2;
-	shape[1] = nrz = lag[0]->nels;
-	shape[2] = ncz = lag[1]->nels;
-	znao = Nap_NewNAO(nap_cd, dataType, 1 + arg0_nao->rank, shape);
-	CHECK2NULL(znao, "m4NAME: Error calling Nap_NewNAO");
-	for (i = 1; i < znao->rank; i++) {
-	    cvz[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, shape+i);
-	    CHECK2NULL(cvz[i], "m4NAME: Error calling Nap_NewNAO");
-	    status = Nap_AttachCoordVar(nap_cd, znao, cvz[i], ynao->dimName[i-1], i);
-	    CHECK1NULL(status == TCL_OK);
-	}
-	nrx = xnao->shape[0];
-	ncx = xnao->shape[1];
-	nry = ynao->shape[0];
-	ncy = ynao->shape[1];
-	CHECK2NULL(nrx <= nry  &&  ncx <= ncy, "m4NAME: Shape of x incompatible with that of y");
-	for (iz = 0; iz < nrz; iz++) {
-	    lag0 = lag[0]->data.I32[iz];
-	    cvz[1]->data.F32[iz] = 0.5 * (cvy[0]->data.F32[lag0] + cvy[0]->data.F32[lag0+nrx-1]);
-	    for (jz = 0; jz < ncz; jz++) {
-		lag1 = lag[1]->data.I32[jz];
-		n = sumx = sumx2 = sumy = sumy2 = sumxy = 0.0;
-		if (znao->rank > 2) {
-		    cvz[2]->data.F32[jz]
-			    = 0.5 * (cvy[1]->data.F32[lag1] + cvy[1]->data.F32[lag1+ncx-1]);
-		}
-		for (ix = 0; ix < nrx; ix++) {
-		    ijx0 = ix * ncx;
-		    ijy0 = lag1 + (lag0 + ix) * ncy;
-		    for (jx = 0; jx < ncx; jx++) {
-			i = ijx0 + jx;
-			j = ijy0 + jx;
-			if (!IsMissing(xnao, i)  &&  !IsMissing(ynao, j)) {
-			    ++n;
-			    sumx  += xnao->data.F64[i];
-			    sumx2 += Sq(xnao->data.F64[i]);
-			    sumy  += ynao->data.F64[j];
-			    sumy2 += Sq(ynao->data.F64[j]);
-			    sumxy += xnao->data.F64[i] * ynao->data.F64[j];
-			}
-		    }
-		}
-		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
-			jz+iz*ncz, jz+iz*ncz+ncz*nrz);
-		CHECK1NULL(status == TCL_OK);
-	    }
-	}
-	for (i = 0; i < 2; i++) {
-	    Nap_DecrRefCount(nap_cd, lag[i]);
-	    Nap_DecrRefCount(nap_cd, cvy[i]);
-	}
-	Nap_DecrRefCount(nap_cd, ynao);
-    } else {
-	CHECK2NULL(arg0_nao->rank == 2, "m4NAME: Rank of argument should be 2");
-	xnao = Nap_CastNAO(nap_cd, arg0_nao, NAP_F64);
-	CHECK2NULL(xnao, "m4NAME: Error calling Nap_CastNAO");
-	Nap_IncrRefCount(nap_cd, xnao);
-	nrx = xnao->shape[0];
-	shape[0] = 2;
-	shape[1] = shape[2] = nrz = ncz = ncx = xnao->shape[1];
-	znao = Nap_NewNAO(nap_cd, dataType, 3, shape);
-	CHECK2NULL(znao, "m4NAME: error calling Nap_NewNAO");
-	tmp_nao = Nap_GetCoordVar(nap_cd, xnao, 1);
-	for (i = 1; i < 3; i++) {
-	    status = Nap_AttachCoordVar(nap_cd, znao, tmp_nao, NULL, i);
-	    CHECK1NULL(status == TCL_OK);
-	}
-	for (iz = 0; iz < ncx; iz++) {
-	    for (jz = 0; jz <= iz; jz++) {
-		n = sumx = sumx2 = sumy = sumy2 = sumxy = 0.0;
-		for (ix = 0; ix < nrx; ix++) {
-		    i = iz + ncx * ix;
-		    j = jz + ncx * ix;
-		    if (!IsMissing(xnao, i)  &&  !IsMissing(xnao, j)) {
-			++n;
-			sumx  += xnao->data.F64[i];
-			sumx2 += Sq(xnao->data.F64[i]);
-			sumy  += xnao->data.F64[j];
-			sumy2 += Sq(xnao->data.F64[j]);
-			sumxy += xnao->data.F64[i] * xnao->data.F64[j];
-		    }
-		}
-		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
-			jz+iz*ncx, jz+iz*ncx+ncz*nrz);
-		CHECK1NULL(status == TCL_OK);
-		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
-			iz+jz*ncx, iz+jz*ncx+ncz*nrz);
-		CHECK1NULL(status == TCL_OK);
+	if (box_nao->nels > i+2) {
+	    tmp_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[i+2]);
+	    CHECK2NULL(tmp_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
+	    CHECK3NULL(tmp_nao->rank < 2, "m4NAME: Rank of lag %d > 1", i);
+	    Nap_IncrRefCount(nap_cd, tmp_nao);
+	    shape[0] = tmp_nao->nels;
+	    lag[i] = Nap_ReshapeNAO(nap_cd, tmp_nao, NAP_I32, 1, shape);
+	    CHECK2NULL(lag[i], "m4NAME: Error calling Nap_ReshapeNAO");
+	    Nap_IncrRefCount(nap_cd, lag[i]);
+	    Nap_DecrRefCount(nap_cd, tmp_nao);
+	} else {
+	    shape[0] = 1 + ynao->shape[i] - xnao->shape[i];
+	    lag[i] = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
+	    CHECK2NULL(lag[i], "m4NAME: Error calling Nap_NewNAO");
+	    Nap_IncrRefCount(nap_cd, lag[i]);
+	    for (j = 0; j < lag[i]->nels; j++) {
+		lag[i]->data.I32[j] = j;
 	    }
 	}
     }
+    shape[0] = 2;
+    shape[1] = nrz = lag[0]->nels;
+    shape[2] = ncz = lag[1]->nels;
+    znao = Nap_NewNAO(nap_cd, dataType, 1 + arg0_nao->rank, shape);
+    CHECK2NULL(znao, "m4NAME: Error calling Nap_NewNAO");
+    for (i = 1; i < znao->rank; i++) {
+	cvz[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, shape+i);
+	CHECK2NULL(cvz[i], "m4NAME: Error calling Nap_NewNAO");
+	status = Nap_AttachCoordVar(nap_cd, znao, cvz[i], ynao->dimName[i-1], i);
+	CHECK1NULL(status == TCL_OK);
+    }
+    nrx = xnao->shape[0];
+    ncx = xnao->shape[1];
+    nry = ynao->shape[0];
+    ncy = ynao->shape[1];
+    CHECK2NULL(nrx <= nry  &&  ncx <= ncy, "m4NAME: Shape of x incompatible with that of y");
+    for (iz = 0; iz < nrz; iz++) {
+	lag0 = lag[0]->data.I32[iz];
+	cvz[1]->data.F32[iz] = 0.5 * (cvy[0]->data.F32[lag0] + cvy[0]->data.F32[lag0+nrx-1]);
+	for (jz = 0; jz < ncz; jz++) {
+	    lag1 = lag[1]->data.I32[jz];
+	    n = sumx = sumx2 = sumy = sumy2 = sumxy = 0.0;
+	    if (znao->rank > 2) {
+		cvz[2]->data.F32[jz]
+			= 0.5 * (cvy[1]->data.F32[lag1] + cvy[1]->data.F32[lag1+ncx-1]);
+	    }
+	    for (ix = 0; ix < nrx; ix++) {
+		ijx0 = ix * ncx;
+		ijy0 = lag1 + (lag0 + ix) * ncy;
+		for (jx = 0; jx < ncx; jx++) {
+		    i = ijx0 + jx;
+		    j = ijy0 + jx;
+		    if (!IsMissing(xnao, i)  &&  !IsMissing(ynao, j)) {
+			++n;
+			sumx  += xnao->data.F64[i];
+			sumx2 += Sq(xnao->data.F64[i]);
+			sumy  += ynao->data.F64[j];
+			sumy2 += Sq(ynao->data.F64[j]);
+			sumxy += xnao->data.F64[i] * ynao->data.F64[j];
+		    }
+		}
+	    }
+	    status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
+		    jz+iz*ncz, jz+iz*ncz+ncz*nrz);
+	    CHECK1NULL(status == TCL_OK);
+	}
+    }
+    for (i = 0; i < 2; i++) {
+	Nap_DecrRefCount(nap_cd, lag[i]);
+	Nap_DecrRefCount(nap_cd, cvy[i]);
+    }
+    Nap_DecrRefCount(nap_cd, ynao);
     Nap_DecrRefCount(nap_cd, xnao);
     Nap_DecrRefCount(nap_cd, box_nao);
     return znao->id;
@@ -977,70 +1062,6 @@ Nap_psum(
 
 
 /*
- * Nap_sort --
- *	function sort(v) which sorts vector into ascending order
- *	Consider NaN < -infinity
- *	Other missing values simply treated as having their numeric value.
- */
-
-m4begin
-
-#	m4cmpInt(type)
-m4define(`m4cmpInt', `
-int cmp$1(const void *xp, const void *yp) {
-    m4DataTypeName($1) x = *((m4DataTypeName($1) *) xp);
-    m4DataTypeName($1) y = *((m4DataTypeName($1) *) yp);
-    return x < y ? -1 : (x > y ? 1 : 0);
-}')
-
-#	m4cmpReal(type)
-m4define(`m4cmpReal', `
-int cmp$1(const void *xp, const void *yp) {
-    m4DataTypeName($1) x = *((m4DataTypeName($1) *) xp);
-    m4DataTypeName($1) y = *((m4DataTypeName($1) *) yp);
-    if (m4isNaN($1)(x)  ||  x < y)  return -1;
-    if (m4isNaN($1)(y)  ||  y < x)  return  1;
-    return 0;
-}')
-
-#	m4sort(type)
-m4define(`m4sort', `
-	case m4DataTypeEnum($1):
-	    qsort(result->data.$1, n, s, cmp$1);
-	    break;')
-
-m4define(`m4NAME', `Nap_sort')
-
-m4end
-
-m4ForAllCharacterDataType(`m4cmpInt(', `)')
-m4ForAllIntegerDataType(`m4cmpInt(', `)')
-m4ForAllRealDataType(`m4cmpReal(', `)')
-
-static char *
-Nap_sort(
-    NapClientData	*nap_cd, 
-    Nap_NAO		*naoPtr)		/* data (must be vector) */
-{
-    size_t		n;
-    size_t		s;
-    Nap_NAO		*result;
-
-    assert(naoPtr);
-    CHECK2NULL(naoPtr->rank == 1, "m4NAME: rank of argument of sort() not 1");
-    result = Nap_DupNAO(nap_cd, naoPtr);
-    CHECK2NULL(result, "m4NAME: error calling Nap_DupNAO");
-    n = naoPtr->nels;
-    s = Nap_SizeOf(naoPtr->dataType);
-    switch (naoPtr->dataType) {
-        m4ForAllUnboxedDataType(`m4sort(', `)')
-        default:                /* error */
-            return NULL;
-    }
-    return result->id;
-}
-
-/*
  * Nap_invert_grid --
  */
 
@@ -1051,7 +1072,8 @@ m4define(`m4NAME', `Nap_invert_grid')
 static char *
 Nap_invert_grid(
     NapClientData	*nap_cd, 
-    char		*str)			/* id of box nao */
+    char		*str,			/* id of box nao */
+    int			trim)			/* 1 = invert_grid, 0 = invert_grid_no_trim */
 {
     float		a;			/* coeff of quadratic */
     float		b;			/* coeff of quadratic */
@@ -1123,8 +1145,11 @@ Nap_invert_grid(
 	tmp_nao1 = Nap_GetNaoFromSlot(box_nao->data.Boxed[2*i]);
 	CHECK2NULL(tmp_nao1, "m4NAME: NULL argument");
 	CHECK2NULL(tmp_nao1->rank == rank, "m4NAME: Main array has wrong rank");
+	Nap_IncrRefCount(nap_cd, tmp_nao1);
 	main_nao[i] = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
 	CHECK2NULL(main_nao[i], "m4NAME: Error calling Nap_CastNAO");
+	Nap_IncrRefCount(nap_cd, main_nao[i]);
+	Nap_DecrRefCount(nap_cd, tmp_nao1);
 	maxValue = -FLT_MAX;
 	minValue =  FLT_MAX;
 	for (j = 0; j < main_nao[i]->nels; j++) {
@@ -1139,43 +1164,52 @@ Nap_invert_grid(
 	maxValue += delta;
 	tmp_nao1 = Nap_GetNaoFromSlot(box_nao->data.Boxed[2*i+1]);
 	CHECK2NULL(tmp_nao1, "m4NAME: NULL argument");
-	CHECK2NULL(tmp_nao1->rank == 1, "m4NAME: Coordinate variable has wrong rank");
-	tmp_nao2 = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
-	CHECK2NULL(tmp_nao2, "m4NAME: Error calling Nap_CastNAO");
-	shape[0] = 0;
-	for (j = 0; j < tmp_nao2->nels; j++) {
-	    value = tmp_nao2->data.F32[j];
-	    shape[0] += value >= minValue  &&  value <= maxValue;
+	CHECK2NULL(tmp_nao1->rank <= 1, "m4NAME: Coordinate variable has wrong rank");
+	Nap_IncrRefCount(nap_cd, tmp_nao1);
+	shape[0] = tmp_nao1->nels;
+	tmp_nao2 = Nap_ReshapeNAO(nap_cd, tmp_nao1, NAP_F32, 1, shape);
+	CHECK2NULL(tmp_nao2, "m4NAME: Error calling Nap_ReshapeNAO");
+	Nap_IncrRefCount(nap_cd, tmp_nao2);
+	Nap_DecrRefCount(nap_cd, tmp_nao1);
+	if (trim) {
+	    shape[0] = 0;
+	    for (j = 0; j < tmp_nao2->nels; j++) {
+		value = tmp_nao2->data.F32[j];
+		shape[0] += value >= minValue  &&  value <= maxValue;
+	    }
+	    new_cv_nao[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, shape);
+	    CHECK2NULL(new_cv_nao[i], "m4NAME: Error calling Nap_NewNAO");
+	} else {
+	    new_cv_nao[i] = tmp_nao2;
 	}
-	new_cv_nao[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, shape);
-	CHECK2NULL(new_cv_nao[i], "m4NAME: Error calling Nap_NewNAO");
-	status = Nap_AttachCoordVar(nap_cd, new_cv_nao[i], NULL, tmp_nao1->dimName[0], 0);
+	Nap_IncrRefCount(nap_cd, new_cv_nao[i]);
+	status = Nap_AttachCoordVar(nap_cd, new_cv_nao[i], NULL, tmp_nao2->dimName[0], 0);
 	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
 	if (main_nao[i]->unit) {
 	    new_cv_nao[i]->unit = Nap_StrDup(main_nao[i]->unit);
-	} else if (tmp_nao1->unit) {
-	    new_cv_nao[i]->unit = Nap_StrDup(tmp_nao1->unit);
+	} else if (tmp_nao2->unit) {
+	    new_cv_nao[i]->unit = Nap_StrDup(tmp_nao2->unit);
 	}
 	new_cv[i] = new_cv_nao[i]->data.F32;
 	for (j = k = 0; j < tmp_nao2->nels; j++) {
 	    value = tmp_nao2->data.F32[j];
-	    if (value >= minValue  &&  value <= maxValue) {
+	    if (!trim  ||  value >= minValue  &&  value <= maxValue) {
 		new_cv[i][k++] = value;
 	    }
 	}
-	Nap_FreeNAO(nap_cd, tmp_nao2);
+	Nap_DecrRefCount(nap_cd, tmp_nao2);
     }
     for (j = 0; j < rank; j++) {
 	shape_main[j] = main_nao[0]->shape[j];
 	for (i = 0, tmp_nao1 = NULL; i < rank && !tmp_nao1; i++) {
 	    tmp_nao1 = Nap_GetCoordVar(nap_cd, main_nao[i], j);
+	    Nap_IncrRefCount(nap_cd, tmp_nao1);
 	}
 	if (tmp_nao1) {
 	    old_cv_nao[j] = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
 	    CHECK2NULL(old_cv_nao[j], "m4NAME: Error calling Nap_CastNAO");
-	    if (old_cv_nao[j] != tmp_nao1) {
-		Nap_FreeNAO(nap_cd, tmp_nao1);
-	    }
+	    Nap_IncrRefCount(nap_cd, old_cv_nao[j]);
+	    Nap_DecrRefCount(nap_cd, tmp_nao1);
 	    old_cv[j] = old_cv_nao[j]->data.F32;
 	} else {
 	    old_cv_nao[j] = NULL;
@@ -1187,12 +1221,11 @@ Nap_invert_grid(
 	    CHECK2NULL(main_nao[i]->shape[j] == shape_main[j],
 		    "m4NAME: Main arrays have different shapes");
 	    tmp_nao1 = Nap_GetCoordVar(nap_cd, main_nao[i], j);
+	    Nap_IncrRefCount(nap_cd, tmp_nao1);
 	    if (old_cv[j] && tmp_nao1) {
 		tmp_nao2 = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
 		CHECK2NULL(tmp_nao2, "m4NAME: Error calling Nap_CastNAO");
-		if (tmp_nao2 != tmp_nao1) {
-		    Nap_FreeNAO(nap_cd, tmp_nao1);
-		}
+		Nap_IncrRefCount(nap_cd, tmp_nao2);
 		if (shape_main[j] > 0) {
 		    delta = eps * Abs(old_cv[j][shape_main[j]-1]-old_cv[j][0]);
 		}
@@ -1200,8 +1233,9 @@ Nap_invert_grid(
 		    CHECK2NULL(Abs(tmp_nao2->data.F32[k] - old_cv[j][k]) <= delta,
 			    "m4NAME: Main arrays have different coordinate variables");
 		}
-		Nap_FreeNAO(nap_cd, tmp_nao2);
+		Nap_DecrRefCount(nap_cd, tmp_nao2);
 	    }
+	    Nap_DecrRefCount(nap_cd, tmp_nao1);
 	}
     }
     switch (rank) {
@@ -1216,21 +1250,26 @@ Nap_invert_grid(
 	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_AttachCoordVar");
 	tmp = -1.0;
 	for (j = 0; j < result->nels; j++) {
-	    tmp = Nap_IndexOfNao(
-		    nap_cd,
-		    main_nao[0],
-		    &(new_cv[0][j]),
-		    tmp);
-	    k = tmp;
-	    w1 = tmp - k;
-	    w0 = 1.0f - w1;
-	    if (old_cv_nao[0]) {
-		result->data.F32[j] = w0 * old_cv[0][k];
-		if (w1) {
-		    result->data.F32[j] += w1 * old_cv[0][k+1];
-		}
+	    value = new_cv[0][j];
+	    if (value < minValue  ||  value > maxValue) {
+		result->data.F32[j] = NAP_F32_NULL;
 	    } else {
-		result->data.F32[j] = tmp;
+		tmp = Nap_IndexOfNao(
+			nap_cd,
+			main_nao[0],
+			&value,
+			tmp);
+		k = tmp;
+		w1 = tmp - k;
+		w0 = 1.0f - w1;
+		if (old_cv_nao[0]) {
+		    result->data.F32[j] = w0 * old_cv[0][k];
+		    if (w1) {
+			result->data.F32[j] += w1 * old_cv[0][k+1];
+		    }
+		} else {
+		    result->data.F32[j] = tmp;
+		}
 	    }
 	}
 	break;
@@ -1284,17 +1323,21 @@ Nap_invert_grid(
 			h[k][3] = z00 - z01 - z10 + z11;
 			maxValue = Max(Max(z00, z01), Max(z10, z11));
 			minValue = Min(Min(z00, z01), Min(z10, z11));
-			fmin[k] = Nap_IndexOfNao(
-				nap_cd,
-				new_cv_nao[k],
-				new_cv[k][0] < new_cv[k][1] ? &minValue : &maxValue,
-				fmin[k]);
+			if (new_cv_nao[k]->nels > 1) {
+			    fmin[k] = Nap_IndexOfNao(
+				    nap_cd,
+				    new_cv_nao[k],
+				    new_cv[k][0] < new_cv[k][1] ? &minValue : &maxValue,
+				    fmin[k]);
+			    fmax[k] = Nap_IndexOfNao(
+				    nap_cd,
+				    new_cv_nao[k],
+				    new_cv[k][0] < new_cv[k][1] ? &maxValue : &minValue,
+				    fmax[k]);
+			} else {
+			    fmax[k] = fmin[k] = 0.0;
+			}
 			imin[k] = ceil(Max(Min(fmin[k], new_cv_nao[k]->nels-1), 0.0));
-			fmax[k] = Nap_IndexOfNao(
-				nap_cd,
-				new_cv_nao[k],
-				new_cv[k][0] < new_cv[k][1] ? &maxValue : &minValue,
-				fmax[k]);
 			imax[k] = floor(Max(Min(fmax[k], new_cv_nao[k]->nels-1), 0.0));
 			frange[k] = fmax[k] - fmin[k];
 		    }
@@ -1344,8 +1387,9 @@ Nap_invert_grid(
 	assert(FALSE);
     }
     for (i = 0; i < rank; i++) {
-	Nap_FreeNAO(nap_cd, old_cv_nao[i]);
-	Nap_FreeNAO(nap_cd, main_nao[i]);
+	Nap_DecrRefCount(nap_cd, old_cv_nao[i]);
+	Nap_DecrRefCount(nap_cd, new_cv_nao[i]);
+	Nap_DecrRefCount(nap_cd, main_nao[i]);
     }
     return result->id;
 }
@@ -1449,8 +1493,11 @@ Nap_box(
  * Nap_open_box --
  *
  * nap function "open_box(x)" which is inverse of function "box(x)".
- * If argument x is single-element boxed NAO then result is NAO which argument points to.
- * Otherwise result is argument.
+ *
+ * If argument x is single-element (normally scalar) boxed NAO then 
+ *     if x is present then result is NAO which x points to.
+ *     else result is i32(_)
+ * else result is x
  */
 
 m4define(`m4NAME', `Nap_open_box')
@@ -1468,7 +1515,9 @@ Nap_open_box(
     CHECK2NULL(naoPtr, "m4NAME: error calling Nap_GetNaoFromSlot");
     if (naoPtr->dataType == NAP_BOXED  &&  naoPtr->nels == 1) {
 	result = Nap_GetNaoFromSlot(naoPtr->data.Boxed[0]);
-	CHECK2NULL(result, "m4NAME: error calling Nap_GetNaoFromSlot");
+	if (!result) {
+	    result = Nap_StandardMissingValueNAO(nap_cd, NAP_I32);
+	}
     } else {
 	result = naoPtr;
     }
@@ -1714,7 +1763,7 @@ Nap_Tally(
 	switch (naoPtr->dataType) {
 	m4ForAllIntegerDataType(`m4tallyMax(', `)')
 	default:            /* error */
-	    assert(FALSE);
+	    CHECK2NULL(0, "m4NAME: Illegal data-type");
 	}
 	shape[0] = dataMax + 1;
 	c = 1;
@@ -2125,9 +2174,6 @@ Nap_Func1(
     } else if (strcmp(name, "psum") == 0) {
 	id = Nap_psum(nap_cd, naoPtr);
 	new = Nap_GetNaoFromId(nap_cd, id);
-    } else if (strcmp(name, "sort") == 0) {
-	id = Nap_sort(nap_cd, naoPtr);
-	new = Nap_GetNaoFromId(nap_cd, id);
     m4func(ceil)
     m4func(floor)
     m4func(acos)
@@ -2294,12 +2340,18 @@ Nap_StdFuncs(
 	result = Nap_dilate(nap_cd, boxed);
     } else if (strcmp(funcName, "erode") == 0) {
 	result = Nap_erode(nap_cd, boxed);
+    } else if (strcmp(funcName, "inPolygon") == 0) {
+	result = Nap_inPolygon(nap_cd, boxed);
     } else if (strcmp(funcName, "invert_grid") == 0) {
-	result = Nap_invert_grid(nap_cd, boxed->id);
+	result = Nap_invert_grid(nap_cd, boxed->id, 1);
+    } else if (strcmp(funcName, "invert_grid_no_trim") == 0) {
+	result = Nap_invert_grid(nap_cd, boxed->id, 0);
     } else if (strcmp(funcName, "label") == 0) {
 	result = Nap_label(nap_cd, Nap_GetNaoFromSlot(boxed->data.Boxed[0]));
     } else if (strcmp(funcName, "missing_value") == 0) {
 	result = Nap_missing_value(nap_cd, Nap_GetNaoFromSlot(boxed->data.Boxed[0]));
+    } else if (strcmp(funcName, "moving_correlation") == 0) {
+	result = Nap_MovingCorrelation(nap_cd, boxed);
     } else if (strcmp(funcName, "moving_range") == 0) {
 	result = Nap_moving_range(nap_cd, boxed);
     } else if (strcmp(funcName, "nels") == 0) {
@@ -2314,6 +2366,10 @@ Nap_StdFuncs(
 	result = Nap_rank(nap_cd, Nap_GetNaoFromSlot(boxed->data.Boxed[0]));
     } else if (strcmp(funcName, "shape") == 0) {
 	result = Nap_shape(nap_cd, Nap_GetNaoFromSlot(boxed->data.Boxed[0]));
+    } else if (strcmp(funcName, "triangulate") == 0) {
+	result = Nap_Triangulate(nap_cd, boxed);
+    } else if (strcmp(funcName, "triangulate_edges") == 0) {
+	result = Nap_TriangulateEdges(nap_cd, boxed);
     } else {
 	switch (boxed->shape[0]) {
 	    case 1:
@@ -2361,8 +2417,7 @@ Nap_Func(
 
     naoPtr2 = Nap_GetNaoFromId(nap_cd, str2);
     if (naoPtr2) {
-	if (naoPtr2->dataType == NAP_BOXED  &&  naoPtr2->rank > 0) {
-	    CHECK2NULL(naoPtr2->rank == 1, "m4NAME: Boxed argument has rank > 1");
+	if (naoPtr2->dataType == NAP_BOXED  &&  naoPtr2->rank == 1) {
 	    boxed = naoPtr2;
 	} else {
 	    boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);

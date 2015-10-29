@@ -14,8 +14,10 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap.c,m4,v 1.211 2002/10/27 07:00:12 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap.c,m4,v 1.213 2004/04/27 04:28:47 dav480 Exp $";
 #endif /* not lint */
+
+#include <time.h>
 
 #include "nap.h"
 #include "nap_check.h"
@@ -50,15 +52,25 @@ Nap_Cmd(
     Tcl_Obj		*obj_auto_noexec;	/* var auto_noexec */
     Tcl_Obj		*obj_str_auto_noexec;	/* string "auto_noexec" */
     Tcl_Obj		*objArgs;
-    Tcl_Obj		*objJoinCommand;
     Tcl_Obj		*objNapCommand;
     Tcl_Obj		*objResult;		/* result of nap command */
     Tcl_Obj		*objTmp;
+    int			rl;			/* new NAP recursion limit = Tcl recursion limit */
     char		*str;
     int			status;			/* return code */
 
+    rl = Tcl_SetRecursionLimit(interp, 0);
     assert(nap_cd->parseLevel >= -1);
-    CHECK2(nap_cd->parseLevel < NAP_MAX_N_PARSE_LEVELS-1, "m4NAME: Too many recursion levels");
+    if (nap_cd->recursionLimit == 0) {
+	nap_cd->scanString    = (char **)  MALLOC(rl * sizeof(char **));
+	nap_cd->commandLength = (size_t *) MALLOC(rl * sizeof(size_t *));
+	nap_cd->recursionLimit = rl;
+    } else if (nap_cd->recursionLimit < rl) {
+	nap_cd->scanString    = (char **)  REALLOC(nap_cd->scanString,    rl * sizeof(char **));
+	nap_cd->commandLength = (size_t *) REALLOC(nap_cd->commandLength, rl * sizeof(size_t *));
+	nap_cd->recursionLimit = rl;
+    }
+    CHECK2(nap_cd->parseLevel < nap_cd->recursionLimit, "m4NAME: Too many recursion levels");
     ++nap_cd->parseLevel;
     if (nap_cd->parseLevel == 0) {
 	nap_cd->message[0] = '\0';
@@ -66,21 +78,11 @@ Nap_Cmd(
     objArgs = Tcl_ConcatObj(objc-1, objv+1);
     assert(objArgs);
     Tcl_IncrRefCount(objArgs);
-    str = Tcl_GetStringFromObj(objArgs, NULL);
-    assert(str);
-    objJoinCommand = Tcl_NewStringObj("join [list {} [concat \"", -1);
-    assert(objJoinCommand);
-    Tcl_IncrRefCount(objJoinCommand);
-    Tcl_AppendStringsToObj(objJoinCommand, str, "\"]] \\n", NULL);
-    Tcl_DecrRefCount(objArgs);
-    status = Tcl_EvalObj(interp, objJoinCommand);
-    if (status != TCL_OK) {
-	return status;
-    }
-    Tcl_DecrRefCount(objJoinCommand);
-    objNapCommand = Tcl_GetObjResult(interp);
+    objNapCommand = Tcl_NewStringObj("\n", -1);
     assert(objNapCommand);
     Tcl_IncrRefCount(objNapCommand);
+    Tcl_AppendObjToObj(objNapCommand, objArgs);
+    Tcl_DecrRefCount(objArgs);
     str = Tcl_GetStringFromObj(objNapCommand, NULL);
     assert(str);
     nap_cd->commandLength[nap_cd->parseLevel] = strlen(str);
@@ -131,6 +133,11 @@ Nap_Cmd(
  *		(a) current number of bytes allocated to NAOs
  *		(b) maximum (so far) number of bytes allocated to NAOs
  *
+ *	nap_info seconds
+ *	    Return processor (CPU) time in seconds used by tcl since it commenced execution.
+ *	    The value is that provided by the standard C function clock().
+ *	    The resolution is 1 tick (typically about 0.02 second).
+ *
  *	nap_info sequence
  *	    Return sequence number of most recently created NAO.
  */
@@ -146,17 +153,19 @@ Nap_InfoCmd(
 {
     int			index;
     NapClientData	*nap_cd = (NapClientData *) clientData;
+    double		seconds;		/* clock value */
     int			status;
     CONST char		*str;
     char		tmp_str[32];		/* temp. string */
 
     CONST char		*subCommands[] = {
 				"bytes",
+				"seconds",
 				"sequence",
 				(char *) NULL};
 
     nap_cd->message[0] = '\0';
-    CHECK_NUM_ARGS(objc == 2, 1, "bytes|sequence");
+    CHECK_NUM_ARGS(objc == 2, 1, "bytes|seconds|sequence");
     status = Tcl_GetIndexFromObj(interp, objv[1], subCommands, "sub-command", 0, &index);
     if (status != TCL_OK) {
 	str = Tcl_GetStringResult(interp);
@@ -167,15 +176,18 @@ Nap_InfoCmd(
 	sprintf(tmp_str, "%u %u",
 		(unsigned int) nap_cd->totalBytesNAO,
 		(unsigned int) nap_cd->maxTotalBytesNAO);
-	Tcl_SetResult(interp, tmp_str, TCL_VOLATILE);
 	break;
-    case 1: /* sequence */
+    case 1: /* seconds */
+	seconds = (double) clock() / (double) CLOCKS_PER_SEC;
+	sprintf(tmp_str, "%g", seconds);
+	break;
+    case 2: /* sequence */
 	sprintf(tmp_str, "%u", (unsigned int) nap_cd->seqNum);
-	Tcl_SetResult(interp, tmp_str, TCL_VOLATILE);
 	break;
     default:
 	assert(0);
     }
+    Tcl_SetResult(interp, tmp_str, TCL_VOLATILE);
     return TCL_OK;
 }
 

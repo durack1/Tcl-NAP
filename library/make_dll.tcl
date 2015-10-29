@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: make_dll.tcl,v 1.30 2002/08/07 08:19:28 dav480 Exp $
+# $Id: make_dll.tcl,v 1.32 2004/09/06 04:54:49 dav480 Exp $
 
 
 # make_dll --
@@ -25,7 +25,7 @@
 #	   -quiet: Do not echo commands.
 #          -compile <command>: C compile command with options
 #          -dll <filename>: output DLL (default: <COMMAND>.dll for windows,
-#		<COMMAND>.so for unix)
+#		<COMMAND>.sl for HP-UX, <COMMAND>.so for other unix)
 #          -entry <string>: User-routine entry-point (default: <COMMAND>)
 #		Note that fortran entry points often include suffix '_'.
 #          -header <filename>: header (*.h) filename (default: none)
@@ -52,8 +52,8 @@
 #       }
 #   }
 #
-# make_dll creates a DLL (shared-library) file named libpprod.so (unix) or
-# pprod.dll (windows).
+# make_dll creates a DLL (shared-library) file named:
+# pprod.dll (windows), libpprod.sl (HP-UX) or libpprod.so (other unix).
 #
 # You can use this directly within tcl as follows:
 #
@@ -124,6 +124,10 @@ proc make_dll args {
 	}
     }
     switch -glob $::tcl_platform(os) {
+	HP-UX	 {
+	    set compile "cc +z -I$tcl_include -c"
+	    set link "ld -b -o "
+	}
 	IRIX64	 {set link "ld -shared -n32 -rdata_shared -o "}
 	Linux    {set link "ld -shared -o "}
 	SunOS    {set link "ld -G -o "}
@@ -147,6 +151,7 @@ proc make_dll args {
 	    {-entry   {set entry   $option_value}}
 	    {-header  {set header  $option_value}}
 	    {-libs    {set extra_libs $option_value}}
+	    {-link    {set link    $option_value}}
 	    {-object  {set object  $option_value}}
 	    {-source  {set source  $option_value}}
 	    {-version {set version $option_value}}

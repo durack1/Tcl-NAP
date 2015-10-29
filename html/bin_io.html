@@ -1,4 +1,4 @@
-<!-- $Id: bin_io.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $ -->
+<!-- $Id: bin_io.html,v 1.4 2004/04/02 06:08:49 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -170,6 +170,8 @@ reads one or more matrices from each of one or more cif files.
 The main output procedure is <code>put_cif</code>, which writes a NAO as an entire cif.
 These procedures call the low-level procedures <code>get_cif1</code>
 or <code>put_cif1</code> for each frame.
+The default <var>mode</var> for <code>put_cif</code> and <code>put_cif1</code>
+is <code>auto</code> which produces a big-endian file regardless of the platform.
 
 <h4><a name=get_cif>
 Procedure <code>get_cif</code> [<var>options</var>] <var>pattern</var> [<var>pattern</var> ...]</h4>
@@ -223,7 +225,7 @@ Write NAO as entire cif.
 <br>
 <var>fileName</var>: file name (default: <code>stdout</code>)
 <br>
-<var>mode</var>: <code>binary</code> (default) or <code>swap</code>
+<var>mode</var>: <code>auto</code> (default), <code>binary</code> or <code>swap</code>
 
 <h4><a name=get_cif1>Procedure <code>get_cif1</code> [<var>options</var>] <var>fileId</var></h4>
 
@@ -277,7 +279,7 @@ Write NAO as frame of cif.
 <br>
 <var>fileId</var>: Tcl file handle (default: <code>stdout</code>)
 <br>
-<var>mode</var>: <code>binary</code> (default) or <code>swap</code>
+<var>mode</var>: <code>auto</code> (default), <code>binary</code> or <code>swap</code>
 
 <h3><a name=Miscellaneous_Procedures>Miscellaneous Procedures</h3>
 
@@ -302,7 +304,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: bin_io.html,v 1.3 2003/03/17 05:12:27 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: bin_io.html,v 1.4 2004/04/02 06:08:49 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

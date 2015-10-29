@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.11 2003/07/21 08:05:35 dav480 Exp $
+dnl	$Id: configure.m4,v 1.18 2005/01/05 05:20:51 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -35,7 +35,7 @@ test "$exec_prefix" = NONE && exec_prefix=$prefix
 
 PWD=`pwd`
 AC_SUBST(PWD)
-TOP_DIR=..
+TOP_DIR=`cd ..; pwd`
 AC_SUBST(TOP_DIR)
 ROOT=`cd ../..; pwd`
 AC_SUBST(ROOT)
@@ -252,6 +252,7 @@ case "$HOST_OS" in
 	USE_VERSION=$VERSION
     ;;
 esac
+AC_SUBST(LAND_FLAG_VERSION)
 AC_SUBST(NAP_USE_VERSION)
 AC_SUBST(TAR_SUFFIX)
 AC_SUBST(TCL_VERSION)
@@ -279,7 +280,6 @@ eval AC_DEFINE_UNQUOTED(PATCHLEVEL, "${PATCHLEVEL}")
 HDF_DLL_DIR=''
 HDF_HEADER_DIR=.
 HDF_LIB_DIR=.
-NAP_HEADER_DIR=.
 NC_DLL_DIR=''
 NC_HEADER_DIR=.
 NC_LIB_DIR=.
@@ -316,9 +316,6 @@ do
 	    if test -r $DIR/hd${HDF_999_VERSION}m.lib; then
 		HDF_LIB_DIR=$DIR
 	    fi
-	    if test -r $DIR/nap.h; then
-		NAP_HEADER_DIR=$DIR
-	    fi
 	    if test -r $DIR/netcdf.dll; then
 		NC_DLL_DIR=$DIR
 	    fi
@@ -328,6 +325,9 @@ do
 		fi
 	    fi
 	    if test -r $DIR/${LIB_PREFIX}netcdf$STLIB_SUFFIX; then
+		NC_LIB_DIR=$DIR
+	    fi
+	    if test -r $DIR/${LIB_PREFIX}nc-dods$STLIB_SUFFIX; then
 		NC_LIB_DIR=$DIR
 	    fi
 	    if test -r $DIR/tcl.h; then
@@ -368,9 +368,9 @@ case "$HOST_OS" in
 	SHLIB_DIR="\${bindir}"
 	SHLIB_DIR_BASE=bin
 	TMP="$TCL_LIB_DIR/nap$NAP_USE_VERSION\${DBGX}.lib"
-	NAP_LIBRARY_DIR="'`cygpath -w $TCL_LIB_DIR/nap$NAP_VERSION`'"
 	NAP_LIB_SPEC="'`cygpath -w $TMP`'"
 	PLATFORM_MANIFEST="bin/h*m.dll bin/netcdf.dll lib/\$(PACKAGE_IMPORT_LIB)"
+	PLATFORM_MANIFEST="$PLATFORM_MANIFEST lib/ezprint$EZPRINT_VERSION/*"
     ;;
     *)
 	TK_LIB_FLAG="-ltk$TK_VERSION\$(DBGX)"
@@ -382,8 +382,6 @@ case "$HOST_OS" in
 	TCL_SHLIB_SPEC="$TCL_STUB_LIB_FLAG $SHLIB_LD_LIBS"
 	HDF_LIB_SPEC="-L$HDF_LIB_DIR -lmfhdf -ldf -ljpeg -lz"
 	NAP_LIB_SPEC="-L$TCL_LIB_DIR -lnap$NAP_USE_VERSION\${DBGX}"
-	NAP_LIBRARY_DIR=$TCL_LIB_DIR/nap$NAP_VERSION
-	NC_LIB_SPEC="-L$NC_LIB_DIR -lnetcdf"
 	TCL_LIBRARY_DIR=$TCL_LIB_DIR/tcl$TCL_VERSION
 	TCL_LIB_PATH="$TCL_LIB_DIR/libtcl$TCL_VERSION\$(DBGX)$SHLIB_SUFFIX"
 	TMP="libtclstub$TCL_VERSION\$(DBGX)$STLIB_SUFFIX"
@@ -392,10 +390,14 @@ case "$HOST_OS" in
 	TMP="libtkstub$TK_VERSION\$(DBGX)$STLIB_SUFFIX"
 	TK_STUB_LIB_PATH="$TCL_LIB_DIR/$TMP"
 	HDF_LIB_PATH="$HDF_LIB_DIR/libdf$STLIB_SUFFIX"
-	HDF_LIB_PATH="$HDF_LIB_PATH $HDF_LIB_DIR/libjpeg$STLIB_SUFFIX"
 	HDF_LIB_PATH="$HDF_LIB_PATH $HDF_LIB_DIR/libmfhdf$STLIB_SUFFIX"
-	HDF_LIB_PATH="$HDF_LIB_PATH $HDF_LIB_DIR/libz$STLIB_SUFFIX"
 	NC_LIB_PATH="$NC_LIB_DIR/libnetcdf$STLIB_SUFFIX"
+	if test -r $NC_LIB_PATH; then
+	    NC_LIB_SPEC="-L$NC_LIB_DIR -lnetcdf"
+	else
+	    NC_LIB_PATH="$NC_LIB_DIR/libnc-dods$STLIB_SUFFIX"
+	    NC_LIB_SPEC="-L$NC_LIB_DIR -lnc-dods -ldap++ -lnc-dods -ldap++ -lcurl -lxml2"
+	fi
 	SHLIB_DIR="\${libdir}"
 	SHLIB_DIR_BASE=lib
 	if test "x$X11_LIB_SWITCHES" = "x"; then
@@ -405,15 +407,11 @@ case "$HOST_OS" in
 esac
 
 TMP="${LIB_PREFIX}nap$NAP_USE_VERSION\${DBGX}$SHLIB_SUFFIX"
-NAP_SHLIB="$SHLIB_DIR/$TMP"
 
 AC_SUBST(HDF_DLL_DIR)
 AC_SUBST(HDF_HEADER_DIR)
 AC_SUBST(HDF_LIB_SPEC)
-AC_SUBST(NAP_HEADER_DIR)
-AC_SUBST(NAP_LIBRARY_DIR)
 AC_SUBST(NAP_LIB_SPEC)
-AC_SUBST(NAP_SHLIB)
 AC_SUBST(NC_DLL_DIR)
 AC_SUBST(NC_HEADER_DIR)
 AC_SUBST(NC_LIB_SPEC)
@@ -442,9 +440,6 @@ AC_MSG_RESULT([Using HDF_LIB_DIR=$HDF_LIB_DIR])
 AC_MSG_RESULT([Using HDF_HEADER_DIR=$HDF_HEADER_DIR])
 AC_MSG_RESULT([Using HDF_LIB_SPEC=$HDF_LIB_SPEC])
 AC_MSG_RESULT([Using HDF_LIB_PATH=$HDF_LIB_PATH])
-AC_MSG_RESULT([Using NAP_HEADER_DIR=$NAP_HEADER_DIR])
-AC_MSG_RESULT([Using NAP_LIBRARY_DIR=$NAP_LIBRARY_DIR])
-AC_MSG_RESULT([Using NAP_SHLIB=$NAP_SHLIB])
 AC_MSG_RESULT([Using NC_DLL_DIR=$NC_DLL_DIR])
 AC_MSG_RESULT([Using NC_LIB_DIR=$NC_LIB_DIR])
 AC_MSG_RESULT([Using NC_HEADER_DIR=$NC_HEADER_DIR])

@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: stat.tcl,v 1.15 2003/10/10 01:44:46 dav480 Exp $
+# $Id: stat.tcl,v 1.20 2004/09/03 05:02:04 dav480 Exp $
 #
 # Statistics functions
 
@@ -109,36 +109,26 @@ namespace eval ::NAP {
     }
 
 
-    # corr --
+    # gm --
     #
-    # Pearson Product-moment correlation coefficient
-    #
-    # Currently X & Y must have rank 1
+    # geometric mean
 
-    proc corr {
+    proc gm {
 	X
-	Y
+	{verb_rank "rank(X)"}
     } {
 	nap "X = f64([uplevel nap "\"$X\""])"
-	if [[nap "rank(X) != 1"]] {
-	    nap "X = reshape(X)"
+	set r [$X rank]
+	set vr [[nap "(verb_rank) % (r + 1)"]]
+	if {$vr == 0} {
+	    nap "result = X"
+	} elseif {$r == 1} {
+	    nap "result = prod(X) ** (1.0 / count(X))"
+	} else {
+	    nap "result = prod(X, vr) ** (1.0 / count(X, vr))"
 	}
-	nap "Y = f64([uplevel nap "\"$Y\""])"
-	if [[nap "rank(Y) != 1"]] {
-	    nap "Y = reshape(Y)"
-	}
-	if [[nap "nels(X) != nels(Y)"]] {
-	    error "corr: nels(X) != nels(Y)"
-	}
-	nap "mask = count(X,0) && count(Y,0)"
-	nap "X = mask # X"
-	nap "Y = mask # Y"
-	nap "n = nels(X)"
-	nap "Xmean = sum(X) / n"
-	nap "Ymean = sum(Y) / n"
-	nap "x = X - Xmean"
-	nap "y = Y - Ymean"
-	nap "sum(x*y) / sqrt(sum(x*x) * sum(y*y))"
+	$result set unit [$X unit]
+	nap "result"
     }
 
 
@@ -164,25 +154,129 @@ namespace eval ::NAP {
     }
 
 
-    # gm --
+    # mode --
     #
-    # geometric mean
+    # Handle possibility of multiple modes by defining result as mean of values whose
+    # frequency = max(frequency).
+    #
+    # n is number of class intervals, which is only used for floating-point data types.
+    # (Default: 64)
 
-    proc gm {
+    proc mode {
 	X
 	{verb_rank "rank(X)"}
+	{n 64}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
+	nap "X = [uplevel nap "\"$X\""]"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
 	    nap "result = X"
 	} elseif {$r == 1} {
-	    nap "result = prod(X) ** (1.0 / count(X))"
+	    nap "Xmin = min(X)"
+	    if {[regexp {^f} [$X datatype]]} {
+		nap "step = (max(X) - Xmin) / n"
+		nap "f = # i32((X - Xmin) / step + 0.5f32)"
+		nap "i = (f == max(f)) # (0 .. (nels(f) - 1))"
+		nap "result = f32(am(i) * step + Xmin)"
+	    } else {
+		nap "f = # (X - Xmin)"
+		nap "i = (f == max(f)) # (0 .. (nels(f) - 1))"
+		nap "result = f32(am(i) + Xmin)"
+	    }
 	} else {
-	    nap "result = prod(X, vr) ** (1.0 / count(X, vr))"
+	    nap "result = f32([::NAP::STAT::define_stat $X $vr {nap "X"} {nap "mode(X)"}])"
 	}
 	$result set unit [$X unit]
+	nap "result"
+    }
+
+
+    # moving_average --
+    #
+    # Move window of specified shape by specified step (can vary for each dimension).
+    # Result is arithmetic mean of values in each window.
+    #
+    # 'shape_window' is either a scalar or a vector with an element for each dimension.
+    # If it is a scalar then it is treated as a vector with rank(x) identical elements. 
+    #
+    # Similarly, 'step' is either a scalar or a vector with an element for each dimension.
+    # If it is a scalar then it is treated as a vector with rank(x) identical elements. 
+    # The value -1 is treated like 1, except that missing values are prepended & appended
+    # (along this dimension of x) to produce a result with the same dimension size as x.
+    #
+    # x can have any rank > 0.
+
+    proc moving_average {
+	x
+	shape_window
+	{step 1}
+    } {
+	set r [$x rank]
+	if {$r < 1} {
+	    error "moving_average: x is scalar"
+	}
+	set unit [$x unit]
+	nap "w = i32(reshape(shape_window, r))"
+	nap "s = i32(reshape(step, r))"
+	set expand 0
+	for {set d 0} {$d < $r} {incr d} {
+	    if {[$x coo $r] eq "(NULL)"} {
+		lappend cv_list ""
+	    } else {
+		nap "old_cv = + coordinate_variable(x, d)"
+		$old_cv set coo; # Ensure no coord. var. to prevent infinite recursion
+		nap "cv$d = moving_average(old_cv, w(d), s(d))"
+		lappend cv_list [set cv$d]
+	    }
+	    if {[[nap "s(d)"]] == -1} {
+		set expand 1
+		nap "n = (shape(x))(d) - 1"
+		nap "i$d = ((w(d) / 2) # _) // (0 .. n) // (((w(d) - 1) / 2) # _)"
+	    }
+	}
+	if {$expand} {
+	    nap "i = (,){}"
+	    for {set d 0} {$d < $r} {incr d} {
+		nap "i = i , i$d"
+	    }
+	    nap "x = x(i)"
+	}
+	nap "s = abs(s)"
+	nap "n = w + (shape(x) - w) / s * s"
+	nap "p = (1 .. (r-1) ... 1) //  0"; # permutation of dimensions
+	nap "c = count(x,0)";	# 0 if missing, 1 if present
+	nap "px = psum(f64 x)";	# partial sum of x
+	nap "pc = psum(f64 c)";	# partial sum of c
+	for {set d 0} {$d < $r} {incr d} {
+	    nap "i1_$d = w(d) .. n(d) ... s(d)"
+	    nap "i0_$d = i1_$d - w(d)"
+	    nap "px = 0f64 // transpose(px, p)"
+	    nap "pc = 0f64 // transpose(pc, p)"
+	}
+	nap "moving_sum = moving_count = 0f64"
+	set jj [expr "1 << $r"]
+	for {set j 0} {$j < $jj} {incr j} {
+	    set parity [expr "$r % 2"]
+	    nap "i = (,){}"
+	    for {set d 0} {$d < $r} {incr d} {
+		set bit [expr "($j >> $d) & 1"]
+		nap "i = i , i${bit}_$d"
+		set parity [expr "$parity ^ $bit"]
+	    }
+	    if {$parity} {
+		nap "moving_sum   = moving_sum   - px(i)"
+		nap "moving_count = moving_count - pc(i)"
+	    } else {
+		nap "moving_sum   = moving_sum   + px(i)"
+		nap "moving_count = moving_count + pc(i)"
+	    }
+	}
+	nap "result = moving_count > 0 ? moving_sum / moving_count : _"
+	eval $result set coo $cv_list
+	if {$unit ne "(NULL)"} {
+	    $result set unit $unit
+	}
 	nap "result"
     }
 

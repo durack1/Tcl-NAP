@@ -1,1 +1,0 @@
-tests/plot_nao/tsu1961.nc

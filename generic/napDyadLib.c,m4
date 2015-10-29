@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.75 2003/07/21 10:54:18 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.78 2004/12/16 01:42:27 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -1627,10 +1627,23 @@ Nap_Laminate(
 
 /*
  *  Nap_IndexOf2 --
- *	Interpolated index of arg1 corresponding to arg2 (operator '@').
- *	arg1 is vector.
- *	Result has type float & shape of arg2.
- *	Uses function Nap_IndexOf.
+ *	This is binary operator '@', which gives interpolated index of arg1
+ *	(along its 1st dimension) corresponding to arg2.  Result has type float.
+ *	Let rank of arg1 be r.  r > 0.   Let shape of arg1 be s.
+ *	Let rank of arg2 be R.  R >= 0.  Let shape of arg2 be S.
+ *	s(0) corresponds to dimension to be searched along.
+ *	Remaining dimensions s(1 .. (r-1)) are 'common dimensions'.
+ *	If r-1 <= R then:
+ *	- Must have s(1 .. s(r-1)) == S((R-r+1) .. (R-1)) i.e. matching trailing dims
+ *	- Result has shape S.
+ *	If r-1 > R then:
+ *	- Must have s((r-R) .. s(r-1)) == S i.e. matching trailing dims
+ *	- Treat right arg as having shape s(1 .. (r-1)).  This is also shape of result.
+ *
+ *	Treat longitude arg1 (indicated by unit "degrees_east") as special cyclic case.
+ *
+ *	Treat latitude  arg1 (indicated by unit "degrees_north") as another special case:
+ *	Modify result using: "result >>> 0 <<< (nels(arg1) - 1)"
  */
 
 m4define(`m4NAME', `Nap_IndexOf2')
@@ -1644,14 +1657,23 @@ Nap_IndexOf2(
     Nap_dataType        dataType;
     float		delta;
     float		guess;
+    size_t		i;
     char		*id;
+    int			is_latitude;
     size_t		j;
+    size_t		k;
+    size_t		m;		/* naoPtr1->nels / s[0] */
+    size_t		n;		/* result->nels / m */
     Nap_NAO             *naoPtr1;
     Nap_NAO             *naoPtr2;
     Nap_NAO             *naoTmp;
+    int			R;		/* rank of arg2 */
+    int			r;		/* rank of arg1 */
     float		range;
     Nap_NAO		*result;
-    size_t		s;		/* sizeof dataType */
+    size_t		*S;		/* shape of arg2 */
+    size_t		*s;		/* shape of arg1 */
+    size_t		sz;		/* sizeof dataType */
     size_t              shape[1];
     int			status;
     float		x;
@@ -1661,7 +1683,6 @@ Nap_IndexOf2(
 
     naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
     CHECK2NULL(naoPtr1, "m4NAME: Undefined left-hand operand");
-    CHECK2NULL(naoPtr1->rank == 1, "m4NAME: left-hand operand should be vector");
     naoPtr2 = Nap_GetNumericNaoFromId(nap_cd, str2);
     CHECK2NULL(naoPtr2, "m4NAME: Undefined right-hand operand");
     if (naoPtr1->dataType == NAP_C8  && naoPtr2->dataType == NAP_C8) {
@@ -1669,8 +1690,14 @@ Nap_IndexOf2(
     } else {
 	Nap_IncrRefCount(nap_cd, naoPtr1);
 	Nap_IncrRefCount(nap_cd, naoPtr2);
+	r = naoPtr1->rank;
+	R = naoPtr2->rank;
+	s = naoPtr1->shape;
+	S = naoPtr2->shape;
+	CHECK2NULL(r > 0, "m4NAME: Left argument is scalar");
 	    /* cyclic (currently just longitude as indicated by unit "degrees_east")? */
-	if (naoPtr1->unit  &&  !strcmp(naoPtr1->unit, "degrees_east")  &&  naoPtr1->nels > 0) {
+	if (r == 1  &&  naoPtr1->unit  &&  !strcmp(naoPtr1->unit, "degrees_east")
+		    &&  naoPtr1->nels > 0) {
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr1, NAP_F32);
 	    CHECK2NULL(naoTmp, "m4NAME: Error calling Nap_CastNAO");
 	    Nap_IncrRefCount(nap_cd, naoTmp);
@@ -1689,13 +1716,11 @@ Nap_IndexOf2(
 		++j;
 		naoPtr1->data.F32[j] = x0 + delta;
 	    }
-	    status = Nap_OilNao(naoPtr1);
-	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr2, NAP_F32);
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoPtr2);
 	    naoPtr2 = naoTmp;
-	    result = Nap_NewNAO(nap_cd, NAP_F32, naoPtr2->rank, naoPtr2->shape);
+	    result = Nap_NewNAO(nap_cd, NAP_F32, R, S);
 	    status = Nap_CopyDims(nap_cd, naoPtr2, result);
 	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
 	    xmin = Min(x0, naoPtr1->data.F32[j]);
@@ -1714,28 +1739,92 @@ Nap_IndexOf2(
 	    }
 	} else {
 	    dataType = Nap_DataType2(naoPtr1->dataType, naoPtr2->dataType);
-	    s = Nap_SizeOf(dataType);
+	    sz = Nap_SizeOf(dataType);
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr1, dataType);
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoPtr1);
 	    naoPtr1 = naoTmp;
-	    status = Nap_OilNao(naoPtr1);
-	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr2, dataType);
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoPtr2);
 	    naoPtr2 = naoTmp;
-	    result = Nap_NewNAO(nap_cd, NAP_F32, naoPtr2->rank, naoPtr2->shape);
-	    status = Nap_CopyDims(nap_cd, naoPtr2, result);
-	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
-	    guess = -1;
-	    for (j = 0; j < naoPtr2->nels; j++) {
-		if (IsMissing(naoPtr2, j)) {
-		    result->data.F32[j] = NAP_F32_NULL;
-		} else {
-		    result->data.F32[j] = Nap_IndexOfNao(nap_cd, naoPtr1,
-			    naoPtr2->data.c+s*j, guess);
+	    if (r == 1) {
+		result = Nap_NewNAO(nap_cd, NAP_F32, R, S);
+		CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
+		status = Nap_CopyDims(nap_cd, naoPtr2, result);
+		CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
+		xmin = 0;
+		xmax = naoPtr1->nels - 1;
+		is_latitude = naoPtr1->unit  &&  !strcmp(naoPtr1->unit, "degrees_north");
+		guess = -1;
+		for (j = 0; j < naoPtr2->nels; j++) {
+		    if (IsMissing(naoPtr2, j)) {
+			result->data.F32[j] = NAP_F32_NULL;
+		    } else {
+			result->data.F32[j] = Nap_IndexOfNao(nap_cd, naoPtr1,
+				naoPtr2->data.c+sz*j, guess);
+			if (is_latitude) {
+			    result->data.F32[j] = Max(xmin, Min(xmax, result->data.F32[j]));
+			}
+		    }
 		}
+	    } else if (r-1 > R) {
+		for (j = 0; j < R; j++) {
+		    CHECK2NULL(s[r-R+j] == S[j], "m4NAME: Trailing dimensions do not match");
+		}
+		result = Nap_NewNAO(nap_cd, NAP_F32, r-1, s+1);
+		CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
+		status = Nap_CopyTrailingDims(nap_cd, naoPtr1, result);
+		CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyTrailingDims");
+		naoTmp = Nap_NewNAO(nap_cd, dataType, 1, s);
+		CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
+		Nap_IncrRefCount(nap_cd, naoTmp);
+		m = naoPtr1->nels / s[0];
+		guess = -1;
+		for (j = 0; j < result->nels; j++) {
+		    i = j % naoPtr2->nels;
+		    if (IsMissing(naoPtr2, i)) {
+			result->data.F32[j] = NAP_F32_NULL;
+		    } else {
+			for (k = 0; k < s[0]; k++) {
+			    memcpy(naoTmp->data.c + sz * k, naoPtr1->data.c + sz * (m*k+j), sz);
+			}
+			naoTmp->step = NAP_UNKNOWN;
+			result->data.F32[j] = Nap_IndexOfNao(nap_cd, naoTmp,
+				naoPtr2->data.c+sz*i, guess);
+		    }
+		}
+		Nap_DecrRefCount(nap_cd, naoTmp);
+	    } else {				/* r-1 <= R */
+		for (j = 1; j < r; j++) {
+		    CHECK2NULL(s[j] == S[R-r+j], "m4NAME: Trailing dimensions do not match");
+		}
+		result = Nap_NewNAO(nap_cd, NAP_F32, R, S);
+		CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
+		status = Nap_CopyDims(nap_cd, naoPtr2, result);
+		CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyDims");
+		naoTmp = Nap_NewNAO(nap_cd, dataType, 1, s);
+		CHECK2NULL(naoTmp, "m4NAME: Error calling Nap_NewNAO");
+		Nap_IncrRefCount(nap_cd, naoTmp);
+		m = naoPtr1->nels / s[0];
+		n = result->nels / m;
+		for (i = 0; i < m; i++) {
+		    for (k = 0; k < s[0]; k++) {
+			memcpy(naoTmp->data.c + sz * k, naoPtr1->data.c + sz * (m*k+i), sz);
+		    }
+		    naoTmp->step = NAP_UNKNOWN;
+		    guess = -1;
+		    for (j = 0; j < n; j++) {
+			k = j * m + i;
+			if (IsMissing(naoPtr2, k)) {
+			    result->data.F32[k] = NAP_F32_NULL;
+			} else {
+			    result->data.F32[k] = Nap_IndexOfNao(nap_cd, naoTmp,
+				    naoPtr2->data.c+sz*k, guess);
+			}
+		    }
+		}
+		Nap_DecrRefCount(nap_cd, naoTmp);
 	    }
 	}
 	Nap_DecrRefCount(nap_cd, naoPtr1);

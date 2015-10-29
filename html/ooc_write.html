@@ -1,0 +1,208 @@
+<!-- $Id: ooc_write.html,v 1.1 2004/08/27 07:14:38 dav480 Exp $ -->
+<html>
+
+<head> <title>
+OOC Methods: Write
+</title> </head>
+
+<body>
+
+<h2> <center>
+OOC Methods which Write to File
+</center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#binary">Method <code>binary</code></a>
+    <li><a href="#hdf">Method <code>hdf</code></a>
+    <li><a href="#netcdf">Method <code>netcdf</code></a>
+    <li><a href="#swap">Method <code>swap</code></a>
+</ol>
+
+<h3><a name=binary>Method <code>binary</code></h3>
+<p>
+<VAR>ooc_name</VAR><CODE> binary</CODE> ?<VAR>tcl_channel</VAR>?<br>
+
+<p>
+This writes raw (binary) data to the file specified by
+<VAR>tcl_channel</VAR>, 
+which defaults to <CODE>stdout</CODE> (standard output).
+For example:
+<pre>
+% set file [open y.tmp w]
+file4
+% $y binary $file
+% close $file
+% set file [open y.tmp]
+file4
+% [nap_get binary $file f64] all
+::NAP::248-248  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+0 0.25 1 2.25 4
+% close $file
+</pre>
+
+  <h3><a name=hdf>Method <code>hdf</code></h3>
+<p>
+<VAR>ooc_name</VAR><CODE> hdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>sds</VAR><br>
+
+<p>
+This writes data from the NAO to 
+an SDS named <VAR>sds</VAR> within an HDF file named <VAR>filename</VAR>.<br>
+
+<p>
+    <VAR>switches</VAR> can be: <BR>
+    <CODE>-unlimited</CODE>: Create sds with unlimited dimension 0
+<BR><CODE>-coordinateVariable</CODE> <VAR>expr</VAR>: boxed NAO which 
+specifies coordinate variables.
+<BR><CODE>-datatype</CODE> <VAR>type</VAR>: HDF datatype: 
+<code>c8, i8, i16, i32, u8, u16, u32, f32 </code>
+or
+<code>f64</code>
+<BR><CODE>-range</CODE> <VAR>float</VAR>: HDF
+<code> valid_range </code>
+<BR><CODE>-scale</CODE> <VAR>float</VAR>: HDF 
+<code> scale_factor </code>
+<BR><CODE>-offset</CODE> <VAR>float</VAR>: HDF 
+<code> add_offset </code>
+<BR><CODE>-index</CODE> <VAR>expr</VAR>: position within SDS where
+data is to be written. 
+
+<p>
+If 
+&quot;<CODE>-coordinateVariable</CODE> <VAR>expr</VAR>&quot;
+is not specified then the coordinate variables
+of the main NAO are used if these exist.
+
+<p>
+If 
+&quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
+is not specified then the coordinate variables
+of the main NAO are used if these exist,
+otherwise writing starts at the beginning of the SDS.
+
+<p>
+Example:
+<pre>
+% [nap "3 .. 7"] hdf simple.hdf vec
+% exec hdp dumpsds simple.hdf
+File name: simple.hdf 
+
+Variable Name = vec
+	 Index = 0
+	 Type= 32-bit signed integer
+	 Ref. = 2
+	 Rank = 1
+	 Number of attributes = 1
+	 Dim0: Name=fakeDim0
+		 Size = 5
+		 Scale Type = number-type not set
+		 Number of attributes = 0
+	 Attr0: Name = _FillValue
+		 Type = 32-bit signed integer 
+		 Count= 1
+		 Value = -2147483648 
+	 Data : 
+                3 4 5 6 7
+</pre>
+
+<h3><a name=netcdf>Method <code>netcdf</code></h3>
+<p>
+<VAR>ooc_name</VAR><CODE> netcdf</CODE> ?<VAR>switches</VAR>? <VAR>filename</VAR> <VAR>var</VAR><br>
+
+<p>
+This writes data from the NAO to 
+a netCDF variable named <VAR>var</VAR> within 
+the netCDF file named <VAR>filename</VAR>.<br>
+
+<p>
+<VAR>switches</VAR> can be:
+<BR><CODE>-unlimited</CODE>: Create variable with unlimited dimension 0
+<BR><CODE>-coordinateVariable</CODE> <VAR>expr</VAR>: boxed NAO which 
+specifies coordinate variables.
+<BR><CODE>-datatype</CODE> <VAR>type</VAR>: netCDF datatype:
+<code>c8, i16, i32, u8, f32 </code>
+or
+<code>f64</code>
+<BR><CODE>-range</CODE> <VAR>float</VAR>: netCDF 
+<code> valid_range </code>
+<BR><CODE>-scale</CODE> <VAR>float</VAR>: netCDF
+<code> scale_factor </code>
+<BR><CODE>-offset</CODE> <VAR>float</VAR>: netCDF
+<code> add_offset </code>
+
+<BR><CODE>-index</CODE> <VAR>expr</VAR>: position within netCDF variable
+where data is to be written. 
+
+<p>
+If 
+&quot;<CODE>-coordinateVariable</CODE> <VAR>expr</VAR>&quot;
+is not specified then the coordinate variables
+of the main NAO are used if these exist.
+
+<p>
+If 
+&quot;<CODE>-index</CODE> <VAR>expr</VAR>&quot;
+is not specified then the coordinate variables
+of the main NAO are used if these exist,
+otherwise writing starts at the beginning of the netCDF variable.
+
+<p>
+Example:
+<pre>
+% $y net sq.nc area -coordinateVariable "x // {3 6 9}"
+::NAP::241-241
+% exec ncdump sq.nc
+netcdf sq {
+dimensions:
+	x = 8 ;
+variables:
+	double x(x) ;
+	double area(x) ;
+		area:_FillValue = nan ;
+		area:long_name = "areas of squares" ;
+		area:units = "seconds" ;
+data:
+
+ x = 0, 0.5, 1, 1.5, 2, 3, 6, 9 ;
+
+ area = 0, 0.25, 1, 2.25, 4, nan, nan, nan ;
+}
+</pre>
+Note that the netCDF variable <code>area</code> is dimensioned to 8 
+(the shape of the
+argument specified by the
+<nobr>
+<code>-coordinateVariable</code>
+</nobr>
+option).
+
+<h3><a name=swap>Method <code>swap</code></h3>
+<p>
+<VAR>ooc_name</VAR><CODE> swap</CODE> ?<VAR>tcl_channel</VAR>?<br>
+
+<P>
+Method <code>swap</code> is like method <code>binary</code>, except that bytes are swapped.
+This enables writing of data to be read on a machine with opposite byte-order within words.
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: ooc_write.html,v 1.1 2004/08/27 07:14:38 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

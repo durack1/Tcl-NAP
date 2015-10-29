@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: proc_lib.tcl,v 1.97 2003/06/26 07:56:43 dav480 Exp $
+# $Id: proc_lib.tcl,v 1.105 2004/12/16 05:46:01 dav480 Exp $
 
 
 # aeq --
@@ -38,10 +38,53 @@ proc commas args {
 }
 
 
+# copy_tree --
+#
+# Copy files recursively
+#
+# Usage
+#   copy_tree <src> <dst>
+#
+# <src> & <dst> are both exising directories
+# Copy recursively every file & directory in src to dst
+
+proc copy_tree {
+    src
+    dst
+} {
+    if {![file isdirectory $src]} {
+	error "copy_tree: '$src' is not directory"
+    }
+    if {![file isdirectory $dst]} {
+	error "copy_tree: '$dst' is not directory"
+    }
+    foreach file [glob -nocomplain -tails -directory $src *] {
+	if {[file isdirectory $src/$file]} {
+	    if {![file isdirectory $dst/$file]} {
+		if {[file exists $dst/$file]} {
+		    file -force delete $dst/$file
+		}
+		file mkdir $dst/$file
+	    }
+	    copy_tree $src/$file $dst/$file
+	} else {
+	    file copy -force $src/$file $dst
+	}
+    }
+}
+
+
 # create_window --
 #
-# Create toplevel window & return its name, which includes specified prefix.
-# Geometry defaults to upper-left corner of parent (if any, else +0+0)
+# Create window & return its name, which includes specified prefix.
+#
+# Geometry can be:
+#   ""   : Pack in parent (If parent is "" then create toplevel anywhere)
+#   "NE" : North-west corner of toplevel at north-east corner of parent (cannot be "")
+#   "NW" : North-west corner of toplevel at north-west corner of parent (cannot be "")
+#   "SE" : North-west corner of toplevel at south-east corner of parent (cannot be "")
+#   "SW" : North-west corner of toplevel at south-west corner of parent (cannot be "")
+#   other: Normal Tk geometry string. If parent is "." then pack in it, else ignore parent.
 
 namespace eval Create_window {
     variable frame_id 0
@@ -52,24 +95,47 @@ proc create_window {
     {parent "."}
     {geometry ""}
     {label ""}
+    {relief raised}
+    {borderwidth 4}
+    {extra_x 0}
+    {extra_y 0}
 } {
     set parent [string trim $parent]
+    set geometry [string tolower $geometry]
     set all .$prefix$Create_window::frame_id
-    if {$parent != ""  &&  $parent != "."} {
-	set all $parent$all
-    }
-    if {$geometry == ""} {
-	if {$parent == ""} {
-	    set geometry +0+0
-	} else {
-	    set geometry +[winfo rootx $parent]+[winfo rooty $parent]
+    set is_corner [regexp {^(n|s)(e|w)$} $geometry]
+    if {$is_corner  &&  $parent eq ""} {
+	error "create_window: geometry = $geometry, but no parent"
+    } elseif {$geometry eq ""  &&  $parent ne ""} {
+	if {$parent ne "."} {
+	    set all $parent$all
 	}
-    }
-    destroy $all
-    toplevel $all
-    eval wm geometry $all $geometry
-    if {$label != ""} {
-	wm title $all $label
+	destroy $all
+	frame $all -relief $relief -borderwidth $borderwidth 
+	pack $all -fill both -expand 1
+    } elseif {$parent eq "."  &&  ! $is_corner} {
+	destroy $all
+	frame $all -relief $relief -borderwidth $borderwidth 
+	pack $all -fill both -expand 1
+	wm geometry . $geometry
+    } else {
+	destroy $all
+	toplevel $all -relief $relief -borderwidth $borderwidth 
+	if {$is_corner} {
+	    set x(w) [winfo rootx $parent]
+	    set y(n) [winfo rooty $parent]
+	    set x(e) [expr $x(w) + [winfo width  $parent] + $extra_x]
+	    set y(s) [expr $y(n) + [winfo height $parent] + $extra_y]
+	    set geometry "+$x([string index $geometry 1])+$y([string index $geometry 0])"
+	}
+	if {$geometry ne ""} {
+	    wm geometry $all $geometry
+	}
+	if {$label eq ""} {
+	    wm title $all $all
+	} else {
+	    wm title $all $label
+	}
     }
     incr Create_window::frame_id
     return $all
@@ -171,6 +237,7 @@ proc get_arg {
 #   get_entry <LABEL> ?options?
 #     <LABEL>: text to be displayed on left of entry widget
 # Options are:
+#     -font <string>
 #     -geometry <string>: If specified use to create new toplevel window
 #     -parent <string>: parent window. "" for toplevel. (Default: ".")
 #     -text <string>: initial text in entry widget (Default: "")
@@ -182,6 +249,18 @@ proc get_arg {
 namespace eval Get_entry {
     variable complete
     variable reply
+
+    proc read_file {
+	all
+    } {
+	set filename [::ChooseFile::choose_file $all]
+	if {$filename ne ""} {
+	    set f [open $filename]
+	    set in [read -nonewline $f]
+	    set Get_entry::reply [split $in \n]
+	    close $f
+	}
+    }
 }
 
 proc get_entry {
@@ -193,8 +272,9 @@ proc get_entry {
     set parent "."
     set width 20
     set background white
-    set font {-family Helvetica -size 12}
+    set font {-family Helvetica -size 10}
     set i [process_options {
+            {-font {set font $option_value}}
             {-geometry {set geometry $option_value}}
             {-parent {set parent $option_value}}
             {-text {set Get_entry::reply $option_value}}
@@ -208,16 +288,17 @@ proc get_entry {
 	set all [create_window get_entry $parent $geometry]
 	set Get_entry::complete 0
 	frame $all.input
-	label $all.input.label -text $label
+	label $all.input.label -font $font -text $label
 	entry $all.input.entry -width $width -textvariable Get_entry::reply \
 	    -background $background \
 	    -font $font
 	$all.input.entry icursor end
 	frame $all.buttons
-	button $all.buttons.clear -text clear -command {set Get_entry::reply ""}
-	button $all.buttons.accept -text accept \
+	button $all.buttons.read -font $font -text "read file" -command "Get_entry::read_file $all"
+	button $all.buttons.clear -font $font -text clear -command {set Get_entry::reply ""}
+	button $all.buttons.accept -font $font -text accept \
 		-command "set Get_entry::complete 1"
-	pack $all.buttons.clear $all.buttons.accept \
+	pack $all.buttons.read $all.buttons.clear $all.buttons.accept \
 		-side left -padx 1m -pady 1m
 	pack $all.input $all.buttons
 	focus $all.input.entry
@@ -277,7 +358,7 @@ proc handle_error {
     for {set i 1} {$i < $n} {incr i} {
 	append message "\nCalled by: [info level -$i]"
     }
-    message_window $message -label "Error!" -wait 1
+    message_window $message -geometry "+10+20" -label "Error!" -wait 1
 }
 
 
@@ -482,10 +563,11 @@ proc max args {
 #   message_window <TEXT> ?options?
 #     <TEXT>: text to be displayed
 # Options are:
+#     -font <string>
 #     -geometry <string>: If specified use to create new toplevel window
 #     -height <int>: max no. lines in window (default: 50)
 #     -label <string>: title for window manager (default: none)
-#     -parent <string>: parent window (Default: ".")
+#     -parent <string>: parent window (Default: "")
 #     -title <string>: 1st line of text within window (default: none)
 #     -wait <0 or 1>: If 1 then do not return until user destroys window
 #     -width  <int>: max no. columns in window (default: 80)
@@ -496,14 +578,16 @@ proc message_window {
     text
     args
 } {
+    set font {-family Helvetica -size 10}
     set geometry ""
     set max_height 50
     set label ""
-    set parent "."
+    set parent ""
     set title ""
     set max_width 80
     set wait 0
     set i [process_options {
+            {-font {set font $option_value}}
             {-geometry {set geometry $option_value}}
             {-height {set max_height $option_value}}
             {-label {set label $option_value}}
@@ -526,17 +610,16 @@ proc message_window {
 	set ncols $min_ncols
     }
     set f [create_window message $parent $geometry $label]
-    button $f.cancel -text cancel -command "destroy $f"
+    button $f.cancel -font $font -text cancel -command "destroy $f"
     pack $f.cancel
     if {$title != ""} {
 	label $f.title \
 	    -text $title \
-	    -font {-family courier -size 15 -weight bold} \
+	    -font $font \
 	    -relief groove
 	pack $f.title -fill x
     }
     set background white
-    set font {-family courier -size 12}
     frame $f.msg
     if {$nlines <= $max_height  &&  $ncols <= $max_width} {
 	text $f.msg.text \
@@ -978,6 +1061,7 @@ proc unset_re {args} {
 #   yes_no <TEXT> ?options?
 #     <TEXT>: text to be displayed
 # Options are:
+#     -font <string>
 #     -geometry <string>: If specified use to create new toplevel window 
 #     -parent <string>: parent window (Default: "" i.e. main window)
 #
@@ -992,9 +1076,11 @@ proc yes_no {
     text
     args
 } {
+    set font {-family Helvetica -size 10}
     set geometry ""
     set parent ""
     set i [process_options {
+            {-font {set font $option_value}}
             {-geometry {set geometry $option_value}}
             {-parent {set parent $option_value}}
         } $args]
@@ -1012,9 +1098,9 @@ proc yes_no {
 	    toplevel $all
 	    wm geometry $all $geometry
 	}
-	label $all.label -text $text -justify left
-	button $all.yes -text Yes -command {set Yes_no::reply 1}
-	button $all.no  -text No  -command {set Yes_no::reply 0}
+	label $all.label -font $font -text $text -justify left
+	button $all.yes  -font $font -text Yes -command {set Yes_no::reply 1}
+	button $all.no   -font $font -text No  -command {set Yes_no::reply 0}
 	frame $all.reply
 	pack $all.label $all.reply -side left
 	pack $all.yes $all.no -side left -expand 1

@@ -1,4 +1,4 @@
-<!-- $Id: sample.html,v 1.6 2003/05/20 05:31:36 dav480 Exp $ -->
+<!-- $Id: sample.html,v 1.8 2004/10/26 05:27:22 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -8,7 +8,7 @@ NAP Sample Session
 <body>
 
 <h2> <center>
-NAP Sample Session
+Sample Session
 </center> </h2>
 
 <p>
@@ -107,7 +107,9 @@ Value:
 which provides a more
 detailed description of the NAO than the default method. The&nbsp; following example uses
 the &quot;<code>set value</code>&quot; method to change the value of element 1 of <code>x</code>
-from 6.25 to 7.
+from 2.5 to 7.
+Note that element 1 is the second element because the subscript origin is 0 
+(as in other aspects of Tcl) rather than 1 (as in languages such as Fortran).
 </p>
 
 <PRE>
@@ -157,14 +159,18 @@ generated command. So the above can be replaced by:
 </PRE>
 
 <p>
-The following example illustrates <em>array indexing</em> and the
-calculation of an <em>arithmetic-mean</em> (both directly and by defining a function).
-The first two commands:
-<ul>
-<li> define a 32-bit floating-point vector containing the five values 56, 75, 47, 99  and 49
-<li> assign it to the variable <code>score</code>
-<li> display it
-</ul>
+The following example illustrates <em>array indexing</em>.
+The six commands do the following:
+<ol>
+<li> Assign to the variable <code>score</code>
+a 32-bit floating-point vector containing the five values 56, 75, 47, 99  and 49.
+<li> Display <code>score</code>.
+<li> Index a vector by a scalar &quot;<code>2</code>&quot; to give a scalar.
+<li> Index a vector by a vector &quot;<code>{2 0 4}</code>&quot; to give a vector.
+<li> Illustrate
+the operator &quot;<code>..</code>&quot; which defines an <em>arithmetic progression</em>.
+<li> Use such an arithmetic progression as an index.
+</ol>
 
 <PRE>
 % nap "score = f32{56 75 47 99 49}"
@@ -174,18 +180,6 @@ The first two commands:
 Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
 56 75 47 99 49
-</PRE>
-
-<p>
-The following four commands respectively illustrate:
-<ol>
-<li> indexing a vector by a scalar &quot;<code>2</code>&quot; to give a scalar
-<li> indexing a vector by a vector &quot;<code>{2 0 4}</code>&quot; to give a vector
-<li> the operator &quot;<code>..</code>&quot; which defines an <em>arithmetic progression</em>
-<li> the use of such an arithmetic progression as an index
-</ol>
-
-<PRE>
 % [nap "score(2)"] all
 ::NAP::20-20  f32  MissingValue: NaN  References: 0  Unit: (NULL)
 Value:
@@ -267,7 +261,7 @@ or
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: sample.html,v 1.6 2003/05/20 05:31:36 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: sample.html,v 1.8 2004/10/26 05:27:22 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

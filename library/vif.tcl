@@ -7,7 +7,7 @@
 #
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: vif.tcl,v 1.10 2003/07/25 01:50:37 dav480 Exp $
+# $Id: vif.tcl,v 1.13 2004/06/04 02:27:36 dav480 Exp $
 
 
 # vif --
@@ -101,7 +101,7 @@ namespace eval View_image_file {
 	    "" {
 		set infile [open_input_file]
 		if {$infile ne ""} {
-		    eval ::View_image_file::view_image_file $infile $args
+		    eval ::View_image_file::view_image_file {$infile} $args
 		}
 	    }
 	    -* {
@@ -109,7 +109,9 @@ namespace eval View_image_file {
 	    }
 	    default {
 		if {[file exists $infile]} {
-		    ::Print_gui::init
+		    if {[::Print_gui::init]} {
+			message_window "Error in Print_gui::init. Unable to initialise printing."
+		    }
 		    catch "package require Img"
 		    set auto_print 0
 		    set border       20m

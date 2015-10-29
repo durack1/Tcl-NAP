@@ -1,4 +1,4 @@
-<!-- $Id: op.html,v 1.5 2003/03/17 01:07:45 dav480 Exp $ -->
+<!-- $Id: op.html,v 1.8 2004/07/19 02:47:31 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -8,7 +8,7 @@ NAP Operators
 <body>
 
 <h2> <center>
-NAP Operators
+Operators
 </center> </h2>
 
 <h3>Table of Contents</h3>
@@ -126,9 +126,8 @@ The nature of operands is indicated as follows:
 	<tr valign=top> <td>
 		<var>v</var><code>@</code><var>b</var>
 	    <td>
-		<var>s</var> such that
-		<var>v<sub>s</sub>=b</var>,
-		where <var>v</var> is ordered vector
+		smallest <var>s</var> such that
+		<var>v<sub>s</sub>=b</var>
 	<tr valign=top> <td>
 		<var>v</var><code>@@</code><var>b</var>
 	    <td>
@@ -187,13 +186,13 @@ The nature of operands is indicated as follows:
     <tr><td><hr><td><hr>
 
 	<tr valign=top> <td>
-		<var>u</var><code>+*</code><var>v</var>
+		<var>u</var><code>.</code><var>v</var>
 	    <td>
 		(<var>u</var> and <var>v</var> vectors)
 		Scalar (dot) product
 
 	<tr valign=top> <td>
-		<var>A</var><code>+*</code><var>B</var>
+		<var>A</var><code>.</code><var>B</var>
 	    <td>
 		(<var>A</var> and <var>B</var> matrices)
 		Matrix product
@@ -629,16 +628,17 @@ and &quot;<code>@@@</code>&quot;</h3>
 
 <P>
 These three operators all take an optional vector left operand.
+(The &quot;<code>@</code>&quot; operator also allows the left operand to have a rank
+greater than 1.)
 The result is a subscript of this vector.
 The left operand defaults to the coordinate-variable of the dimension (only relevant to 
 <a href="indexing.html#indirect_indexing">indirect indexing</a>).
 
 <h4><a name=Interpolated_Subscript>Interpolated Subscript &quot;<code>@</code>&quot;</h4>
 
-The &quot;<code>@</code>&quot; operator requires a sorted left operand.
 The result of
 <var>v</var><code>@</code><var>b</var>
-is the 
+is the smallest (possibly fractional)
 <code>f32</code> subscript <var>s</var> such that
 <var>v</var><code>(</code><var>s</var><code>)==</code><var>b</var>.
 For example:
@@ -668,8 +668,103 @@ Combining these two examples into one:
 We can check this result by using it as an index:
 
 <PRE>
-% [nap "{1.5 3.4 3.6 4} {1.5 2.25}"]
+% [nap "{1.5 3.4 3.6 4}({1.5 2.25})"]
 3.5 3.7
+</PRE>
+
+<p>
+The following example shows how extrapolation is used to define the result
+when the right operand is outside the range of the left operand:
+
+<PRE>
+% [nap "{-1 0 2} @ {-2 5}"]
+-1 3.5
+</PRE>
+
+<p>
+Such extrapolation can be prevented by adding end points with missing or infinite values, as in:
+
+<PRE>
+% [nap "{_ -1 0 2 _} @ {-2 -1 2 5}"]
+_ 1 3 _
+% [nap "{-1i -1 0 2 1i} @ {-2 -1 2 5}"]
+1 1 3 3
+</PRE>
+
+<p>
+The effect of other missing values is shown by:
+
+<PRE>
+% [nap "{_ 2 4 _ 6 8 _} @ (1 .. 9)"] value
+_ 1 1.5 2 _ 4 4.5 5 _
+</PRE>
+
+<p>
+If the left operand is not monotonic (sorted) then the result is defined by the first match, as in:
+
+<PRE>
+% [nap "{2 4 5 3} @ (1 .. 6)"]
+-0.5 0 0.5 1 2 _
+</PRE>
+
+<p>
+The left operand can have a rank greater than 1.
+In this case the search takes place over the most significant dimension (0) of the left operand.
+The following example seaches down each column for the value <code>0.7</code>.
+
+<PRE>
+% nap "mat = {
+    {0.3 0.1 0.9}
+    {0.5 0.5 0.8}
+    {0.6 0.1 0.6}
+    {0.8 0.0   _}
+}"
+::NAP::157-157
+% [nap "mat @ 0.7"]
+2.5 _ 1.5
+</PRE>
+
+<p>
+Thus this combines the effect of the following three commands.
+
+<PRE>
+% [nap "{0.3 0.5 0.6 0.8} @ 0.7"]
+2.5
+% [nap "{0.1 0.5 0.1 0.0} @ 0.7"]
+_
+% [nap "{0.9 0.8 0.6 _} @ 0.7"]
+1.5
+</PRE>
+
+<p>
+The right operand can have any rank, but trailing dimensions (excluding dimension 0
+of the left operand) must match.
+The following example has a right operand with the same number (3) of columns as
+<code>mat</code>.
+
+<PRE>
+% [nap "mat @ {{0.7 0.7 0.7}{0.4 0.5 0.8}}"]
+2.5   _ 1.5
+0.5 1.0 1.0
+</PRE>
+
+<p>
+The following 3D array contains ocean temperature data for 4 depths, 2 latitudes and 3 longitudes.
+Note that some (shallower) points have missing values at the deepest level.
+For each (latitude, longitude) point, we want to find the depth (subscript)
+corresponding to a temperature of 10 degrees.
+The missing value in the result corresponds to an oceanic column whose minimum temperature is 12.
+
+<PRE>
+% nap "temperature = {
+    {{11 12 13}{11 11 12}}
+    {{ 9  9 13}{11  8 10}}
+    {{ 8 10 12}{ 9  8 10}}
+    {{ 6  2  _}{ 5  _  _}}
+}"
+% [nap "temperature @ 10"]
+0.500000 0.666667        _
+1.500000 0.333333 1.000000
 </PRE>
 
 <h4><a name=Subscript_of_Closest>Subscript of Closest &quot;<code>@@</code>&quot;</h4>
@@ -885,7 +980,7 @@ Thus:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: op.html,v 1.5 2003/03/17 01:07:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: op.html,v 1.8 2004/07/19 02:47:31 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

@@ -2,49 +2,59 @@
 #
 # Copyright (c) 1998-2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: caps_nap_menu.tcl,v 1.2 2003/07/29 06:33:26 dav480 Exp $
+# $Id: caps_nap_menu.tcl,v 1.13 2005/01/06 07:09:30 dav480 Exp $
 
 
 # caps_nap_menu --
 
 proc caps_nap_menu {
-    {geometry +0+0}
+    args
 } {
-    ::NAP::create_main_menu $geometry
+    eval ::NAP::create_main_menu $args
 }
 
 
 namespace eval NAP {
 
     proc create_main_menu {
-	geometry
+	{geometry +0+0}
+	{parent "."}
+        {font {-family Helvetica -size 10}}
     } {
-	update idletasks
-	wm geometry . $geometry
+	set title ""
 	if {[info exists ::caps_patchLevel]} {
 	    lappend title CAPS$::caps_patchLevel
 	}
 	if {[info exists ::nap_patchLevel]} {
 	    lappend title NAP$::nap_patchLevel
 	}
-	if {[info exists title]} {
-	    wm title . $title
+	if {$parent eq "."} {
+	    set m ""
+	    set p .
+	} else {
+	    set m [create_window caps_nap_menu $parent $geometry $title]
+	    set p $m
 	}
-	frame .menu 
-        frame .menu.l -borderwidth 2 -relief raised
-	create_logo .menu.l.logo
-        pack .menu.l.logo
-	frame .menu.mbar -relief raised
-	menubutton .menu.mbar.browse -text "Browse" -menu .menu.mbar.browse.menu -relief raised
-	menubutton .menu.mbar.command -text "Command" -menu .menu.mbar.command.menu -relief raised
-	menubutton .menu.mbar.help -text "Help" -menu .menu.mbar.help.menu -relief raised
-	create_browse_menu .menu.mbar.browse.menu
-	create_command_menu .menu.mbar.command.menu
-	create_help_menu .menu.mbar.help.menu
-	pack .menu.mbar.browse .menu.mbar.command .menu.mbar.help \
-        -side left -fill y
-	pack .menu.l .menu.mbar -side left -fill y
-	pack .menu -anchor w
+	frame $m.caps_logo -borderwidth 2 -relief raised
+	create_logo $m.caps_logo.logo
+        pack $m.caps_logo.logo
+	frame $m.mbar -relief raised
+	menubutton $m.mbar.browse -font $font \
+		-text "Browse" -menu $m.mbar.browse.menu -relief raised
+	menubutton $m.mbar.command -font $font \
+		-text "Command" -menu $m.mbar.command.menu -relief raised
+	menubutton $m.mbar.help -font $font \
+		-text "Help" -menu $m.mbar.help.menu -relief raised
+	create_browse_menu $m.mbar.browse.menu $p SW
+	create_command_menu $m.mbar.command.menu
+	create_help_menu $m.mbar.help.menu
+	pack $m.mbar.browse $m.mbar.command $m.mbar.help -side left -fill y
+	pack $m.caps_logo $m.mbar -side left -fill y
+	update idletasks
+	if {$parent eq "."} {
+	    wm geometry . $geometry 
+	    wm title . $title 
+	}
     }
 
 
@@ -61,7 +71,7 @@ namespace eval NAP {
 	if {![catch {image create photo -file $::caps_directory/caps.gif} imageName]} {
 	    $name create image 2 2 -image $imageName -anchor nw
 	    bind $name <Button-1> {
-		::NAP::help_www \
+		::NAP::display_help \
 			$::caps_www_command \
 			"CAPS/NAP Web documentation"
 	    }
@@ -71,31 +81,33 @@ namespace eval NAP {
 
     proc create_browse_menu {
 	menu_name
+	parent
+	geometry
     } {
 	set browse [menu $menu_name]
 	$browse add command \
 		-label "Variables" \
-		-command {browse_var .}
+		-command [list browse_var $parent $geometry]
 	if {[info exists ::caps_patchLevel]} {
 	    $browse add command \
 		    -label "AVHRR" \
-		    -command {get_avhrr_gui .}
+		    -command [list get_avhrr_gui $parent $geometry]
 	    $browse add command \
 		    -label "ATSR" \
-		    -command {get_atsr_gui .}
+		    -command [list get_atsr_gui $parent $geometry]
 	}
 	$browse add command \
 		-label "CIF files" \
-		-command {browse_cif .}
+		-command [list browse_cif $parent $geometry]
 	$browse add command \
 		-label "HDF" \
-		-command {hdf . hdf}
+		-command [list hdf $parent $geometry]
 	$browse add command \
 		-label "image files" \
-		-command {vif}
+		-command [list vif "" -parent $parent -geometry $geometry]
 	$browse add command \
 		-label "netCDF" \
-		-command {hdf . netcdf}
+		-command [list netcdf $parent $geometry]
     }
 
 
@@ -116,48 +128,76 @@ namespace eval NAP {
 	$help add command \
 		-label "Help for Main CAPS/NAP Menu" \
 		-command ::NAP::help_menu
-	if {[info exists ::caps_www_command]} {
-	    $help add command \
-		    -label "CAPS Web documentation" \
-		    -command {
-			::NAP::help_www \
-			    $::caps_www_command \
-			    "CAPS Web documentation"
-			}
+	set label "Tcl/Tk Local documentation"
+	if {$::tcl_platform(platform) eq "windows"} {
+	    set file "[file dirname [file dirname $::tcl_library]]/doc/ActiveTclHelp.chm"
+	    set hh {C:/WINDOWS/hh.exe}
+	    if {[file readable $file]  &&  [file readable $hh]} {
+		set command [list exec $hh $file &]
+		$help add command -label $label \
+			-command "[list ::NAP::display_help $command $label]"
+	    }
+	} else {
+	    set file "[file dirname [file dirname $::tcl_library]]/doc/html/index.html"
+	    if {[file readable $file]  &&  [info exists ::tcl_www_command]} {
+		set command [list exec $::caps_www_browser file://localhost/$file &]
+		$help add command -label $label \
+			-command "[list ::NAP::display_help $command $label]"
+	    }
 	}
-
+	if {[info exists ::tcl_www_command]} {
+	    set label "Tcl/Tk Web documentation"
+	    $help add command -label $label \
+		    -command "[list ::NAP::display_help $::tcl_www_command $label]"
+	}
+	set file [file dirname $::tcl_library]/nap$::nap_version/html/contents.html
+	if {[file readable $file]} {
+	    set label "NAP Local documentation"
+	    set command [list exec $::caps_www_browser file://localhost/$file &]
+	    $help add command -label $label \
+		    -command "[list ::NAP::display_help $command $label]"
+	}
 	if {[info exists ::nap_www_command]} {
-	    $help add command \
-		    -label "NAP Web documentation" \
-		    -command {
-			::NAP::help_www \
-			    $::nap_www_command \
-			    "NAP Web documentation"
-			}
+	    set label "NAP Web documentation"
+	    $help add command -label $label \
+		    -command "[list ::NAP::display_help $::nap_www_command $label]"
 	}
-
+	if {[info exists ::caps_www_command]} {
+	    set label "CAPS Web documentation"
+	    $help add command -label $label \
+		    -command "[list ::NAP::display_help $::caps_www_command $label]"
+	}
     }
+
 
     proc help_menu {} {
-	message_window \
-	    "The buttons have the following functions:\
-	    \n'CAPS Logo': Connect to CAPS Web documentation.\
-	    \n   'Browse': Select from browsers for:\
-	    \n                 - Tcl variables\
-	    \n                 - AVHRR files\
-	    \n                 - ATSR files\
-	    \n                 - CIF files\
-	    \n                 - HDF files\
-	    \n                 - netCDF files\
-	    \n                 - image files\
-	    \n  'History': Display commands entered from command-line.\
-	    \n     'Help': Documentation (including access to Web).\
-	    \n     'Exit': Quit."\
-	    -label "Main Menu Help"
+	set file [file dirname $::tcl_library]/nap$::nap_version/html/caps_nap_menu.html
+	if {[file readable $file]} {
+	    exec $::caps_www_browser file://localhost/$file &
+	} else {
+	    message_window \
+		"The buttons have the following functions:\
+		\n'Browse': Select from browsers for:\
+		\n    - Tcl variables (including those referencing NAOs)\
+		\n    - AVHRR satellite files\
+		\n    - ATSR satellite files\
+		\n    - CIF files (used mainly in Melbourne)\
+		\n    - HDF files\
+		\n    - netCDF files\
+		\n    - image files (e.g. GIF, JPEG)\
+		\n'Command':\
+		\n    'History': Display command history in scrolled window.\
+		\n    'Exit': Quit.\
+		\n'Help': Documentation (including access to Web)." \
+		-label "Main Menu Help"
+	}
     }
 
 
-    proc help_www {command description} {
+    proc display_help {
+	command
+	description
+    } {
 	if [catch $command] {
 	    message_window \
 		"Unable to access $description using following command:\

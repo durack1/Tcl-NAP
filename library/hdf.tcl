@@ -1,6 +1,6 @@
 # hdf.tcl --
 #
-# HDF/netCDF GUI.
+# HDF/netCDF browser.
 #
 # Copyright (c) 1998-2002, CSIRO Australia
 #
@@ -8,146 +8,409 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.89 2003/07/28 02:29:33 dav480 Exp $
+# $Id: hdf.tcl,v 1.119 2005/01/06 03:56:28 dav480 Exp $
 
 
 # hdf --
 #
-# Create window with HDF menu, etc.
+# Run HDF browser.
+#
 # Usage
-#   hdf ?<MASTER>? ?<HDF_NETCDF>?
-#       <MASTER>: widget in which to pack. If none (default) then toplevel.
-#	<HDF_NETCDF>: Either "hdf" or "netcdf"
+#   hdf ?<PARENT>? ?<GEOMETRY>?
 #
 # Example
-#   hdf .
+#   hdf . +0+0
 
 proc hdf {
     args
 } {
-    eval Hdf::main $args
+    eval ::Hdf::main hdf $args
+}
+
+# netcdf --
+#
+# Run netCDF browser.
+#
+# Usage
+#   netcdf ?<PARENT>? ?<GEOMETRY>?
+#
+# Example
+#   netcdf . +0+0
+
+proc netcdf {
+    args
+} {
+    eval ::Hdf::main netcdf $args
 }
 
 package require BWidget
 
-namespace eval Hdf {
-    variable delay 500;		# time (msec) between windows (frames) of animation
-    variable filename ""
-    variable hdf_netcdf "";	# "hdf" or "netcdf"
-    variable index "";		# subscript of NAO
-    variable is_current 0;	# 1 means nao is up-to-date
-    variable nao "";		# points to NAO
-    variable nao_name "";	# name specified by user
-    variable raw 0;		# 1 means want raw data (ignoring attributes like scale_factor)
-    variable sds_name "";	# sds-name : attribute-name)
-    variable sds_rank ""
-    variable windows "";	# list of windows for animation
+namespace eval ::Hdf {
 
     # main --
     #
     # Create window with HDF menu, etc.
 
     proc main {
-	{master {}}
-	{hdf_netcdf hdf}
+	{hdf_or_netcdf hdf}
+	{parent .}
+	{geometry sw}
+	{min_width 400}
+	{font_family helvetica}
+	{font_size 10}
     } {
-
-	trace variable ::Hdf::filename w ::Hdf::need_read
-	trace variable ::Hdf::sds_name w ::Hdf::need_read
-	trace variable ::Hdf::index    w ::Hdf::need_read
-	trace variable ::Hdf::raw      w ::Hdf::need_read
-	set Hdf::filename ""
-	set Hdf::sds_name ""
-	set Hdf::hdf_netcdf $hdf_netcdf
-
-	destroy .hdf
-	if {$master == ""} {
-	    toplevel .hdf
-	} else {
-	    frame .hdf -relief raised -borderwidth 4
-	    pack .hdf -in $master -side top -padx 2 -pady 2 -fill x
+	switch $hdf_or_netcdf {
+	    hdf		{set extension hdf; set file_type HDF}
+	    netcdf	{set extension nc ; set file_type netCDF}
 	}
-
-        frame .hdf.head
-	switch $hdf_netcdf {
-	    hdf		{label .hdf.head.heading -text "HDF Browser"}
-	    netcdf	{label .hdf.head.heading -text "netCDF Browser"}
+	    # Define fonts dnf (default normal font) & dbf (default bold font)
+	foreach name {dnf dbf} weight {normal bold} {
+	    if {[lsearch [font names] $name] < 0} {
+		font create $name -family $font_family -size $font_size -weight $weight
+	    }
 	}
-        button .hdf.head.help -text "Help" -command {::Hdf::hdf_help}
-        pack .hdf.head.heading -side left
-        pack .hdf.head.help -side right
+        set top [create_window $hdf_or_netcdf $parent $geometry "$file_type Browser" flat 2]
+	set top_ns ::Hdf::t[string map {. _} $top]; # top namespace
+	namespace eval $top_ns {
+	    variable delay 500;		# time (msec) between windows (frames) of animation
+	    variable filename ""
+	    variable hdf_netcdf;	# "hdf" or "netcdf"
+	    variable index "";		# subscript of NAO
+	    variable is_current 0;	# 1 means nao is up-to-date
+	    variable nao "";		# points to NAO
+	    variable nao_name "";	# name specified by user
+	    variable raw 0;		# 1 means want raw data (ignoring scale_factor, etc.)
+	    variable save_from;		# array to save dim from values
+	    variable save_to;		# array to save dim to values
+	    variable save_step;		# array to save dim step values
+	    variable sds_name "";	# sds-name : attribute-name
+	    variable sds_rank ""
+	    variable windows "";	# list of windows for animation
+	    variable x0 "";		# coord of 1st corner of box defined by mouse
+	    variable y0 "";		# coord of 1st corner of box defined by mouse
+	}
+	set ${top_ns}::hdf_netcdf $hdf_or_netcdf
+	grid columnconfigure $top 0 -weight 1 -minsize $min_width
+	create_head     $top_ns $top $extension
+	create_file_gui $top_ns $top $extension
+	trace add variable ${top_ns}::sds_name  write "::Hdf::need_read $top_ns"
+	trace add variable ${top_ns}::index     write "::Hdf::need_read $top_ns"
+	trace add variable ${top_ns}::raw       write "::Hdf::need_read $top_ns"
+	return $top
+    }
 
-	frame .hdf.file
-	button .hdf.file.filename_button -text "File" \
-	    -command {set ::Hdf::filename {}; ::Hdf::create_tree .hdf.tree}
-	entry .hdf.file.filename_entry -relief sunken -bd 2 -background white \
-	    -textvariable Hdf::filename 
-	# If the filename is changed by hand then also update the SDS display
-	bind .hdf.file.filename_entry <Key-Return> {::Hdf::create_tree .hdf.tree}
-	pack .hdf.file.filename_button -side left
-	pack .hdf.file.filename_entry -side left -expand true -fill x
 
-	frame .hdf.tree -bg white; # HDF file tree
-	frame .hdf.index; # Spatial index widget
-	frame .hdf.do; # All the buttons along the bottom of the menu
+    # create_head --
+    #
+    # Create the row at the top containing: heading, help-button, cancel-button-button-button
 
-	button .hdf.do.range -text "Range" -command ::Hdf::hdf_range
-	button .hdf.do.text -text "Text" -command ::Hdf::hdf_text
-	button .hdf.do.graph -text "Graph" -command {::Hdf::hdf_graph} 
-	button .hdf.do.image -text "Image" -command {::Hdf::hdf_image} 
-	button .hdf.do.animate -text "Animate" -command {::Hdf::hdf_animate} 
-	button .hdf.do.nao -text "NAO" -command {::Hdf::hdf_create_nao} 
-	button .hdf.do.cancel -text Cancel -command {destroy .hdf}
+    proc create_head {
+	top_ns
+	top
+	extension
+    } {
+        destroy $top.head
+        frame $top.head
+        button $top.head.help -font dnf -text "Help" -command "::Hdf::hdf_help"
+	button $top.head.cancel -font dnf -text Cancel -command "destroy $top"
+        pack $top.head.cancel $top.head.help -side right
+	grid $top.head -sticky ew
+    }
+
+
+    # create_file_gui --
+    #
+    # Create the GUI for the filename
+
+    proc create_file_gui {
+	top_ns
+	top
+	extension
+    } {
+	set all $top.file
+	destroy $all
+	::ChooseFile::choose_file_gui $all "::Hdf::open_file $top_ns $top" "" *.$extension dnf
+	grid $all -sticky news
+    }
+
+
+    # create_tree --
+    #
+    # Create a tree structure for an HDF file
+
+    proc create_tree {
+	top_ns
+	top
+	{min_height 5}
+	{max_height 16}
+    } {
+	global ${top_ns}::filename
+	global ${top_ns}::hdf_netcdf
+	. config -bd 3 -relief flat
+	set all $top.tree
+	destroy $top.tree $top.att_heading $top.sds_heading $top.index $top.do
+	frame $all -background white; # HDF file tree
+	set row [lindex [grid size $top] 1] 
+	grid $all -sticky news
+	grid rowconfigure $top $row -weight 1
+	set tree $all.w
+	set sbar $all.sb
+	destroy $tree $sbar
+        # Adjust the tree height (window size) using (number SDSs) + (number atts in final SDS)
+	set SDSs [split [nap_get $hdf_netcdf -list $filename {^[^:]*$}] "\n"]
+	set finalSDS [lindex $SDSs end]
+	set atts [split [nap_get $hdf_netcdf -list $filename "^${finalSDS}:"] "\n"]
+        set height [expr 1 + [llength $SDSs] + [llength $atts]]
+	set height [expr $height < $min_height ? $min_height : $height]
+	set height [expr $height > $max_height ? $max_height : $height]
+	Tree $tree -height $height -background white -padx 2 -yscrollcommand "$sbar set"
+	scrollbar $sbar -orient vertical -command "$tree yview"
+	pack $sbar -side right -fill y
+	pack $tree -expand true -fill both -anchor w
+	set max_nels 0
+	set default_item ""
+        set dup 0
+        set i 0
+	set hdfList [split [nap_get $hdf_netcdf -list $filename] "\n"]
+	foreach item $hdfList {
+	    incr i
+	    regsub {:.*} $item "" sds
+	    regsub {[^:]*(:|$)} $item "" att
+	    set eitem [encode $item]
+	    if {"$sds" eq ""} {
+		if {![$tree exists /]} {
+		    $tree insert end root / -font dnf -text "Global attributes"
+		}
+		    # Catch problems caused by duplicate nodes.
+		    # Add the characters " D<sequence number>" and set the displayed name to red.
+		    # The encrypted name will include the " D<sequence number>" but the displayed
+		    # screen tree title will be unchanged.
+		if {[catch {$tree insert end / $eitem -font dnf -text $att} result]} {
+                    incr dup
+                    set eitem [encode "$item D$dup"]
+                    if {[catch {$tree insert end / $eitem -font dnf -text $att} result]} {
+                        tk_messageBox -type ok -icon warning -message \
+                        "error $result \nadding duplicate $item D$dup to tree" 
+                    } else {
+	                $tree itemconfigure $eitem -fill red
+                    }
+                }
+	    } else {
+		if {"$att" eq ""} {
+		    set shape [hdf_info $top_ns -shape "$filename" "$sds"]
+		    if {[string match "$sds:*" [lindex $hdfList $i]]} {
+			set drawcross allways; # Need this (wrong) spelling!
+		    } else {
+			set drawcross never
+		    }
+		    if {[catch {$tree insert end root $eitem \
+			    -drawcross $drawcross -font dnf -text "$sds  $shape"} result]} {
+                        incr dup
+                        set eitem [encode "$item D$dup"]
+		        if {[catch {$tree insert end root $eitem -font dnf \
+				-text "$sds  $shape"} result]} {
+                            tk_messageBox -type ok -icon warning -message \
+                            "error $result \nadding duplicate $item D$dup to tree" 
+                        } else {
+        	            $tree itemconfigure $eitem -fill red
+                        }
+                    }
+		    set nels [[nap "prod{$shape}"]]
+		    if {$nels > $max_nels} {
+			set max_nels $nels
+			set default_item $sds
+                    }
+		} else {
+		    if {[catch {$tree insert end [encode $sds] $eitem -font dnf \
+			    -text $att} result]} {
+                        incr dup
+                        set eitem [encode "$item D$dup"]
+		        if {[catch {$tree insert end [encode $sds] $eitem -font dnf \
+				-text $att} result]} {
+                            tk_messageBox -type ok -icon warning -message \
+                            "error $result \nadding duplicate $item D$dup to tree" 
+                        } else {
+	                    $tree itemconfigure $eitem -fill red
+                        }
+                    }
+		}
+	    }
+	    update idletasks
+	}
+	$tree bindText <ButtonPress-1> "::Hdf::button_command $top_ns $top $tree"
+	if {$default_item ne ""} {
+	    set ${top_ns}::sds_name $default_item
+	    button_command $top_ns $top $tree [encode $default_item]
+	}
+        update idletasks
+    }
+
+
+    # create_index_widget --
+    #
+    # Create the index widget if rank > 0
+
+    proc create_index_widget {
+	top_ns
+	top
+	{ncols 7}
+	{relief ridge}
+    } {
+	global ${top_ns}::filename
+	global ${top_ns}::hdf_netcdf
+	global ${top_ns}::sds_name
+	global ${top_ns}::index
+	global ${top_ns}::sds_rank
+	set sds_rank [hdf_info $top_ns -rank $filename $sds_name]
+	set shp [hdf_info $top_ns -shape $filename $sds_name]
+	foreach name [namespace children ${top_ns}] {
+	    eval namespace delete $name
+	}
+	if {$sds_rank > 0} {
+		# Define new index grid "$win" (which is row of parent grid)
+	    set win $top.index
+	    frame $win -relief ridge -borderwidth 2
+	    grid $win -sticky ew
+	    grid columnconfigure $win 0 -weight 1
+	    grid columnconfigure $win 2 -weight 1
+	    grid columnconfigure $win 4 -weight 1
+	    grid columnconfigure $win 6 -weight 1
+		# From/To/Step headings
+	    set row [lindex [grid size $win] 1]
+	    set col 0
+	    button $win.dim -font dnf -text Dimension -anchor w \
+		    -command "::Hdf::init_dim $top_ns"
+	    grid $win.dim -sticky w -row $row -column $col
+	    set str(from) From
+	    set str(to) "To (or expression)"
+	    set str(step) "Step (0 = none)"
+	    foreach var {from to step} {
+		frame $win.${var}_vert_line -width 2 -relief $relief -bd 1
+		grid $win.${var}_vert_line -sticky ns -row $row -column [incr col]
+		button $win.$var -font dnf -text $str($var) -anchor w \
+			-command "::Hdf::init_dim $top_ns all $var"
+		grid $win.$var -sticky nsew -row $row -column [incr col]
+	    }
+		# 2 rows for each dimension
+	    for {set i 0} {$i < $sds_rank} {incr i} {
+		set cv [nap_get $hdf_netcdf -coordinate $filename $sds_name $i]
+		if {$cv == ""} {
+		    set cv$i ""
+		    set unit($i) ""
+		} else {
+		    nap "cv$i = $cv"
+		    set unit($i) [fix_unit [[set cv$i] unit]]
+		    if {[string equal $unit($i) (NULL)]} {
+			set unit($i) ""
+		    }
+		}
+	    }
+	    set dim_names [hdf_info $top_ns -dimension $filename $sds_name]
+	    for {set i 0} {$i < $sds_rank} {incr i} {
+		::Hdf::createDimWidget \
+			$top_ns \
+			${win} \
+			$i \
+			[lindex $dim_names $i] \
+			[lindex $shp $i] \
+			[set cv$i] \
+			$unit($i) \
+			$relief \
+			$ncols
+	    }
+	}
+    }
+
+
+    # create_do_buttons --
+    #
+    # Create the 'do' buttons along the bottom
+
+    proc create_do_buttons {
+	top_ns
+	top
+    } {
+	frame $top.do
+	checkbutton $top.do.raw -font dnf -text Raw -variable ${top_ns}::raw -anchor w
+	button $top.do.range -font dnf -text "Range" -command "::Hdf::hdf_range $top_ns $top"
+	button $top.do.text -font dnf -text "Text" -command "::Hdf::hdf_text $top_ns $top"
+	button $top.do.graph -font dnf -text "Graph" -command "::Hdf::hdf_graph $top_ns $top"
+	button $top.do.image -font dnf -text "Image" -command "::Hdf::hdf_image $top_ns $top" 
+	button $top.do.animate -font dnf -text "Animate" \
+		-command "::Hdf::hdf_animate $top_ns $top"
+	button $top.do.nao -font dnf -text "NAO" -command "::Hdf::hdf_create_nao $top_ns $top"
+	button $top.do.reread -font dnf -text Re-read -command "::Hdf::need_read $top_ns"
 	pack \
-	    .hdf.do.range \
-	    .hdf.do.text \
-	    .hdf.do.graph \
-	    .hdf.do.image \
-	    .hdf.do.animate \
-	    .hdf.do.nao \
-	    .hdf.do.cancel \
+	    $top.do.raw \
+	    $top.do.range \
+	    $top.do.text \
+	    $top.do.graph \
+	    $top.do.image \
+	    $top.do.animate \
+	    $top.do.nao \
+	    $top.do.reread \
 	    -side left \
 	    -fill x \
 	    -expand true \
 	    -padx 1 \
 	    -pady 2
-	pack .hdf.head  -expand true -fill x
-	pack .hdf.file  -expand true -fill x
-	pack .hdf.tree  -expand true -fill x
-	pack .hdf.index -expand true -fill x
-	pack .hdf.do    -expand true -fill x
+	grid $top.do -sticky ew
     }
 
 
     # need_read --
     #
-    # Called by write trace on variables ::Hdf::filename, ::Hdf::sds_name, ::Hdf::index, ::Hdf::raw
+    # Called by write trace on top namespace variables sds_name, index, raw
     # If any of these change we need to read variable again from file
 
     proc need_read {
-	name
-	element
-	op
+	top_ns
+	args
     } {
-	set ::Hdf::is_current 0
+	set ${top_ns}::is_current 0
     }
+
+
+    # open_file --
+
+    proc open_file {
+	top_ns
+	top
+	{new_filename ""}
+    } {
+	global ${top_ns}::filename
+	if {$new_filename eq ""  ||  $new_filename eq "."} {
+	    ::Hdf::hdf_warn "Filename is blank"
+	} else {
+	    if {[file readable $new_filename] && ![file isdirectory $new_filename]} {
+		set filename $new_filename
+		create_tree $top_ns $top
+	    } else {
+		::Hdf::hdf_warn "Unable to read file $new_filename"
+	    }
+	}
+    }
+
 
     # hdf_graph --
 
     proc hdf_graph {
+	top_ns
+	top
     } {
-	set parent .hdf.do.graph
+	global ${top_ns}::nao
+	set parent $top.do.graph
 	set w $parent.menu
 	destroy $w
-	if [read_nao] {
-	    if {[$::Hdf::nao rank] > 1} {
+	if [read_nao $top_ns $top] {
+	    if {[$nao rank] > 1} {
 		menu $w
-		menu_entry $w "graph" 1 xy
-		menu_entry $w "overlaid graph" 2 xy
+		menu_entry $top_ns $top $w "graph" 1 xy
+		menu_entry $top_ns $top $w "overlaid graph" 2 xy
 		$w add command -label cancel -command "destroy $w"
 		$w post [winfo rootx $parent] [expr [winfo rooty $parent] + [winfo height $parent]]
 	    } else {
-		draw_image 1 xy
+		draw_image $top_ns 1 xy $top
 	    }
 	}
     }
@@ -155,22 +418,25 @@ namespace eval Hdf {
     # hdf_image --
 
     proc hdf_image {
+	top_ns
+	top
     } {
-	set parent .hdf.do.image
+	global ${top_ns}::nao
+	set parent $top.do.image
 	set w $parent.menu
 	destroy $w
-	if [read_nao] {
-	    if {[$::Hdf::nao rank] > 2} {
+	if [read_nao $top_ns $top] {
+	    if {[$nao rank] > 2} {
 		menu $w
-		menu_entry $w "pseudo-colour image" 2 z
-		menu_entry $w "tiled pseudo-colour image" 3 tile
-		menu_entry $w "RGB image" 3 z
+		menu_entry $top_ns $top $w "pseudo-colour image" 2 z
+		menu_entry $top_ns $top $w "tiled pseudo-colour image" 3 tile
+		menu_entry $top_ns $top $w "RGB image" 3 z
 		$w add command -label cancel -command "destroy $w"
 		$w post [winfo rootx $parent] [expr [winfo rooty $parent] + [winfo height $parent]]
-	    } elseif {[$::Hdf::nao rank] > 1} {
-		draw_image 2 z
+	    } elseif {[$nao rank] > 1} {
+		draw_image $top_ns 2 z $top
 	    } else {
-		Hdf::hdf_warn "rank < 2"
+		::Hdf::hdf_warn "rank < 2"
 	    }
 	}
     }
@@ -178,21 +444,26 @@ namespace eval Hdf {
     # hdf_animate --
 
     proc hdf_animate {
+	top_ns
+	top
+	{geometry SW}
     } {
-	set parent .hdf.do.animate
+	global ${top_ns}::windows
+	set parent $top.do.animate
 	set w $parent.menu
 	destroy $w
-	if {[llength $::Hdf::windows] > 1} {
+	if {[llength $windows] > 1} {
 	    menu $w
-	    $w add command -label "animate last window-sequence" -command "::Hdf::animate"
-	    $w add command -label "set animation period" -command "set ::Hdf::delay \
-		    \[get_entry {period per window (msec)} -parent .hdf -text \$::Hdf::delay\]"
+	    $w add command -label "animate last window-sequence" -command "::Hdf::animate $top_ns"
+	    $w add command -label "set animation period" -command "set ${top_ns}::delay \
+		    \[get_entry {period per window (msec)} -parent $top -font dnf \
+		    -text \$${top_ns}::delay -geometry $geometry\]"
 	    $w add command -label "delete last window-sequence" \
-		    -command "destroy $::Hdf::windows; set ::Hdf::windows {}"
+		    -command "eval destroy \$${top_ns}::windows; set ${top_ns}::windows {}"
 	    $w add command -label cancel -command "destroy $w"
 	    $w post [winfo rootx $parent] [expr [winfo rooty $parent] + [winfo height $parent]]
 	} else {
-	    Hdf::hdf_warn "no window-sequence"
+	    ::Hdf::hdf_warn "no window-sequence"
 	}
     }
 
@@ -202,19 +473,21 @@ namespace eval Hdf {
     # return 1 if entry added, else 0
 
     proc menu_entry {
+	top_ns
+	top
 	w
 	label
 	rank_image
 	type
     } {
-	global Hdf::nao
+	global ${top_ns}::nao
 	nap "i = rank(nao) - rank_image"
 	set n [[nap "i < 0 ? 0 : prod((shape(nao))(0 .. (i-1) ... 1))"]]
 	if {$n > 1} {
 	    set label "$n ${label}s"
 	}
 	if {$n > 0} {
-	    $w add command -label $label -command "::Hdf::draw_image $rank_image $type"
+	    $w add command -label $label -command "::Hdf::draw_image $top_ns $rank_image $type $top"
 	    return 1
 	}
 	return 0
@@ -227,7 +500,7 @@ namespace eval Hdf {
     proc hdf_warn {
 	message
     } {
-	message_window $message -label "Error!" -wait 1
+	handle_error $message
     }
 
 
@@ -237,13 +510,15 @@ namespace eval Hdf {
     # flag can be -rank, -shape, -dimension, -coordinate
 
     proc hdf_info {
+	top_ns
 	flag
 	filename
 	var_name
     } {
-	set command [list nap_get $Hdf::hdf_netcdf $flag $filename $var_name]
+	global ${top_ns}::hdf_netcdf
+	set command [list nap_get $hdf_netcdf $flag $filename $var_name]
 	if {[catch $command result]} {
-	    Hdf::hdf_warn \
+	    ::Hdf::hdf_warn \
 		    "hdf_info: Error executing following command:\
 		    \n$command\
 		    \nwhich produced result:\
@@ -259,19 +534,28 @@ namespace eval Hdf {
     # Create NAO with name specified by user
 
     proc hdf_create_nao {
+	top_ns
+	top
+	{geometry SW}
     } {
-	if [read_nao] {
-	    regsub -all {[^_a-zA-Z0-9]} [::Hdf::hdf_var_name] _ Hdf::nao_name
-	    if [regexp {^[0-9]} $Hdf::nao_name] {
-		set Hdf::nao_name _$Hdf::nao_name
+	global ${top_ns}::hdf_netcdf
+	global ${top_ns}::nao
+	global ${top_ns}::nao_name
+	if [read_nao $top_ns $top] {
+	    set str [::Hdf::hdf_var_name $top_ns $top]
+	    if [regexp {^:} $str] {
+		set str [string range $str 1 end]
 	    }
-	    set Hdf::nao_name [get_entry "NAO name: " -text $Hdf::nao_name -width 40]
-	    uplevel {
-		if {[catch {nap "$::Hdf::nao_name = ::Hdf::nao"}]} {
-		    Hdf::hdf_warn "Unable to create NAO"
-		} else {
-		    message_window "Created NAO $::Hdf::nao named '$::Hdf::nao_name'"
-		}
+	    regsub -all {[^_a-zA-Z0-9]} $str _ nao_name
+	    if [regexp {^[0-9]} $nao_name] {
+		set ::Hdf::nao_name _$nao_name
+	    }
+	    set nao_name [get_entry "NAO name: " -font dnf -text $nao_name -width 40 \
+		-parent $top -geometry $geometry]
+	    if {[catch {uplevel "nap $nao_name = $nao"}]} {
+		::Hdf::hdf_warn "Unable to create NAO"
+	    } else {
+		puts "$hdf_netcdf browser created NAO $nao named '$nao_name'"
 	    }
 	}
     }
@@ -283,27 +567,28 @@ namespace eval Hdf {
     # Return 1 if OK, 0 for error
 
     proc read_nao {
+	top_ns
+	top
     } {
-	global Hdf::filename
-	global Hdf::hdf_netcdf 
-	global Hdf::index
-	global Hdf::sds_name
-	global Hdf::is_current
-	global Hdf::raw
+	global ${top_ns}::filename
+	global ${top_ns}::hdf_netcdf 
+	global ${top_ns}::index
+	global ${top_ns}::nao
+	global ${top_ns}::sds_name
+	global ${top_ns}::is_current
+	global ${top_ns}::raw
 	set status 0
 	if {$is_current} {
 	    set status 1
-	} else {
-	    if [hdf_select_file] {
-		hdf_var_name
-		setIndex
-		if {[catch {nap "::Hdf::nao = 
-			    [nap_get $hdf_netcdf $filename $sds_name $index $raw]"}]} {
-		    Hdf::hdf_warn "Unable to read NAO"
-		} else {
-		    set status 1
-		    set is_current 1
-		}
+	} elseif {$filename ne ""} {
+	    hdf_var_name $top_ns $top
+	    setIndex $top_ns
+	    if {[catch {nap "nao = [nap_get $hdf_netcdf $filename $sds_name $index $raw]"}]} {
+		::Hdf::hdf_warn "Unable to read NAO"
+	    } else {
+		set status 1
+		set is_current 1
+		save_dims $top_ns
 	    }
 	}
 	return $status
@@ -314,46 +599,14 @@ namespace eval Hdf {
     #
     # Display help.
 
-    proc hdf_help {} {
-	global Hdf::hdf_netcdf
-	switch $hdf_netcdf {
-	    hdf		{set v SDS}
-	    netcdf	{set v variable}
+    proc hdf_help {
+    } {
+	set file [file dirname $::tcl_library]/nap$::nap_version/html/hdf.html
+	if {[file readable $file]} {
+	    exec $::caps_www_browser file://localhost/$file &
+	} else {
+	    ::Hdf::hdf_warn "Unable to read file $file"
 	}
-	message_window \
-	    "1. Select a file.\
-	    \n   The 'file' button has an entry field on the right, showing the current\
-	    \n   value. You can change this value in two ways:\
-	    \n    - Press the button to display a file selection widget.\
-	    \n    - Type in a file name in the entry field.\
-	    \n   Once a file has been selected a 'file structure tree' will appear.\
-	    \n\
-	    \n2. Select an $v/Attribute from the tree using the mouse.\
-	    \n   Click '+' to display attributes. Spatial sampling widgets appear for\
-	    \n   $v entries. An attribute name and size appears for attributes.\
-	    \n   (A ':' is used as a separator in an attribute name. Attributes cannot be\
-	    \n   spatially sampled.)\
-	    \n\
-	    \n3. Select 'Raw' mode if you want the following attributes to be ignored:\
-	    \n   scale_factor, add_offset, valid_min, valid_max, valid_range.\
-	    \n\
-	    \n4. Change the spatial scaling values to your requirements.\
-	    \n   Each row corresponds to a dimension. Click in the 'Units' column to toggle\
-	    \n   between coordinate-variable-mode and index-mode. Click in the 'Expr'\
-	    \n   column to toggle between arithmetic-progression-mode and expression-mode.\
-	    \n   (Spatial scaling operates by rounding to the nearest integer value for\
-	    \n   fractional index requests -- it does not interpolate.) A right mouse click\
-	    \n   toggles each scale value between the default value and what you entered.\
-	    \n\
-	    \n5. Use the buttons along the bottom to initiate the following actions.\
-	    \n   'Range'   button: Display minimum and maximum value.\
-	    \n   'Text'    button: Display start of data as text.\
-	    \n   'Graph'   button: Display data as XY graph(s).\
-	    \n   'Image'   button: Display data as image(s).\
-	    \n   'Animate' button: Animate window-sequence produced by 'Graph' or 'Image'.\
-	    \n   'NAO'     button: Create Numeric Array Object.\
-	    \n   'Cancel'  button: Remove $hdf_netcdf widget." \
-	    -label "$hdf_netcdf help"
     }
 
 
@@ -362,28 +615,36 @@ namespace eval Hdf {
     # View HDF var using plot_nao
 
     proc draw_image {
+	top_ns
 	rank
 	type
+	top
+	{geometry -0+0}
     } {
-	global Hdf::nao
-	if [read_nao] {
+	global ${top_ns}::nao 
+	global ${top_ns}::sds_name
+	global ${top_ns}::windows
+	if [read_nao $top_ns $top] {
 	    set label [string trim [$nao label]]
 	    set unit  [string trim [$nao unit]]
 	    if {[string equal $unit (NULL)]} {
 		set unit ""
 	    }
-	    set title $::Hdf::sds_name
+	    set title $sds_name
 	    if {$unit != ""} {
 		set title "$title ($unit)"
 	    }
 	    if {$label != ""} {
 		set title "$label\n$title"
 	    }
-	    if {[catch {plot_nao $nao -rank $rank -title $title -type $type} result]} {
-		Hdf::hdf_warn "Error in plot_nao:\n $result"
+	    if {[catch {plot_nao $nao -geometry $geometry -parent $top \
+		    -buttonPressCommand   "::Hdf::handle_button_press   $top_ns" \
+		    -buttonReleaseCommand "::Hdf::handle_button_release $top_ns" \
+		    -rank $rank -title $title -type $type} result]} {
+		::Hdf::hdf_warn "Error in plot_nao:\n $result"
 	    } else {
 		if {[llength $result] > 1} {
-		    set ::Hdf::windows $result
+		    set windows $result
 		    raise .
 		}
 	    }
@@ -391,14 +652,60 @@ namespace eval Hdf {
     }
 
 
+    # handle_button_press --
+    #
+    # Save mouse position when button pressed (start of box)
+
+    proc handle_button_press {
+	top_ns
+    } {
+	set ${top_ns}::x0 $::Plot_nao::x
+	set ${top_ns}::y0 $::Plot_nao::y
+    }
+
+
+    # handle_button_release --
+    #
+    # Set from & to (of 2 least significant dims) based on box defined by mouse
+    # If side of box has 0 length (e.g. after click without drag) then do not set from & to
+
+    proc handle_button_release {
+	top_ns
+    } {
+	global ${top_ns}::sds_rank
+	nap "range_1 = ${top_ns}::x0 // ::Plot_nao::x"
+	nap "range_2 = ${top_ns}::y0 // ::Plot_nao::y"
+	foreach d {1 2} {
+	    set dim_num [expr $sds_rank - $d]
+	    set cv [set ${top_ns}::dim${dim_num}::cv]
+	    set n  [set ${top_ns}::dim${dim_num}::n]
+	    if {$cv eq ""} {
+		nap "i = range_$d"
+	    } else {
+		nap "i = cv @@ range_$d"
+	    }
+	    set imin [[nap "min(i)"]]
+	    set imax [[nap "max(i)"]]
+	    if {$imin < $imax} {
+		set ${top_ns}::dim${dim_num}::from $imin
+		set ${top_ns}::dim${dim_num}::to   $imax
+	    }
+	}
+	save_dims $top_ns
+    }
+
+
     # animate --
 
     proc animate {
+	top_ns
     } {
+	global ${top_ns}::delay 
+	global ${top_ns}::windows 
 	set ms 0
-	foreach win "$::Hdf::windows ." {
+	foreach win "$windows ." {
 	    after $ms "raise $win; update idletasks"
-	    incr ms $::Hdf::delay
+	    incr ms $delay
 	}
     }
     
@@ -408,55 +715,44 @@ namespace eval Hdf {
     # Display range
 
     proc hdf_range {
+	top_ns
+	top
+	{geometry SW}
     } {
-	if [read_nao] {
-	    if [catch {nap "r = range(::Hdf::nao)"} result] {
-		Hdf::hdf_warn "Error in nap command:\n $result"
+	global ${top_ns}::filename
+	global ${top_ns}::nao 
+	global ${top_ns}::sds_name
+	if [read_nao $top_ns $top] {
+	    if [catch {nap "r = range(nao)"} result] {
+		::Hdf::hdf_warn "Error in nap command:\n $result"
 	    } else {
 		message_window \
-			"File: $::Hdf::filename \
-			\nVariable: $::Hdf::sds_name \
+			"File: $filename \
+			\nVariable: $sds_name \
 			\nRange: [$r]" \
-			-label range
+			-parent $top -geometry $geometry -label range
 	    }
 	}
     }
 
-
-    # hdf_select_file --
-    #
-    # Select HDF file
-    # Return 1 if OK, 0 for error
-
-    proc hdf_select_file {
-    } {
-	global Hdf::filename
-	global Hdf::sds_name
-	set ext(hdf) .hdf
-	set ext(netcdf) .nc
-	if {$filename == ""} {
-	    set filename [open_input_file "" $ext($Hdf::hdf_netcdf)]
-	    set sds_name ""
-	}
-	set status [file readable $filename]
-	if {!$status} {
-	    Hdf::hdf_warn "Unable to read file $filename"
-	}
-	return $status
-    }
 
     # hdf_text --
     #
     # Read variable from HDF file into nao & then use specified method for this nao
 
     proc hdf_text {
+	top_ns
+	top
 	{method "all"}
 	{c_format ""}
 	{max_cols ""}
 	{max_lines ""}
+	{geometry NW}
     } {
-	global Hdf::nao
-	if [read_nao] {
+	global ${top_ns}::filename
+	global ${top_ns}::nao 
+	global ${top_ns}::sds_name
+	if [read_nao $top_ns $top] {
 	    if [regexp c8 [$nao datatype]] {
 		default max_cols -1
 		default max_lines -1
@@ -465,91 +761,57 @@ namespace eval Hdf {
 		default max_lines 100
 	    }
 	    message_window \
-		    "File: $::Hdf::filename \
-		    \nVariable: $::Hdf::sds_name \
+		    "File: $filename \
+		    \nVariable: $sds_name \
 		    \n[$nao $method -format $c_format -columns $max_cols -lines $max_lines]" \
-		    -label data
+		    -parent $top -geometry $geometry -label data
 	}
     }
 
 
     # hdf_var_name --
     #
-    # Return value of HDF::sds_name (which combines names of both sds/var & attribute)
+    # Return value of sds_name (which combines names of both sds/var & attribute)
     #
     # Usage:
     #   hdf_var_name
 
-    proc hdf_var_name {} {
-	 if {![winfo exists .hdf.tree.w]} {
-	    ::Hdf::create_tree .hdf.tree
-	 }
-	 if {${Hdf::sds_name} == ""} {
-	    tkwait variable Hdf::sds_name
-	 }
-	 return  ${Hdf::sds_name}
-    }
-
-
-    # create_tree --
-    #
-    # Create a tree structure for an HDF file
-
-    proc create_tree {w} {
-	global Hdf::filename
-	if [hdf_select_file] {
-	    set hdfContents [nap_get $Hdf::hdf_netcdf -list $filename]
-	} else {
-	    return
+    proc hdf_var_name {
+	top_ns
+	top
+    } {
+	global ${top_ns}::hdf_netcdf
+	global ${top_ns}::sds_name
+	if {![winfo exists $top.tree.w]} {
+	    ::Hdf::create_tree $top_ns $top
 	}
-	. config -bd 3 -relief flat
-	set tree $w.w
-	set sbar $w.sb
-	destroy $tree $sbar
-	set hdfList [split $hdfContents "\n"]
-        # Adjust the tree window size according to the number of items in the file
-        set number_items [llength $hdfList]
-	set height [expr $number_items > 40 ? 20 : $number_items < 20 ? 10 : $number_items/2]
-	Tree $tree -height $height -background white -padx 2 -yscrollcommand "$sbar set"
-	scrollbar $sbar -orient vertical -command "$tree yview"
-	pack $sbar -side right -fill y
-	pack $tree -expand true -fill x -anchor w
-	foreach item $hdfList {
-	    regsub {:.*} $item "" sds
-	    regsub {[^:]*(:|$)} $item "" att
-	    set eitem [encode $item]
-	    if {"$sds" eq ""} {
-		if {![$tree exists /]} {
-		    $tree insert end root / -text "Global attributes"
-		}
-		$tree insert end / $eitem -text $att
-	    } else {
-		set shape [hdf_info -shape "$filename" "$sds"]
-		if {"$att" eq ""} {
-		    $tree insert end root $eitem -text "$sds  $shape"
-		} else {
-		    $tree insert end [encode $sds] $eitem -text $att
-		}
+	if {$sds_name eq ""} {
+	    switch $hdf_netcdf {
+		hdf	{error "You have not chosen an SDS!"}
+		netcdf	{error "You have not chosen a variable!"}
 	    }
-	    update idletasks
 	}
-	$tree bindText <ButtonPress-1> "::Hdf::button_command $tree"
-        update idletasks
+	return  $sds_name
     }
+
 
     # encode --
     #
     # convert string to hex (doubling length of string)
+    #
+    # Example:
+    # % encode abc
+    # 616263
+    # % decode 616263
+    # abc
 
     proc encode {
 	s
     } {
-	set n [string length $s]
-	for {set i 0} {$i < $n} {incr i} {
-	    append h [format %2.2x [scan [string index $s $i] %c]]
-	}
-	return $h
+	binary scan $s "H*" hex
+	return $hex
     }
+
 
     # decode --
     #
@@ -558,20 +820,142 @@ namespace eval Hdf {
     proc decode {
 	h
     } {
-	set n [string length $h]
-	for {set i 0} {$i < $n} {incr i 2} {
-	    append s [format %c [scan [string range $h $i [expr $i + 1]] %x]]
-	}
-	return $s
+	return [binary format "H*" $h]
     }
 
+
+    # create_name_value_widget --
+    #
+    # Create frame containing labels for name & value
+    # Return total number of characters in both
+
+    proc create_name_value_widget {
+	path
+	name
+	value
+	{wraplength 500}
+    } {
+	destroy $path
+	frame $path
+	label $path.name  -font dbf -text $name  -wraplength $wraplength -justify left
+	label $path.value -font dnf -text $value -wraplength $wraplength -justify left
+	pack $path.name $path.value -anchor w -fill x -side left -pady 1
+	return [string length "$name$value"]
+    }
+
+
+    # create_att_heading_widget --
+    #
+    # Create widget containing:
+    #   name of SDS/variable
+    #   name of attribute
+    #   value of attribute
+
+    proc create_att_heading_widget {
+	top_ns
+	top
+    } {
+	global ${top_ns}::filename
+	global ${top_ns}::hdf_netcdf
+	global ${top_ns}::sds_name
+	set f $top.att_heading
+	frame $f -relief ridge -borderwidth 2
+	grid $f -sticky ew
+	set att_head $f.att_head
+	frame $att_head 
+	set sds_att [split $sds_name :]
+	set sds [lindex $sds_att 0]
+	set att [lindex $sds_att 1]
+	if {$sds eq ""} {
+	    set att_name {Global attribute}
+	} else {
+	    set type(hdf) SDS
+	    set type(netcdf) Variable
+	    create_name_value_widget $att_head.sds $type($hdf_netcdf) $sds
+	    pack $att_head.sds -side left
+	    set att_name {  Attribute}
+	}
+	create_name_value_widget $att_head.att $att_name $att
+	pack $att_head.att -side left
+	label $f.att_value -font dnf -text [[nap_get $hdf_netcdf $filename $sds_name]]
+	pack $f.att_head $f.att_value -anchor w
+    }
+
+
+    # create_sds_heading_widget --
+    #
+    # Create widget containing name of SDS/variable, long_name, units
+
+    proc create_sds_heading_widget {
+	top_ns
+	top
+	{max_width 70}
+	{pad {  }}
+    } {
+	global ${top_ns}::filename
+	global ${top_ns}::hdf_netcdf
+	global ${top_ns}::sds_name
+	set type(hdf) SDS
+	set type(netcdf) Variable
+	set f $top.sds_heading
+	frame $f -relief ridge -borderwidth 2
+	grid $f -sticky ew
+	frame $f.pair
+	label $f.pad0 -font dnf -text $pad
+	label $f.pad1 -font dnf -text $pad
+	set n(sds) [create_name_value_widget $f.sds $type($hdf_netcdf) $sds_name]
+	if {[catch {[nap_get $hdf_netcdf $filename ${sds_name}:long_name]} text]} {
+	    set n(long_name) 0
+	} else {
+	    set n(long_name) [create_name_value_widget $f.long_name long_name $text]
+	}
+	if {[catch {[nap_get $hdf_netcdf $filename ${sds_name}:units]} text]} {
+	    set n(units) 0
+	} else {
+	    set n(units) [create_name_value_widget $f.units units $text]
+	}
+	if {$n(sds) + $n(long_name) + $n(units) < $max_width} {
+	    pack $f.sds -side left -anchor w
+	    if {$n(long_name) > 0} {
+		pack $f.pad0 $f.long_name -side left -anchor w
+	    }
+	    if {$n(units) > 0} {
+		pack $f.pad1 $f.units -side left -anchor w
+	    }
+	} elseif {$n(sds) + $n(long_name) < $max_width  &&  $n(long_name) > 0} {
+	    pack $f.sds $f.pad0 $f.long_name -side left -anchor w -in $f.pair
+	    pack $f.pair $f.units -anchor w
+	} elseif {$n(sds) + $n(units) < $max_width  &&  $n(units) > 0} {
+	    pack $f.sds $f.pad0 $f.units -side left -anchor w -in $f.pair
+	    pack $f.pair $f.long_name -anchor w
+	} elseif {$n(long_name) + $n(units) < $max_width
+		    &&  $n(long_name) > 0  &&  $n(units) > 0} {
+	    pack $f.long_name $f.pad0 $f.units -side left -anchor w -in $f.pair
+	    pack $f.sds $f.pair -anchor w
+	} else {
+	    pack $f.sds -side top -anchor w
+	    if {$n(long_name) > 0} {
+		pack $f.long_name -side top -anchor w
+	    }
+	    if {$n(units) > 0} {
+		pack $f.units -side top -anchor w
+	    }
+	}
+    }
+
+
     # button_command --
+    #
+    # create_tree binds button_command to pressing mouse button 1 on sds/att
 
     proc button_command {
+	top_ns
+	top
 	tree
 	eitem
+	{max_width 450}
     } {
-	global Hdf::sds_name
+	global ${top_ns}::sds_name
 	if {$sds_name ne ""} {
 	    set old [encode $sds_name]
 	    if {![$tree exists $old]} {
@@ -580,693 +964,480 @@ namespace eval Hdf {
 	    $tree itemconfigure $old -fill black
 	}
 	if {$eitem ne "/"} {
-	    $tree itemconfigure $eitem -fill red
-	    set sds_name [decode $eitem]
-	    show_index
+		# Entries in red are duplicates and should not be changed.
+		# This is a temporary fix by Peter Turner
+            set colour [$tree itemcget $eitem -fill]
+            if {$colour ne "red"} {
+	        $tree itemconfigure $eitem -fill blue
+	        set sds_name [decode $eitem]
+		if {$sds_name ne ""} {
+		    destroy $top.att_heading $top.sds_heading $top.index $top.do
+		    if {[string match "*:*" $sds_name]} {
+			create_att_heading_widget $top_ns $top
+		    } else {
+			create_sds_heading_widget $top_ns $top
+			create_index_widget $top_ns $top
+		    }
+		    create_do_buttons $top_ns $top
+		}
+            }
 	}
     }
 
+    # fix_unit --
     #
-    # show_index --
-    #
-    # Display the index widgets in the HDF menu.
-    #
-    #
-    proc show_index {} {
+    # Return "°E" if arg is anything equivalent to this e.g. "degreeE"
+    # Return "°N" if arg is anything equivalent to this e.g. "degreeN"
+    # Return "" if arg is "(NULL)"
+    # Otherwise just return arg
 
-	global Hdf::filename
-	global Hdf::sds_name
-	global Hdf::index
-	global Hdf::sds_rank
-
-	if {[string length $sds_name] == 0} {
-	    return
+    proc fix_unit {
+	unit
+    } {
+	set result [string trim $unit]
+	set degree "\xb0"; # ISO-8859 code for degree symbol
+	switch -regexp [string tolower $result] {
+	    {^\(null\)$}	{set result ""}
+	    {^degree.*e}	{set result "${degree}E"}
+	    {^degree.*n}	{set result "${degree}N"}
 	}
-	set sds_rank [hdf_info -rank $filename $sds_name]
-	set shp [hdf_info -shape $filename $sds_name]
-	set win .hdf.index
-	set win ${win}.sf
-	destroy $win
-	set names [namespace children [namespace current]::indexWidget]
-	if [llength $names] {
-	    eval namespace delete $names
-	}
-	frame ${win} -relief raised -borderwidth 2
-	pack ${win} -expand true -fill x -anchor w
-	grid propagate ${win}
-	grid columnconfigure ${win} {0 1} -weight 1
-	label ${win}.l0 -text "$sds_name"
-	grid ${win}.l0 -row 0 -column 0 -columnspan 5 -sticky nw
-	    # Check for attribute
-	if {[string match "*:*" $sds_name]} {
-	    label ${win}.l1 -text "attribute size  $shp"
-	    grid ${win}.l1 -row 1 -column 0 -sticky nw
-	    return
-	}  
-	checkbutton $win.l1 -text Raw -variable ::Hdf::raw
-	label ${win}.l2 -text "Units" -anchor w -padx 20
-	label ${win}.ap -text "Expr"
-	label ${win}.l3 -text "Range"
-	label ${win}.l5 -text "Step"
-	grid ${win}.l1 -row 1 -column 0 -sticky nw
-	grid ${win}.l2 -row 1 -column 1 -sticky nw
-	grid ${win}.ap -row 1 -column 2
-	grid ${win}.l3 -row 1 -column 3 -columnspan 2
-	grid ${win}.l5 -row 1 -column 5 -sticky nw
-	set max_unit_length 10
-	for {set i 0} {$i < $sds_rank} {incr i} {
-	    set cv [nap_get $Hdf::hdf_netcdf -coordinate $filename $sds_name $i]
-	    if {$cv == ""} {
-		set cv$i ""
-		set unit($i) ""
-	    } else {
-		nap "cv$i = $cv"
-		set unit($i) [[set cv$i] unit]
-		if {[string equal $unit($i) (NULL)]} {
-		    set unit($i) ""
-		}
-		set max_unit_length [min 64 [max $max_unit_length [string length $unit($i)]]]
-	    }
-	}
-	set dim_names [hdf_info -dimension $filename $sds_name]
-	for {set i 0} {$i < $sds_rank} {incr i} {
-	    ::Hdf::indexWidget::createIndexWidget \
-		    ${win} \
-		    $i \
-		    [lindex $dim_names $i] \
-		    [lindex $shp $i] \
-		    [set cv$i] \
-		    $unit($i) \
-		    $max_unit_length
-	}
+	return $result
     }
 
     # setIndex --
     #
-    # Set the value of the index variable
+    # Set index to "" or NAO ID of index (e.g. result of nap expression "5,0..9...1")
 
-    proc setIndex {} {
-
-	global Hdf::filename
-	global Hdf::sds_rank
-	global Hdf::sds_name
-	
-	#
-	# Check for attribute
-	#
-	if [string match "*:*" $Hdf::sds_name] {
-	    set ::Hdf::index ""
-	} else {
-	    set dim_names [hdf_info -dimension $filename $sds_name]
-	    set all_blank 1
+    proc setIndex {
+	top_ns
+    } {
+	global ${top_ns}::sds_rank
+	global ${top_ns}::sds_name
+	set ${top_ns}::index ""
+	    # Check for attribute
+	if {![string match "*:*" $sds_name]} {
+	    set list ""
 	    for {set i 0} {$i < $sds_rank} {incr i} {
-		set name [lindex $dim_names $i]
-		set tmp [::Hdf::indexWidget::getIndex $i]
-		set is_blank [expr [string length $tmp] == 0]
-		set all_blank [expr $all_blank && $is_blank]
-		if {$i == 0} {
-		    set ::Hdf::index $tmp
-		} else {
-		    set tmp "$::Hdf::index , $tmp"
-		}
-		if {$i > 0  || ! $is_blank} {
-		    if [catch {nap "::Hdf::index = $tmp"} msg] {
-		    Hdf::hdf_warn \
-			    "setIndex: nap error evaluating index for dimension $i ($name)\n$msg"
+		set dim_ns "${top_ns}::dim$i"
+		global ${dim_ns}::expr
+		global ${dim_ns}::from
+		global ${dim_ns}::n
+		global ${dim_ns}::to
+		global ${dim_ns}::step
+		if {$step == 0} {
+		    if {$expr eq ""} {
+			lappend list $from
+		    } else {
+			lappend list $expr
 		    }
+		} elseif {$from == 0  &&  $to == $n-1  &&  $step == 1} {
+		    lappend list ""
+		} elseif {$from < $to} {
+		    lappend list "($from .. $to ... $step)"
+		} elseif {$from > $to} {
+		    lappend list "($to .. $from ... $step)"
+		} else {
+		    lappend list $from
 		}
 	    }
-	    if {$all_blank} {
-		set ::Hdf::index ""
+	    set nap_expr [join $list ,]
+	    if {![regexp {^,*$} $nap_expr]} {
+		uplevel #0 "nap \"${top_ns}::index = $nap_expr\""
 	    }
 	}
     }
 
+    # createDimWidget --
     #
-    # Create a namespace for this stuff
-    #
-    namespace eval indexWidget {
+    # Create a widget for specified dimension to allow user to set <from>, <to> & <step>
 
-    # createIndexWidget --
-    #
-    # Create a widget to enter spatial scale values.
-    #
-    # The proceedure requires a window id, a unique
-    # id and the CV for the particular scaling operation.
-
-    proc createIndexWidget {
-	nm
-	id
+    proc createDimWidget {
+	top_ns
+	parent
+	dim_num
 	dim_name
-	nel
+	dim_size
 	cvNao
 	unit
-	max_unit_length
+	relief
+	ncols
     } {
-	# Define local variable names
-	#
-	# We use the cv to convert between extrema
-	# in index and coordinate space. However,
-	# we calculate the step in index and
-	# coordinate space only once
-
-	namespace eval ${id} {
-	    variable expr_mode 0;		# 1 = expr mode, 0 = AP mode
-	    variable n;			# size of dimension
-	    variable cv;		# Coordinate variable for this dimension
-	    variable expr ""
-	# Current values
-	    variable start
-	    variable stop
-	    variable step
-	# User set values
-	    variable ustart
-	    variable ustop
-	    variable ucstep
-	    variable uistep 
-	    variable dcstep;		# default coordinate step
-	    variable distep;		# default index step
-	# Check button state 
-	    variable state 0;		# 0 = cv mode, 1 = index mode
-	    trace variable start	w ::Hdf::need_read
-	    trace variable stop		w ::Hdf::need_read
-	    trace variable step		w ::Hdf::need_read
-	    trace variable ucstep	w ::Hdf::need_read
-	    trace variable uistep	w ::Hdf::need_read
-	    trace variable expr		w ::Hdf::need_read
+	global ${top_ns}::save_from
+	global ${top_ns}::save_to
+	global ${top_ns}::save_step
+	set dim_ns "${top_ns}::dim$dim_num"
+	namespace eval $dim_ns {
+	    variable expr "";		# string containing nap expression
+	    variable cv "";		# Main coordinate variable
+	    variable cvs "";		# Coordinate variable for 'step'
+	    variable from;		# subscript  variable for 'from' spinbox
+	    variable from_cv;		# coordinate variable for 'from' entry
+	    variable from_map;		# mapping for 'from' scale
+	    variable n;			# = dim_size 
+	    variable name;		# = dim_name 
+	    variable step;		# subscript  variable for 'step' spinbox
+	    variable step_cv;		# coordinate variable for 'step' entry
+	    variable step_map;		# mapping for 'step' scale
+	    variable to;		# subscript  variable for 'to' spinbox
+	    variable to_cv;		# coordinate variable for 'to' entry
+	    variable to_map;		# mapping for 'to' scale
+	    variable within_set_scale 0; # flag to prevent infinite recursion
 	}
-
-	set ns [namespace current]
-	global ${ns}::${id}::expr_mode
-	global ${ns}::${id}::cv
-	global ${ns}::${id}::n
-	global ${ns}::${id}::start
-	global ${ns}::${id}::stop
-	global ${ns}::${id}::step
-	global ${ns}::${id}::dcstep
-	global ${ns}::${id}::distep
-	global ${ns}::${id}::ustart
-	global ${ns}::${id}::ustop
-	global ${ns}::${id}::ucstep
-	global ${ns}::${id}::uistep
-	global ${ns}::${id}::state
-
-	set cv ""
-	set n $nel
-	set start ""
-	set stop ""
-	set step ""
-	set uistep 1
-	set ucstep 1
-	set distep 1
-	if {$cvNao != ""} {
-	    nap cv = cvNao
-	    set start [[nap cv(0)]]
-	    set stop [[nap cv(-1)]]
-	    if {$n <= 1} {
-		set step 1
-	    } else {
-		if {[$cv step] == "AP"} {
-		    if {$n == 2} {
-			set step [[nap cv(-1) - cv(0)]]
-		    } else {
-			set step [[nap (cv(-2)-cv(0))/(n - 2)]]
-		    }
-		}
+	global ${dim_ns}::cv
+	global ${dim_ns}::cvs
+	set ${dim_ns}::n $dim_size
+	set ${dim_ns}::name $dim_name
+	if {$cvNao ne ""} {
+	    nap "cv = cvNao"
+	    if {[$cv step] eq "AP"} {
+		nap "cvs = cv - cv(0)"
 	    }
 	}
-	set ustop $stop
-	set ustart $start
-	set ucstep $step
-	set dcstep $step
-
-	label $nm.l1$id -text "$dim_name" -anchor w -width [min 64 [string length $dim_name]]
-
-	if {$cvNao == ""} {
-	    label $nm.state$id \
-		-relief groove \
-		-text "$unit" \
-		-width $max_unit_length \
-		-anchor w
-	} else {
-	    checkbutton $nm.state$id \
-		-variable ${ns}::${id}::state \
-		-selectcolor orange \
-		-command "::Hdf::indexWidget::toggleIndex $nm.state$id $id {$unit}" \
-		-relief groove \
-		-text "$unit" \
-		-width $max_unit_length \
-		-anchor w
-	}
-
-	checkbutton $nm.ap$id \
-	    -variable ${ns}::${id}::expr_mode \
-	    -selectcolor orange \
-	    -relief flat \
-	    -command "::Hdf::indexWidget::toggle_expr_mode $nm $id"
-
-	entry $nm.e1$id \
-	    -relief sunken \
-	    -width 7 \
-	    -textvariable ${ns}::${id}::start
-
-	label $nm.l2$id -text stop
-
-	entry $nm.e2$id \
-	    -relief sunken \
-	    -width 7 \
-	    -textvariable ${ns}::${id}::stop
-
-	label $nm.l3$id -text "incr"
-
-	entry $nm.e3$id \
-	   -relief sunken \
-	   -width 6 \
-	   -textvariable ${ns}::${id}::step
-
-	entry $nm.e$id \
-	   -relief sunken \
-	   -textvariable ${ns}::${id}::expr
-
-	bind $nm.e1$id <KeyRelease> "::Hdf::indexWidget::enterUser %W $id start" 
-	bind $nm.e2$id <KeyRelease> "::Hdf::indexWidget::enterUser %W $id stop" 
-	bind $nm.e3$id <KeyRelease> "::Hdf::indexWidget::enterUser %W $id step" 
-
-	bind $nm.e1$id <3> "::Hdf::indexWidget::toggleDefault %W $id start" 
-	bind $nm.e2$id <3> "::Hdf::indexWidget::toggleDefault %W $id stop" 
-	bind $nm.e3$id <3> "::Hdf::indexWidget::toggleDefault %W $id step" 
-	#
-	grid $nm.l1$id $nm.state$id $nm.ap$id $nm.e1$id $nm.e2$id $nm.e3$id \
-	    -sticky ew \
-	    -padx 2 \
-	    -pady 1
-	if {$step == ""} {
-	    set state 1
-	    toggleIndex $nm.state$id $id $unit
+	    # horizontal line
+	set row [lindex [grid size $parent] 1]
+	frame $parent.hor_line$dim_num -height 2 -relief $relief -bd 1
+	grid $parent.hor_line$dim_num -sticky ew -row $row -columnspan $ncols
+	    # main row
+	incr row
+	    # dim. name
+	button $parent.dimname$dim_num -font dnf -text $dim_name -anchor w \
+		-command "::Hdf::toggle_dim $top_ns $dim_num"
+	grid $parent.dimname$dim_num -sticky news -row $row -column 0 -rowspan 2
+	set col 1
+	    # from, to, step
+	foreach word {from to step} {
+	    set saved_value [get_saved_dim $top_ns $dim_num $word]
+	    if {$saved_value eq ""} {
+		set init_value [get_default_dim $top_ns $dim_num $word]
+	    } else {
+		set init_value $saved_value
+	    }
+	    if {$word eq "step"} {
+		set c $cvs
+	    } else {
+		set c $cv
+	    }
+	    set col [create_from_to_step $top_ns $word $init_value $parent \
+		    $dim_num $unit $relief $row $col $c]
 	}
     }
 
-    # toggle_expr_mode --
+    # init_dim --
+    #
+    # Set specified columns (specified by words) of specified dim to defaults
+    # If dim_num is "all" then do all dims
+    # words can by "from", "to", "step"
 
-    proc toggle_expr_mode {
-	nm
-	id
+    proc init_dim {
+	top_ns
+	{dim_num all}
+	{words {from to step}}
     } {
-	set ns [namespace current]
-	global ${ns}::${id}::expr_mode
-	set ::Hdf::is_current 0
-	set info [grid info $nm.ap$id]
-	set master [lindex $info 1]
-	set row [lindex $info [expr 1 + [lsearch $info -row]]]
-	if {$expr_mode} {
-	    grid remove $nm.e1$id $nm.e2$id $nm.e3$id
-	    grid $nm.e$id \
-		    -in $master \
-		    -columnspan 3 \
-		    -row $row \
-		    -column 3 \
-		    -sticky ew \
-		    -padx 2 \
-		    -pady 1
+	global ${top_ns}::sds_rank
+	if {$dim_num eq "all"} {
+	    for {set i 0} {$i < $sds_rank} {incr i} {
+		init_dim $top_ns $i $words
+	    }
 	} else {
-	    grid remove $nm.e$id
-	    grid $nm.e1$id -in $master -row $row -column 3
-	    grid $nm.e2$id -in $master -row $row -column 4
-	    grid $nm.e3$id -in $master -row $row -column 5
+	    foreach word $words {
+		set ${top_ns}::dim${dim_num}::$word [get_default_dim $top_ns $dim_num $word]
+	    }
 	}
     }
 
-    # toggleIndex --
+    # save_dims --
     #
-    # Switch between coordinate values and index values
+    # Save current values of from, to & step
 
-    proc toggleIndex {win id unit} {
-
-	set ns [namespace current]
-	global ${ns}::${id}::cv
-	global ${ns}::${id}::n
-	global ${ns}::${id}::start
-	global ${ns}::${id}::stop
-	global ${ns}::${id}::step
-	global ${ns}::${id}::ustart
-	global ${ns}::${id}::ustop
-	global ${ns}::${id}::ucstep
-	global ${ns}::${id}::uistep
-	global ${ns}::${id}::distep
-	global ${ns}::${id}::dcstep
-	global ${ns}::${id}::state
-
-	# Change the entry values according to coordinate (state = 0) or index mode (state = 1)
-	if {$state} {
-	    $win configure -text "index    "
-	    if {$cv == ""} {
-		set start 0 
-		set stop [expr $n - 1]
-		set step $uistep
-	    } else {
-		if [catch {[nap cv@@start]} tempStart] {
-		    Hdf::hdf_warn "Warning - bad from value: $start "
-		    set start 0 
-		} else {
-		    set start $tempStart
-		}
-		if [catch {[nap cv@@stop]} tempStop] {
-		    Hdf::hdf_warn "Warning - bad to value: $stop "
-		    set stop [[nap n-1]] 
-		} else {
-		    set stop $tempStop
-		}
-		if {"$dcstep" != "" && "$step" != ""} {
-		    if [catch {expr $step/$dcstep} tempStep] {
-			Hdf::hdf_warn "Warning - bad step value: $step "
-			set step $distep 
-		    } else {
-			set step [format %g $tempStep]
-			set uistep $step
-		    }
-		} else {
-		    set step $uistep
-		}
-	    }
-	} else {
-	    if {$cv == ""} {
-		set state 1; # coord mode not allowed
-	    } else {
-		$win configure -text "$unit"
-		if [catch {[nap cv(start)]} tempStart] {
-		    Hdf::hdf_warn "Warning - bad from value: $start "
-		    set start [[nap cv(0)]] 
-		} else {
-		    set start $tempStart
-		}
-		if [catch {[nap cv(stop)]} tempStop] {
-		    Hdf::hdf_warn "Warning - bad to value: $stop "
-		    set stop [[nap cv(-1)]] 
-		} else {
-		    set stop $tempStop
-		}
-		if {"$dcstep" != ""} {
-		    if [catch {expr $step*$dcstep} tempStep] {
-			Hdf::hdf_warn "Warning - bad step value: $step "
-			set step $dcstep
-		    } else {
-			set step [format %g $tempStep]
-			set ucstep $step
-		    }
-		} else {
-		    set step $ucstep
-		}
+    proc save_dims {
+	top_ns
+    } {
+	global ${top_ns}::sds_rank
+	for {set dim_num 0} {$dim_num < $sds_rank} {incr dim_num} {
+	    set dim_name [set ${top_ns}::dim${dim_num}::name]
+	    set dim_size [set ${top_ns}::dim${dim_num}::n]
+	    set array_index "$dim_name,$dim_size"
+	    foreach word {from to step} {
+		set current_value [set ${top_ns}::dim${dim_num}::$word]
+		set ${top_ns}::save_${word}($array_index) $current_value
 	    }
 	}
     }
 
-    # enterUser --
+    # toggle_dim --
     #
-    # Change the background to white when the user
-    # enters a number. Also make sure the user entry
-    # is valid.
+    # Toggle from, to & step of specified dim
+    # If all three are set to defaults then set them to saved values (if any)
+    # Otherwise set them to defaults
 
-    proc enterUser {win id name} {
-
-	set ns [namespace current]
-	global ${ns}::${id}::cv
-	global ${ns}::${id}::start
-	global ${ns}::${id}::stop
-	global ${ns}::${id}::step
-	global ${ns}::${id}::ustart
-	global ${ns}::${id}::ustop
-	global ${ns}::${id}::ucstep
-	global ${ns}::${id}::uistep
-	global ${ns}::${id}::state
-
-	$win configure -background white
-
-	#
-	# Check to see if we are dealing with a coordinate
-	# or an index value
-	#
-	# We have allowed for testing inputs but do not
-	# do anything much!
-	#
-
-	if {$state} {
-	    switch -exact -- $name {
-		start {
-		}
-		stop {
-		}
-		step  {
-		    set uistep $step
+    proc toggle_dim {
+	top_ns
+	dim_num
+    } {
+	set words {from to step}
+	set count 0
+	foreach word $words {
+	    set current_value [set ${top_ns}::dim${dim_num}::$word]
+	    set default_value [get_default_dim $top_ns $dim_num $word]
+	    incr count [expr $current_value == $default_value]
+	}
+	if {$count == 3} {
+	    foreach word $words {
+		set saved_value [get_saved_dim $top_ns $dim_num $word]
+		if {$saved_value ne ""} {
+		    set ${top_ns}::dim${dim_num}::$word $saved_value
 		}
 	    }
-
-	#
-	# Coordinate case
-	#
-
 	} else {
-	    switch -exact -- $name {
-		start {
-		}
-		stop {
-		}
-		step {
-		    set ucstep $step
-		}
-	    }
+	    init_dim $top_ns $dim_num
 	}
     }
 
-    # toggleDefault --
+    # get_saved_dim --
     #
-    # Switch between user and default values
-    # Not yet used or complete!
+    # Return saved from, to or step (specified by word) if it exists, else ""
 
-    proc toggleDefault {win id name} {
-
-	set ns [namespace current]
-	global ${ns}::${id}::cv
-	global ${ns}::${id}::start
-	global ${ns}::${id}::stop
-	global ${ns}::${id}::step
-	global ${ns}::${id}::ustart
-	global ${ns}::${id}::ustop
-	global ${ns}::${id}::ucstep
-	global ${ns}::${id}::uistep
-	global ${ns}::${id}::state
-	global ${ns}::${id}::dcstep
-	global ${ns}::${id}::distep
-
-	# Check which mode we are in!
-	#
-
-	set backColour [lindex [$win configure -background] 3]
-	set colour [lindex [$win configure -background] 4]
-
-	#
-	# We should introduce checks here!   
-	#
-
-	if {$colour == "white"} {
-	    $win configure -background $backColour
-	#
-	# Back to default values
-	#
-	    if {$state} {
-		switch -exact -- $name {
-		    start {
-			set ustart [[nap cv($start)]]
-			set start 0
-		    }
-		    stop {
-			set ustop [[nap cv($stop)]]
-			set stop [[nap n-1]]
-		    }
-		    step  {
-			set uistep $step
-			set step $distep
-		    }
-		}
-
-	#
-	# Coordinate case
-	#
-
-	    } else {
-		switch -exact -- $name {
-		    start {
-			set ustart $start
-			set start [[nap cv(0)]]
-		    }
-		    stop {
-			set ustop $stop
-			set stop [[nap cv(-1)]]
-		    }
-		    step {
-			set ucstep $step
-			set step $dcstep
-		    }
-		}
-	    }
+    proc get_saved_dim {
+	top_ns
+	dim_num
+	word
+    } {
+	set dim_name [set ${top_ns}::dim${dim_num}::name]
+	set dim_size [set ${top_ns}::dim${dim_num}::n]
+	set array_index "$dim_name,$dim_size"
+	if {[array names ${top_ns}::save_${word} $array_index] eq ""} {
+	    set result ""
 	} else {
-	    $win configure -background "white"
-	#
-	# Back to user values
-	#
-	    if {$state} {
-		switch -exact -- $name {
-		    start {
-			set start [[nap cv@@$ustart]]
-		    }
-		    stop {
-			set stop [[nap cv@@$ustop]]
-		    }
-		    step  {
-			set step $uistep
-		    }
-		}
-
-	#
-	# Coordinate case
-	#
-
-	    } else {
-		switch -exact -- $name {
-		    start {
-			set start $ustart
-		    }
-		    stop {
-			set stop $ustop
-		    }
-		    step {
-			set step $ucstep
-		    }
-		}
-	    }
+	    set result [set ${top_ns}::save_${word}($array_index)]
 	}
+	return $result
     }
 
-    # getIndex --
+    # get_default_dim --
     #
-    # Return the values of the current spatial sampling
-    # indices to the calling routine.
+    # Return default value for from, to or step (specified by word)
 
-    proc getIndex {id} {
+    proc get_default_dim {
+	top_ns
+	dim_num
+	word
+    } {
+	set dim_size [set ${top_ns}::dim${dim_num}::n]
+	switch $word {
+	    from {set result 0}
+	    to   {set result [expr $dim_size - 1]}
+	    step {set result [expr $dim_size > 1]}
+	}
+	return $result
+    }
 
-	set ns [namespace current]
+    # list_max_length --
+    #
+    # max. no. chars in any element of list
 
-	global Hdf::index
-
-	global ${ns}::${id}::expr_mode
-	global ${ns}::${id}::n
-	global ${ns}::${id}::cv
-	global ${ns}::${id}::expr
-	global ${ns}::${id}::start
-	global ${ns}::${id}::stop
-	global ${ns}::${id}::step
-	global ${ns}::${id}::ucstep
-	global ${ns}::${id}::uistep
-	global ${ns}::${id}::dcstep
-	global ${ns}::${id}::distep
-	global ${ns}::${id}::state
-
-	set lastIndex [[nap n-1]]
-	#
-	# Return the information to create a set of nap
-	# commands
-	#
-
-	if {$state} {
-	#
-	# Index mode
-	#
-
-	    if {$expr_mode} {
-		return $expr
+    proc list_max_length {
+	list
+    } {
+	set result 0
+	foreach element $list {
+	    set length [string length $element]
+	    if {$length > $result} {
+		set result $length
 	    }
+	}
+	return $result
+    }
 
-	#
-	# Update the user coordinate step value in case
-	# we need to use it
-	#
+    # create_from_to_step --
+    #
+    # Create widget for from, to or step
+    # Return index of final column used
+    #
+    # var is "from", "to" or "step"
+    # row & col are those of first (north-west) element of grid to be used
+    # If cv is "" then there is no coord variable
 
-	    if {"$dcstep" != ""} {
-		set tempStep [expr $dcstep*$step]
-		set ucstep [format %g $tempStep]
-	    }
-
-	#
-	# If we have default coordinates then return nothing
-	#
-
-	    if {$start == $stop} {
-		return $start
-	    } elseif {$start == 0 && $stop == $lastIndex && "$step" == 1} {
-		return ""
-	    } else { 
-		if {"$step" != ""} {
-	# Make sure we get a result
-		    if {($stop > $start && $step > 0) || \
-			($start > $stop && $step < 0)} {
-			return "nint(ap0($start,$stop,$step))"
-		    } else {
-			return "nint(ap0($stop,$start,$step))"
-		    }
-		} else {
-		    if {$ucstep != ""} {
-	# Make sure we get a positive result
-			set t1 [[nap cv($start)]]
-			set t2 [[nap cv($stop)]]
-			if {($t2 > $t1 && $ucstep > 0) || \
-			    ($t1 > $t2 && $ucstep < 0)} {
-			    return "nint($cv@@ap0(cv($start),cv($stop),$ucstep))"
-			} else {
-			    return "nint($cv@@ap0(cv($stop),cv($start),$ucstep))"
-			}
-
-		    } else {
-			Hdf::hdf_warn "Warning - bad index value dimension ${id}"
-			return ""
-		    }
-		}
-	    }
-	
+    proc create_from_to_step {
+	top_ns
+	var
+	init_value
+	parent
+	dim_num
+	unit
+	relief
+	row
+	col
+	{cv ""}
+    } {
+	set dim_ns "${top_ns}::dim$dim_num"
+	set sub_var ${dim_ns}::${var};     # name of main (subscript) variable
+	set cv_var  ${dim_ns}::${var}_cv;  # name of coordinate variable
+	trace add variable $sub_var write "::Hdf::need_read $top_ns"
+	set col1 [expr $col + 1]
+	set n1 [expr [set ${dim_ns}::n] - 1]
+	set expr_entry $parent.expr${dim_num}entry
+	if {$var eq "step"} {
+	    trace add variable $sub_var write \
+		[list ::Hdf::raise_lower_expr_entry $expr_entry]
+	}
+	    # vertical line
+	set vl $parent.$var${dim_num}vert_line
+	frame $vl -width 2 -relief $relief -bd 1
+	grid $vl -sticky ns -row $row -column $col -rowspan 2
+	    # entry for nap expression (hidden at start)
+	if {$var eq "to"} {
+	    trace add variable ${dim_ns}::expr write "::Hdf::need_read $top_ns"
+	    entry $expr_entry -textvariable ${dim_ns}::expr \
+		-font dnf -borderwidth 1 \
+		-background white -highlightthickness 1 -width 0
+	    grid $expr_entry -sticky news -row $row -column $col1
+	    bind $expr_entry <Enter> "focus $expr_entry"
+	}
+	    # frame for upper row of from/to/step
+	set sub_upper $parent.$var${dim_num}sub_upper
+	set sub_lower $parent.$var${dim_num}sub_lower
+	frame $sub_upper
+	grid $sub_upper -sticky news -row $row  -column $col1
+	    # spinbox for subscript
+	set sub_spin $sub_upper.spin
+	spinbox $sub_spin \
+	    -from 0 -to $n1 \
+	    -width [expr 3 + [string length $n1]] \
+	    -textvariable $sub_var \
+	    -font dnf -borderwidth 1 \
+	    -justify right -background white -highlightthickness 1
+	pack $sub_spin -side left
+	bind $sub_upper <Enter> "focus $sub_spin"
+	    # scale (slider) for subscript
+	set sub_scale $sub_upper.scale
+	scale $sub_scale -showvalue 0 -orient horizontal -borderwidth 1 \
+	    -from 0 -highlightthickness 1 \
+	    -command "::Hdf::handle_scale_drag $dim_ns $var $sub_var"
+	pack $sub_scale -side left -expand 1 -fill x
+	trace add variable $sub_var write "::Hdf::set_scale $dim_ns $var $sub_scale"
+	set m [[nap "49 >>> [$sub_scale cget -length]/2 - 1"]]; # max. no. steps on step scale
+	if {$var eq "step"  &&  $n1 > 0} {
+		# Define geometric progression (r=2) ending at max power of 2 <= n1/2
+	    nap "gp = i32(2 ** (floor(log(n1, 2)) - (m .. 1)))"
+	    nap "${dim_ns}::${var}_map = 0 // ((1 .. m) >>> gp)"
+	    $sub_scale configure -to $m
 	} else {
-	    if {$expr_mode} {
-		return "@@($expr)"
-	    }
-	    if {$start == $stop} {
-		return [[nap cv@@$start]]
-	    } elseif {[[nap cv(0)]]==$start && [[nap cv(-1)]]==$stop && \
-		"$step"=="$dcstep"} {
-		return ""
-	    } else {
-		set ucstep $step
-		if {"$ucstep" == ""} {
-		    set t1 [[nap cv@@$start]]
-		    set t2 [[nap cv@@$stop]]
-		    if {"$uistep" == ""} {
-			return "$t1..$t2"
-		    } else {
-			if {($t2 > $t1 && $uistep > 0) || ($t1 > $t2 && $uistep < 0)} {
-			    return "nint(ap0($t1,$t2,$uistep))"
-			} else {
-			    return "nint(ap0($t2,$t1,$uistep))"
-			}
-		    }
-		} else {
-		    if {($stop > $start && $ucstep > 0)|| \
-			($start > $stop && $ucstep < 0)} {
-			return "nint($cv@@ap0($start,$stop,$ucstep))"
-		    } else {
-			return "nint($cv@@ap0($stop,$start,$ucstep))"
-		    }
-		}
-	    }
+	    nap "${dim_ns}::${var}_map = 0 .. n1"
+	    $sub_scale configure -to $n1
+	}
+	    # Default scale Up/Down bindings are reverse of what we want!
+	bind $sub_scale <Up>   "[bind Scale <Down>]; break"
+	bind $sub_scale <Down> "[bind Scale <Up>]  ; break"
+	    # coord. var
+	if {$cv ne ""} {
+		# frame for lower (cv) row of from/to/step
+	    incr row
+	    frame $sub_lower
+	    grid $sub_lower -sticky news -row $row -column $col1
+		# entry for coord. var
+	    set cv_entry $sub_lower.entry
+	    entry $cv_entry -justify right -background white -highlightthickness 1 \
+		-width [expr 2 + [list_max_length [[nap "cv(-9 .. 9)"] value]]] \
+		-font dnf -borderwidth 1 -textvariable $cv_var
+	    bind $sub_lower <Enter> "focus $cv_entry"
+	    bind $cv_entry <Up>   "$sub_spin invoke buttonup"
+	    bind $cv_entry <Down> "$sub_spin invoke buttondown"
+	    bind $cv_entry <Leave>  [list ::Hdf::cv_entry_text $cv_var $sub_var $cv]
+	    bind $cv_entry <Return> [list ::Hdf::cv_entry_text $cv_var $sub_var $cv]
+	    trace add variable $sub_var write [list ::Hdf::set_cv_entry $cv_var $cv]
+	    pack $cv_entry -side left
+		# label for units of coord. var
+	    set cv_unit $sub_lower.label
+	    label $cv_unit -font dnf -text $unit -anchor w
+	    pack $cv_unit -side left
+	}
+	    # initialise subscript variable
+	set $sub_var $init_value
+	return [expr $col + 2]
+    }
+
+    # raise_lower_expr_entry --
+    #
+    # If subscript is 0 then raise expr entry, else lower it to reveal subscript-spinbox & scale
+
+    proc raise_lower_expr_entry {
+	win
+	name1
+	name2
+	op
+    } {
+	if {[set $name1] == 0} {
+	    raise $win
+	} else {
+	    lower $win
 	}
     }
 
-    # End of namespace indexWidget
+    # handle_scale_drag --
+    #
+    # set subscript variable after user drags scale
+
+    proc handle_scale_drag {
+	dim_ns
+	var
+	sub_var
+	value
+    } {
+	global ${dim_ns}::within_set_scale
+	if {! $within_set_scale} {
+	    set $sub_var [[nap "${dim_ns}::${var}_map(value)"]]
+	}
+    }
+
+    # set_scale --
+    #
+    # Keep scale in sync with subscript variable
+
+    proc set_scale {
+	dim_ns
+	var
+	w
+	name1
+	name2
+	op
+    } {
+	global ${dim_ns}::within_set_scale
+	set v ${dim_ns}::${var}_map
+	set within_set_scale 1
+	$w set [[nap "nels(v) > 1 ? v @ name1 : 0"]]
+	update idletasks
+	set within_set_scale 0
+    }
+
+    # set_cv_entry --
+    #
+    # Keep cv entry in sync with subscript variable
+
+    proc set_cv_entry {
+	cv_var
+	cv
+	name1
+	name2
+	op
+    } {
+	set $cv_var [[nap "cv($name1)"]]
+    }
+
+    # cv_entry_text --
+    #
+    # Handle text typed into cv entry
+    # Keeps subscript variable in sync with cv entry 
+    # Use @ to set subscript to that of interpolated value in coord. var.
+    # This causes text in entry to change to this value
+
+    proc cv_entry_text {
+	cv_var
+	sub_var
+	cv
+    } {
+	if {[string is double -strict [set $cv_var]]} {
+	    set $sub_var [[nap "nels(cv) > 1 ? cv @ $cv_var : 0"]]
+	}
     }
 
 }

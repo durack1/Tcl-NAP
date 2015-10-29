@@ -1,4 +1,4 @@
-<!-- $Id: function.html,v 1.4 2003/08/25 07:28:01 dav480 Exp $ -->
+<!-- $Id: function.html,v 1.11 2004/10/28 07:25:34 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -20,6 +20,15 @@ Built-in Functions
     <li><a href="#change_shape_or_order">Functions which change shape or order</a>
     <li><a href="#Linear_algebra">Linear-algebra Functions</a>
     <li><a href="#Correlation">Correlation</a>
+    <ol>
+	<li><a href="#function_correlation">Function <code>correlation</code></a>
+	<li><a href="#moving_correlation">Function <code>moving_correlation</code></a>
+    </ol>
+    <li><a href="#Geometry">Geometry</a>
+    <ol>
+	<li><a href="#inPolygon">Testing whether points are in polygon</a>
+	<li><a href="#Triangulation">Triangulation</a>
+    </ol>
     <li><a href="#Grid">Grid Functions</a>
     <li><a href="#Special_Data_types">Functions related to Special Data-types</a>
     <li><a href="#Morphological">Morphological Functions</a>
@@ -112,6 +121,11 @@ The following table is very similar to <b>Table 5.3</b> in Ousterhout's
 	<var>x</var><code>%</code><var>y</var>
 
   <tr valign=bottom> <td>
+	<code>hypot(</code><var>x</var><code>,</code><var>y</var><code>)</code>
+  <td>
+	&radic;(<var>x</var><sup>2</sup>+<var>y</var><sup>2</sup>)
+
+  <tr valign=bottom> <td>
 	<code>isnan(</code><var>x</var><code>)</code>
   <td>
 	1 if <var>x</var> is NaN, 0 otherwise
@@ -131,11 +145,6 @@ The following table is very similar to <b>Table 5.3</b> in Ousterhout's
 	<code>log10(</code><var>x</var><code>)</code>
   <td>
         log<sub>10</sub><var>x</var>
-
-  <tr valign=bottom> <td>
-	<code>hypot(</code><var>x</var><code>,</code><var>y</var><code>)</code>
-  <td>
-	&radic;(<var>x</var><sup>2</sup>+<var>y</var><sup>2</sup>)
 
   <tr valign=bottom> <td>
 	<code>nint(</code><var>x</var><code>)</code>
@@ -170,14 +179,14 @@ The following table is very similar to <b>Table 5.3</b> in Ousterhout's
 	Sine of <var>x</var> (<var>x</var> in radians)
 
   <tr valign=bottom> <td>
-	<code>sqrt(</code><var>x</var><code>)</code>
-  <td>
-	&radic;<var>x</var>
-
-  <tr valign=bottom> <td>
 	<code>sinh(</code><var>x</var><code>)</code>
   <td>
 	Hyperbolic sine of <var>x</var>
+
+  <tr valign=bottom> <td>
+	<code>sqrt(</code><var>x</var><code>)</code>
+  <td>
+	&radic;<var>x</var>
 
   <tr valign=bottom> <td>
 	<code>tan(</code><var>x</var><code>)</code>
@@ -431,7 +440,7 @@ more convenient within expressions.
 
 <tbody>
   <tr> <td> 
-	<code>coordinate_variable(</code><var>x</var>[<var>d</var>]<code>)</code>
+	<code>coordinate_variable(</code><var>x</var>[,<var>d</var>]<code>)</code>
   <td>
 	Coordinate variable of dimension <var>d</var> (default 0)
 
@@ -475,9 +484,10 @@ more convenient within expressions.
 
 <tbody>
   <tr> <td> 
-	<code>sort(</code><var>x</var><code>)</code>
+	<code>sort(</code><var>x</var>[<code>,</code><var>r</var>]<code>)</code>
   <td>
-	Sort <var>x</var> into ascending order
+	Sort rank-<var>r</var> sub-arrays of <var>x</var>
+	into ascending order over most significant dimension
 
   </tr> <tr> <td> 
 	<code>reshape(</code><var>x</var><code>)</code>
@@ -510,6 +520,12 @@ Here are some examples of the use of these functions:
 <pre>
 % [nap "sort {6.3 0.5 9 -2.1 0}"]
 -2.1 0 0.5 6.3 9
+% [nap "sort({{3 0 2}{1 9 1}})"]; # sort each column
+1 0 1
+3 9 2
+% [nap "sort({{3 0 2}{1 9 1}}, 1)"]; # sort each row
+0 2 3
+1 1 9
 % [nap "reshape {{1 3 7}{0 9 2}}"] all
 ::NAP::217-217  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
 Dimension 0   Size: 6      Name: (NULL)    Coordinate-variable: (NULL)
@@ -575,51 +591,75 @@ Value:
 <p>
 We can check the result using matrix multiplication:
 <pre>
-% [nap "A +* x"]
+% [nap "A . x"]
 20 -36
 </pre>
 
 <h3><a name=Correlation>Correlation</h3>
 
 <p>
-Function <code>correlation</code> calculates Pearson product-moment correlations 
-(omitting cases where either value is missing).
-If
-<var>x</var>
-or
-<var>y</var>
-is <code>f64</code>
-then the result is 
-<code>f64</code>, else it is 
-<code>f32</code>.
-(But calculation is still done using <code>f64</code>.)
-Dimension 0 of the result has size 2.
-Index 0 of this dimension corresponds to the correlation values themselves, while index 1
-corresponds to the sample sizes (number of non-missing data elements)
-used to calculate these values .
+The functions <code>correlation</code> and <code>moving_correlation</code> 
+both calculate Pearson product-moment correlations.
+Function <code>correlation</code> calculates correlations between variables defined by the
+dimensions of its (one or two) arguments.
+Function <code>moving_correlation</code> calculates pattern (spacial) 
+correlations between a (vector or matrix) window variable and variables defined by
+moving a window of the same shape around a larger array of the same rank.
 
 <p>
-Usage:
-<br>
-<code>correlation(</code><var>x</var>[, <var>y</var>,
-[<var>lag</var><sub>0</sub>,
-<var>lag</var><sub>1</sub>,
-&hellip; ]]<code>)</code>
+Both functions handle missing values by omitting cases where one or both values are missing.
+The result consists of two layers.
+Layer 0 contains the correlation values themselves.
+Layer 1 contains the corresponding number of (non-missing) cases (sample size <var>n</var>)
+used to calculate these values.
 
 <p>
-If the only argument is
-<var>x</var>,
-then it must be a matrix.
-Let <var>nc</var> be the number of columns in this matrix data argument.
-In this case the result has the shape 2 
-by <var>nc</var>
-by <var>nc</var>.
-Layer 0 contains the correlation matrix.
-Element
-<var>r</var><sub><var>ij</var></sub>
-of this matrix is the correlation between columns 
-<var>i</var> and <var>j</var> of matrix
-<var>x</var>.
+Both functions produce an <code>f64</code> result if any of the data is
+<code>f64</code>, but otherwise the result is <code>f32</code>.
+
+<h4>
+<a name=function_correlation>
+Function
+<code>correlation(</code><var>x</var>[, <var>y</var>]<code>)</code>
+</h4>
+
+<p>
+If <var>y</var> is not specified then it defaults to <var>x</var>.
+
+<p>
+The 1st (most significant) dimensions of <var>x</var> and <var>y</var> must have the same size, 
+since this corresponds to the number of cases.
+(For time-series this dimension is time.)
+The remaining dimensions (if any) of <var>x</var> and <var>y</var> are essentially merged 
+into column dimensions, but do appear in the result.
+
+<p>
+For example, let <var>x</var> be a 80&times;3 matrix and <var>y</var> a 80&times;5 matrix.
+The command
+<pre>
+nap "r = correlation(x, y)"
+</pre>
+produces a 2&times;3&times;5 array <var>r</var>.
+<var>r</var><sub>0<var>i</var><var>j</var></sub>
+is the correlation between column <var>i</var> of <var>x</var> and column <var>j</var> 
+of <var>y</var>.
+<var>r</var><sub>1<var>i</var><var>j</var></sub>
+is the number of cases (<var>n</var>) used to calculate 
+<var>r</var><sub>0<var>i</var><var>j</var></sub>.
+
+<p>
+A simple example is:
+<pre>
+% [nap "correlation({1 3 _ 6 6}, {6 6 4 2 3})"]
+-0.924138 4
+</pre>
+Element 2 (base 0) of 
+<var>x</var> 
+is missing, so element 2 from
+<var>y</var> 
+is not used and the sample size is 4 (as shown in the second element of the result).
+The correlation between {1&nbsp;3&nbsp;6&nbsp;6} and {6&nbsp;6&nbsp;2&nbsp;3}
+is calculated to be -0.924138.
 
 <p>
 The following example is from Table 15.2 (page 274) of
@@ -656,11 +696,15 @@ The correlation between columns 0 and 2 is 0.7698.<br>
 The correlation between columns 1 and 2 is 0.7984.<br>
 There is no missing data, so all values in layer 1 are 12.
 
+<h4>
+<a name=moving_correlation>
+Function
+<code>moving_correlation(</code><var>x</var>, <var>y</var>,
+[<var>lag</var><sub>0</sub>[,
+<var>lag</var><sub>1</sub>]]<code>)</code>
+</h4>
+
 <p>
-If
-<var>y</var>
-<em>is</em> specified then the result contains one or more correlations between
-<var>x</var> and <var>y</var>.
 The ranks of <var>x</var> and <var>y</var> must be the same.  
 (The current version supports ranks 1 and 2 only.)
 
@@ -668,23 +712,6 @@ The ranks of <var>x</var> and <var>y</var> must be the same.
 If <var>x</var> and <var>y</var>
 have the same shape then the result contains a single correlation, calculated by
 treating the elements of each array as two lists of values.
-An example is:
-<pre>
-% [nap "correlation({1 3 _ 6 6}, {6 6 4 2 3})"] all
-::NAP::118-118  f32  MissingValue: NaN  References: 0  Unit: (NULL)
-Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
-Dimension 1   Size: 1      Name: (NULL)    Coordinate-variable: ::NAP::119-119
-Value:
--0.924138
- 4.000000
-</pre>
-Element 2 (base 0) of 
-<var>x</var> 
-is missing, so element 2 from
-<var>y</var> 
-is not used and the sample size is 4 (as shown in the second element of the result).
-The correlation between {1&nbsp;3&nbsp;6&nbsp;6} and {6&nbsp;6&nbsp;2&nbsp;3}
-is calculated to be -0.924138.
 
 <p>
 If <var>x</var> and <var>y</var>
@@ -697,17 +724,227 @@ is vector of row    lags (default: all possible)<br>
 <var>lag</var><sub>1</sub> 
 is vector of column lags (default: all possible)
 
+<h3><a name=Geometry>Geometry</h3>
+
+<h4>
+<a name=inPolygon>
+Testing whether points are in polygon
+</h4>
+
+<p>
+Function
+<code>inPolygon(</code><var>x</var>, <var>y</var>, <var>p</var><code>)</code>
+tests whether the points defined by <var>x</var> and <var>y</var> are inside the
+polygon defined by <var>p</var>.
+The result is
+<ul>
+    <li> -1 if (<var>x</var>,<var>y</var>) is outside the polygon.
+    <li> 0 if (<var>x</var>,<var>y</var>) is exactly on an edge (boundry) of the polygon.
+    <li> 1 if (<var>x</var>,<var>y</var>) is inside the polygon.
+</ul>
+
+<p>
+The algorithm is an extension of Wm. Randolph Franklin's
+<a href="http://www.ecse.rpi.edu/Homepages/wrf/research/geom/pnpoly.html">
+<code>PNPOLY</code></a>.
+<code>PNPOLY</code> classifies points into only two categories,
+<em>inside</em>
+and
+<em>outside</em>.
+Points exactly on an edge can be classified either way.
+The modified algorithm in
+<code>inPolygon</code>
+does detect edge points.
+
+<p>
+The ranks of <var>x</var> and <var>y</var> can differ provided their
+trailing dimensions match.
+The shape of the result is that of the one of higher rank.
+If an element of <var>x</var> or <var>y</var> is missing then the corresponding
+element of the result is missing.
+
+<p>
+The argument <var>p</var> is an <var>n</var>&times;<var>m</var> matrix defining the 
+<var>n</var> vertices (<var>x</var>,<var>y</var>) of the polygon.
+There must be at least one vertex.
+The number of columns (<var>m</var>) must be at least 2.
+Column 0 contains <var>x</var>.
+Column 1 contains <var>y</var>.
+Any other columns are ignored.
+
+<p>
+The following example tests whether the points
+(1,2),
+(2,2),
+(3,2),
+(4,2),
+(5,2),
+(6,2)
+are in the triangle with vertices
+(0,0),
+(5,0),
+(5,5):
+
+<pre>
+% [nap "inPolygon(1 .. 6, 2, {{0 0}{5 0}{5 5}})"]
+-1 0 1 1 0 -1
+</pre>
+
+<h4>
+<a name=Triangulation>
+Triangulation
+</h4>
+
+<p>
+<em>Triangulation</em> is the process of joining scattered 
+(<var>x</var>, <var>y</var>)
+points (called <em>sites</em>) to form triangles.
+One important use of triangulation is interpolation of
+<nobr>
+(<var>x</var>, <var>y</var>, <var>z</var>)
+</nobr>
+data.
+Function
+<a href="nap_function_lib.html#scattered2grid"><code>scattered2grid</code></a>.
+interpolates by defining a plane for each triangle produced by triangulation.
+
+<p>
+The 
+<a href="http://www.ics.uci.edu/~eppstein/gina/delaunay.html">Delaunay triangulation</a>
+is the optimal triangulation in various senses.
+For example, it maximises the minimum angle.
+Delaunay triangulation is closely related to 
+<a href="http://www.ics.uci.edu/~eppstein/gina/voronoi.html">Voronoi Diagrams</a>
+which consist of polygons around each site. 
+The points within each polygon are those which are closer to this site than to any other site.
+A good survey of Delaunay triangulation and Voronoi diagrams
+is given by
+<blockquote>
+Franz Aurenhammer,
+<a href="http://portal.acm.org/citation.cfm?doid=116873.116880">
+<cite>
+Voronoi diagrams -- a survey of a fundamental geometric data structure 
+</cite>
+</a>,
+ACM Computing Surveys,
+Volume 23 ,  Issue 3  (September 1991),
+pp345-405,
+1991 
+</blockquote>
+
+<p>
+Function <code>triangulate</code> gives the triangles defined by Delaunay triangulation.
+Function <code>triangulate_edges</code> gives the edges defined by
+the same Delaunay triangulation.
+The code of both functions is based on a program written by 
+<a href="http://goanna.cs.rmit.edu.au/~gl/">Geoff Leach</a>,
+Department of Computer Science, RMIT,
+Melbourne, Australia.
+This program implements a very efficient Delaunay triangulation algorithm
+that is O(<var>n</var> log <var>n</var>) time and O(<var>n</var>) space.
+This worst-case optimal divide-and-conquer algorithm
+is described in
+<blockquote>
+Guibas, L. and Stolfi, J.,
+<a href="http://portal.acm.org/citation.cfm?id=808751&dl=ACM&coll=portal">
+<cite>
+Primitives for the manipulation of general subdivisions and the computation of 
+Voronoi diagrams
+</cite>
+</a>,
+Proceedings of the fifteenth annual ACM symposium on theory of computing,
+pp221-234,
+1983.
+</blockquote>
+
+<p>
+<table border rules=groups>
+    <colgroup span=1> <colgroup span=1>
+
+  <tr>
+    <th align=center>Function
+    <th align=center>Result
+
+<tbody>
+
+  <tr> <td> 
+	<code>triangulate(</code><var>sites</var><code>)</code>
+  <td>
+	<var>t</var>&times;3 matrix of site indices defining <var>t</var> triangles
+
+  </tr> <tr> <td> 
+	<code>triangulate_edges(</code><var>sites</var><code>)</code>
+
+  <td>
+	<var>e</var>&times;2 matrix of site indices defining <var>e</var> edges
+
+    </td>
+</table>
+
+<p>
+The argument <var>sites</var> is an <var>n</var>&times;<var>m</var> matrix defining the 
+<var>n</var> points (<var>x</var>,<var>y</var>).
+The number of columns (<var>m</var>) must be at least 2.
+Column 0 contains <var>x</var>.
+Column 1 contains <var>y</var>.
+Any other columns are ignored.
+The row number is called the <em>site index</em> and ranges from 0 to <var>n</var>-1.
+
+<p>
+The following example triangulates the sites
+(0,0),
+(2,1),
+(0,1)
+and
+(1,2).
+These have site indices 0, 1, 2 and 3 respectively.
+Function <code>triangulate</code> gives the site indices of the vertices of each
+of two triangles.
+Function <code>triangulate_edges</code> gives the site indices of the vertices of each
+of the five edges of these same two triangles.
+
+<pre>
+% [nap "triangulate({{0 0}{2 1}{0 1}{1 2}})"]
+0 1 2
+1 2 3
+% [nap "triangulate_edges({{0 0}{2 1}{0 1}{1 2}})"]
+0 2
+0 1
+1 3
+1 2
+2 3
+</pre>
+
 <h3><a name=Grid>Grid Functions</h3>
 
 <p>
-There is currently just one grid function,
-<code>invert_grid</code>, but it has variants for one and two dimensions.
-The function defines a piecewise (bi-)linear mapping 
-as the inverse of a given piecewise (bi-)linear mapping.
+There are currently just two closely related grid functions,
+<code>invert_grid</code> and <code>invert_grid_no_trim</code>.
+These can be applied to 
+<ul>
+    <li>one-dimensional data to define a piecewise-linear mapping 
+	as the inverse of a given piecewise-linear mapping.
+    <li>two-dimensional data to define a piecewise-bilinear mapping 
+	as the inverse of a given piecewise-bilinear mapping.
+</ul>
 
 <p>
-In the 1D case, the function is called by
-<code>invert_grid(</code><var>y<code>,</code>ycv</var><code>)</code>,<br>
+There is only a minor difference between these two functions.
+Function <code>invert_grid</code> suppresses edges (rows and columns in 2D case)
+containing nothing except missing values.
+Function <code>invert_grid_no_trim</code> does no such trimming.
+
+<p>
+In the 1D case we have a piecewise-linear mapping from <var>x</var> to <var>y</var>,
+and we want a piecewise-linear mapping from <var>y</var> to <var>x</var>.
+The functions are called by
+<br>
+<code>invert_grid(</code><var>y<code>,</code>ycv</var><code>)</code>
+<br>
+or
+<br>
+<code>invert_grid_no_trim(</code><var>y<code>,</code>ycv</var><code>)</code>
+<br>
 where
 <var>y</var>
 is the known mapping (and has a coordinate variable corresponding to 
@@ -715,45 +952,71 @@ is the known mapping (and has a coordinate variable corresponding to
 and
 <var>ycv</var>
 is the desired new <var>y</var> coordinate variable.<br>
-We have a piecewise-linear mapping from <var>x</var> to <var>y</var>,
-and we want a piecewise-linear mapping from <var>y</var> to <var>x</var>.
+
+<p>
 The following example starts with a mapping from <var>x</var> to <var>y</var>
 defined by the two lines
 joining the three points (0,&nbsp;0), (2,&nbsp;1) and (5,&nbsp;4).
-It produces the inverse mapping from <var>y</var> to <var>x</var> 
+The difference between <code>invert_grid</code> and <code>invert_grid_no_trim</code>
+is shown by attempting to extrapolate to
+<var>y</var>&nbsp;=&nbsp;&minus;1
+with both these functions. 
+Both produce the inverse mapping from <var>y</var> to <var>x</var> 
 defined by the four lines joining the five points
 (0,&nbsp;0),
-(1,&nbsp;0.5),
-(2,&nbsp;1.5),
-(2.5,&nbsp;1.5)
+(2,&nbsp;1),
+(3,&nbsp;2),
+(4,&nbsp;3)
 and
-(3,&nbsp;2).
+(5,&nbsp;4).
+Function <code>invert_grid_no_trim</code>
+generates the requested point for
+<var>y</var>&nbsp;=&nbsp;&minus;1
+(with <var>x</var> missing)
+whereas <code>invert_grid</code> suppresses this point.
 
 <pre>
 % nap "y = {0 1 4}"
-::NAP::90-90
+::NAP::56-56
 % $y set coo "{0 2 5}"
 % [nap "coordinate_variable(y) /// y"]
 0 2 5
 0 1 4
-% [nap "ycv = 0 .. 2 ... 1r2"]
-0 0.5 1 1.5 2
+% [nap "ycv = -1 .. 4"] value
+-1 0 1 2 3 4
 % nap "x = invert_grid(y,ycv)"
-::NAP::106-106
+::NAP::75-75
 % $x all
-::NAP::106-106  f32  MissingValue: NaN  References: 1  Unit: (NULL)
-Link: ::NAP::107-107
-Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: ::NAP::103-103
+::NAP::75-75  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Link: ::NAP::76-76
+Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: ::NAP::72-72
 Value:
-0 1 2 2.5 3
+0 2 3 4 5
 % [nap "coordinate_variable(x) /// x"]
-0.0 0.5 1.0 1.5 2.0
-0.0 1.0 2.0 2.5 3.0
+0 1 2 3 4
+0 2 3 4 5
+% nap "xnt = invert_grid_no_trim(y,ycv)"
+::NAP::86-86
+% $xnt all
+::NAP::86-86  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Link: ::NAP::87-87
+Dimension 0   Size: 6      Name: (NULL)    Coordinate-variable: ::NAP::83-83
+Value:
+_ 0 2 3 4 5
+% [nap "coordinate_variable(xnt) /// xnt"]
+-1  0  1  2  3  4
+ _  0  2  3  4  5
 </pre>
 
 <p>
-In the 2D case, the function is called by
-<code>invert_grid(</code><var>y<code>,</code>ycv</var><code>,</code><var>x,xcv</var><code>)</code>,<br>
+In the 2D case, the functions are called by
+<br>
+<code>invert_grid(</code><var>y<code>,</code>ycv</var><code>,</code><var>x,xcv</var><code>)</code>,
+<br>
+or
+<br>
+<code>invert_grid_no_trim(</code><var>y<code>,</code>ycv</var><code>,</code><var>x,xcv</var><code>)</code>,
+<br>
 where matrix <var>y</var> defines a mapping from
 <var>ij</var> space to <var>y</var>.<br>
 matrix <var>x</var> defines a mapping from
@@ -1013,6 +1276,11 @@ Value:
 <h3><a name=Morphological>Morphological Functions</h3>
 
 <p>
+The basic concepts are explained in the MATLAB documentation on
+<a href="http://www.mathworks.com/access/helpdesk/help/toolbox/images/morph.html">
+Morphological Operations</a>.
+
+<p>
 <table border rules=groups>
     <colgroup span=1> <colgroup span=1>
 
@@ -1073,7 +1341,7 @@ Value:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: function.html,v 1.4 2003/08/25 07:28:01 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: function.html,v 1.11 2004/10/28 07:25:34 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

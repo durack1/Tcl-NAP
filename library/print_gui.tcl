@@ -2,9 +2,11 @@
 # 
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: print_gui.tcl,v 1.7 2003/05/16 06:47:03 dav480 Exp $
+# $Id: print_gui.tcl,v 1.9 2004/06/04 02:10:31 dav480 Exp $
 #
-# GUI interface to package "printer"
+# GUI for printing
+# If under Unix then use standard commands 'lp' (or 'lpr'), lpstat.
+# If under MS-Windows then use package 'ezprint'.
 #
 # Usage
 #
@@ -33,28 +35,70 @@ namespace eval Print_gui {
     variable maxpect 0;		# Expand PostScript to fit page?
     variable paperheight 297m;	# A4
     variable paperwidth  210m;	# A4
-    variable printer_name "";	#
+    variable printer_name "";	# Printer which is currently selected
 
 
     # init --
     #
-    # Load package 'printer'.
     # Create namespace 'Print_gui'.
+    # If Windows then load ezprint.
     # Define ::Print_gui::printer_name.
+    # Return 0 if OK, 1 if no ezprint under Windows.
 
     proc init {
     } {
 	global ::Print_gui::printer_name
-	package require printer
-	if {$printer_name != ""} {
-	} elseif {[lsearch [array names ::env] PRINTER] >= 0} {
-	    set printer_name $::env(PRINTER)
-	} else {
-	    set printers [printer list]
-	    if {[llength $printers] > 0} {
-		set printer_name [lindex $printers 0]
+	set result 0
+	switch $::tcl_platform(platform) {
+	    unix {
+		if {$printer_name eq ""} {
+		    if {[lsearch [array names ::env] PRINTER] >= 0} {
+			set printer_name $::env(PRINTER)
+		    } else {
+			if {[catch {exec lpstat -d} str] == 0} {
+			    set printer_name [lindex $str end]
+			}
+		    }
+		}
+	    }
+	    windows {
+		if {[catch {package require Ezprint}]} {
+		    set result 1
+		} else {
+		    if {$printer_name eq ""} {
+			set printer_name [ezprint defaultprinter]
+		    }
+		}
+	    }
+	    default {
+		error "::Print_gui::init. Unsupported platform"
 	    }
 	}
+	return $result
+    }
+
+
+    # list_printers --
+    #
+    # List of available printers
+
+    proc list_printers {
+    } {
+	set result ""
+	switch $::tcl_platform(platform) {
+	    unix {
+		if {[catch {exec lpstat -a} str] == 0} {
+		    set result [split [regsub -all -line { .*$} $str ""]]
+		}
+	    }
+	    windows {
+		set result [ezprint listprinters]
+	    }
+	    default {
+		error "::Print_gui::list_printers. Unsupported platform"
+	    }
+	}
+	return $result
     }
 
 
@@ -110,9 +154,9 @@ namespace eval Print_gui {
 	parent
 	f
     } {
-	set printers [printer list]
+	set printers [list_printers]
 	if {[llength $printers] == 0} {
-	    error "select_printer: No known printers"
+	    error "::Print_gui::select_printer. No known printers"
 	} else {
 	    if {$parent == "."} {
 		set m .printer_menu
@@ -132,6 +176,7 @@ namespace eval Print_gui {
 	}
     }
 
+
     # print --
     #
     # Send postScript to printer
@@ -143,14 +188,30 @@ namespace eval Print_gui {
 	global ::Print_gui::paperwidth
 	global ::Print_gui::paperheight
 	global ::Print_gui::printer_name
-	if {[lsearch -exact [printer list] $printer_name] < 0} {
-	    error "print_graph: Illegal printer name"
+	if {[lsearch -exact [list_printers] $printer_name] < 0} {
+	    error "::Print_gui::print_graph. Illegal printer name"
 	} else {
-	    printer send \
-		    -printer $printer_name \
-		    -data [eval [join $args] $paperheight $paperwidth $maxpect]
+	    switch $::tcl_platform(platform) {
+		unix {
+		    if {[catch {open "| lp -d $printer_name" w} channel]} {
+			if {[catch {open "| lpr -P $printer_name" w} channel]} {
+			    error "::Print_gui::print. Unable to execute lp or lpr"
+			}
+		    }
+		}
+		windows {
+		    set channel [ezprint open $printer_name]
+		}
+		default {
+		    error "::Print_gui::print. Unsupported platform"
+		}
+	    }
 	}
+	fconfigure $channel -translation binary
+	puts -nonewline $channel [eval [join $args] $paperheight $paperwidth $maxpect]
+	close $channel
     }
+
 
     # write --
     #
@@ -163,14 +224,15 @@ namespace eval Print_gui {
 	global ::Print_gui::maxpect
 	global ::Print_gui::paperwidth
 	global ::Print_gui::paperheight
-	if {$filename != ""} {
+	if {$filename ne ""} {
 	    set f [open $filename w]
 	    puts -nonewline $f [eval [join $args] $paperheight $paperwidth $maxpect]
 	    close $f
 	} else {
-	    error "filename for output PostScript is not defined"
+	    error "::Print_gui::write. Filename for output PostScript is not defined"
 	}
     }
+
 
     # canvas2ps --
     #

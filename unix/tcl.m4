@@ -599,7 +599,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
     TCL_LIB_VERSIONS_OK=ok
     TCL_NEEDS_EXP_FILE=0
     TCL_TRIM_DOTS='`echo ${VERSION} | tr -d .`'
-    TMP_STDOUT=""
     UNSHARED_LIB_SUFFIX=""
     do64bit_ok=no
     fullSrcDir=`cd $srcdir; pwd`
@@ -676,7 +675,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/oldnames.lib`'"
 	    SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/kernel32.lib`'"
 	    RC="rc"
-	    TMP_STDOUT="stdout.tmp"
 	    ;;
 	dgux*)
 	    SHLIB_CFLAGS="-K PIC"
@@ -752,6 +750,14 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SHLIB_CFLAGS="-fPIC"
 	    SHLIB_LD_LIBS='${LIBS}'
 	    SHLIB_SUFFIX=".so"
+	    SYS_LIBS="-lpthread -lssl -lstdc++"
+
+	    if test "`uname -m`" = "ia64" ; then
+		AC_PATH_PROGS(ECC_PROG, ecc, :, ${PATH})
+		if test "${ECC_PROG}" != ":" ; then
+		    CC='ecc -quiet'
+		fi
+	    fi
 
 	    # egcs-2.91.66 on Redhat Linux 6.0 generates lots of warnings 
 	    # when you inline the string and math operations.  Turn this off to
@@ -773,7 +779,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 		    LDFLAGS=""
 		    LD_SEARCH_FLAGS=""])
 	    fi
-	    CFLAGS_WARNING="-Wimplicit-function-declaration"
 	    if test "`uname -m`" = "alpha" ; then
 		EXTRA_CFLAGS="-mieee"
 	    fi
@@ -1163,7 +1168,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
     AC_SUBST(SHLIB_LDFLAGS)
     AC_SUBST(STLIB_LD)
     AC_SUBST(SYS_LIBS)
-    AC_SUBST(TMP_STDOUT)
 ])
 
 #--------------------------------------------------------------------

@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.187 2003/06/24 05:29:35 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.196 2004/11/23 05:37:45 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -105,7 +105,7 @@ Nap_Check(
     assert(file);
     assert(format);
     level = nap_cd->parseLevel;
-    assert(level < NAP_MAX_N_PARSE_LEVELS);
+    assert(level < nap_cd->recursionLimit);
     if (level >= 0) {
 	assert(nap_cd->scanString[level]);
 	startLine = nap_cd->scanString[level];
@@ -471,6 +471,7 @@ Nap_DataTypeToText(
  *      If name is that of tcl variable then use it recursively.
  *      Otherwise remove any enclosing apostophes (') and treat as filename.
  *      Do tilde substitution.
+ *      Treat name commencing with "http://" as URL & return as is.
  *      Return NULL for error.
  */
 
@@ -502,16 +503,20 @@ Nap_GetFileName(
     } else {
         name = Nap_StrDup(oldName);
     }
-    interp = Tcl_CreateInterp();
-    fullName = Tcl_TranslateFileName(interp, name, &ds);
-    if (fullName) {
-        result = Nap_StrDup(fullName);
-        Tcl_DStringFree(&ds);
+    if (isPrefixOf("http://" , name)) {
+	result = name;
     } else {
-        result = NULL;
+	interp = Tcl_CreateInterp();
+	fullName = Tcl_TranslateFileName(interp, name, &ds);
+	if (fullName) {
+	    result = Nap_StrDup(fullName);
+	    Tcl_DStringFree(&ds);
+	} else {
+	    result = NULL;
+	}
+	Tcl_DeleteInterp(interp);
+	FREE(name);
     }
-    Tcl_DeleteInterp(interp);
-    FREE(name);
     return result;
 }
 
@@ -806,6 +811,32 @@ Nap_AppendWords(
 }
 
 /*
+ *  Nap_AppendListElement --
+ *  Append string (treated as list element) to tcl result
+ *  If str is NULL do nothing.
+ */
+
+EXTERN int
+Nap_AppendListElement(
+    NapClientData	*nap_cd,
+    char		*str)
+{
+    Tcl_Obj		*objResult;		/* Tcl result as object */
+    Tcl_Obj		*objStr;		/* str as object */
+    int                 status = TCL_OK;
+
+    if (str) {
+	objStr = Tcl_NewStringObj(str, -1);
+	objResult = Tcl_GetObjResult(nap_cd->interp);
+	status = Tcl_ListObjAppendElement(nap_cd->interp, objResult, objStr);
+	if (status == TCL_OK) {
+	    Tcl_SetObjResult(nap_cd->interp, objResult);
+	}
+    }
+    return status;
+}
+
+/*
  *  Nap_AppendLines --
  *  Append string to tcl result (with prefixed newline if old result not empty).
  *  If str is NULL do nothing.
@@ -916,15 +947,6 @@ Nap_GetNumericNaoFromId(
         Nap_FreeNAO(nap_cd, naoPtr);
         naoPtr = Nap_GetNaoFromId(nap_cd, str);
     }
-    if (naoPtr) {
-	switch (naoPtr->dataType) {
-	    NAP_NULL_TYPE:
-	    NAP_BOXED:
-		Nap_FreeNAO(nap_cd, naoPtr);
-		naoPtr = NULL;
-		break;
-	}
-    }
     return naoPtr;
 }
 
@@ -952,15 +974,6 @@ Nap_GetNumericNaoFromSlot(
         str = Nap_Func(nap_cd, "pad", naoPtr->id);
         Nap_FreeNAO(nap_cd, naoPtr);
         naoPtr = Nap_GetNaoFromId(nap_cd, str);
-    }
-    if (naoPtr) {
-	switch (naoPtr->dataType) {
-	    NAP_NULL_TYPE:
-	    NAP_BOXED:
-		Nap_FreeNAO(nap_cd, naoPtr);
-		naoPtr = NULL;
-		break;
-	}
     }
     return naoPtr;
 }
@@ -1411,6 +1424,7 @@ Nap_Delete(
                 }
             }
         }
+        FREE(naoPtr->format);
         FREE(naoPtr->label);
         FREE(naoPtr->unit);
 	/* need to expand free stack? */
@@ -1739,6 +1753,7 @@ Nap_NewNAO4(
         result->rank = rank;
         result->nels = nels;
         result->nbytes = nbytes;
+        result->format = NULL;
         result->label = NULL;
         result->unit = NULL;
         result->linkSlot = 0;
@@ -1985,7 +2000,7 @@ Nap_ReshapeNAO2(
     Nap_dataType	dataType,	/* new data-type */
     int			rank,		/* new rank */
     size_t		*shape,		/* new shape */
-    int			want_text,	/* Include label & unit? */
+    int			want_text,	/* Include format, label & unit? */
     int			want_dims)	/* Include dims & CVs? */
 {
     size_t		i;
@@ -2008,6 +2023,7 @@ Nap_ReshapeNAO2(
 		}
 	    }
 	    if (want_text) {
+		new->format = Nap_StrDup(old->format);
 		new->label = Nap_StrDup(old->label);
 		new->unit = Nap_StrDup(old->unit);
 	    }
@@ -2080,6 +2096,7 @@ Nap_ReshapeNAO_trailing(
 	    if (old->nels == 0  &&  new->nels > 0) {
 		return NULL;
 	    }
+	    new->format = Nap_StrDup(old->format);
 	    new->label = Nap_StrDup(old->label);
 	    new->unit = Nap_StrDup(old->unit);
 	    switch (new->dataType) {
@@ -2102,7 +2119,7 @@ Nap_ReshapeNAO_trailing(
  * Nap_CopyNAO3 --
  *
  *	Return pointer to new NAO which is copy of existing one.
- *	Option to include label & unit.
+ *	Option to include format, label & unit.
  *      If error return NULL.
  */
 
@@ -2110,7 +2127,7 @@ static Nap_NAO *
 Nap_CopyNAO3(
     NapClientData	*nap_cd,
     Nap_NAO		*old,
-    int			want_text)		/* Include label & unit? */
+    int			want_text)		/* Include format, label & unit? */
 {
     int                 i;
     Nap_NAO		*result;
@@ -2135,8 +2152,8 @@ Nap_CopyNAO3(
 /* 
  * Nap_CopyNAO --
  *
- *	Return pointer to new NAO which is copy (excluding label & unit) of existing one.
- *      If error return NULL.
+ * Return pointer to new NAO which is copy (excluding format, label & unit) of existing one.
+ * If error return NULL.
  */
 
 Nap_NAO *
@@ -2151,8 +2168,8 @@ Nap_CopyNAO(
 /* 
  * Nap_DupNAO --
  *
- *	Return pointer to new NAO which is copy (including label & unit) of existing one.
- *      If error return NULL.
+ * Return pointer to new NAO which is copy (including format, label & unit) of existing one.
+ * If error return NULL.
  */
 
 Nap_NAO *
@@ -2335,6 +2352,45 @@ m4define(`m4huntNao', `
 m4define(`m4indexOfNao', `
         case m4DataTypeEnum($1):
 	    switch (nao_ptr->step) {
+	    case NAP_BOTH:
+		x = *(m4DataTypeName($1) *) x_ptr;
+		if (IsNaN32(x)) {
+		    return NAP_F32_NULL;
+		}
+		x0 = x1 = NAP_F32_NULL;
+		have0 = !IsMissing(nao_ptr, 0);
+		if (have0) {
+		    x0 = nao_ptr->data.$1[0];
+		    if (x == x0) {
+			return 0;
+		    }
+		}
+		have1 = !IsMissing(nao_ptr, 1);
+		if (have1) {
+		    x1 = nao_ptr->data.$1[1];
+		    if (x == x1) {
+			return 1;
+		    } else if (have0  &&  Sign(x1-x) == Sign(x1-x0)) {
+			return (x - x0) / (x1 - x0);
+		    }
+		}
+		for (i = 2; i < n; i++) {
+		    x0 = x1;
+		    have0 = have1;
+		    have1 = !IsMissing(nao_ptr, i);
+		    if (have1) {
+			x1 = nao_ptr->data.$1[i];
+			if (x == x1) {
+			    return i;
+			} else if (have0  &&  Sign(x-x0) == Sign(x1-x)) {
+			    return i - (x1 - x) / (x1 - x0);
+			}
+		    }
+		}
+		if (have0  &&  have1  &&  Sign(x-x1) == Sign(x1-x0)) {
+		    return n - 2 + (x - x0) / (x1 - x0);
+		}
+		return NAP_F32_NULL;
 	    case NAP_NON_NEGATIVE:
 	    case NAP_NON_POSITIVE:
 		result = Nap_IndexOf$1(nap_cd, nao_ptr->data.$1, n,
@@ -2503,11 +2559,11 @@ Nap_IndexOf`$1'(
     m4DataTypeName(`$1')	x,	/* value to search for in v (in) */
     float			g)	/* guess (ignored unless 0 <= g <= n-1) (in) */
 {
-    float	step;
+    double	step;
     size_t	G;
     size_t	i;
     float	index;
-    
+
     if (n < 2) {
 	return NAP_F32_NULL;
     }
@@ -2517,11 +2573,11 @@ Nap_IndexOf`$1'(
     i -= i > n-2;
     index = i;
     if (v[i] != v[i+1]) {
-	step =  (float) v[i+1] - (float) v[i];
+	step =  (double) v[i+1] - (double) v[i];
 	if (i == 0) {
-	    index = 1.0f - ((float) v[1] - (float) x) / step;
+	    index = 1.0 - ((double) v[1] - (double) x) / step;
 	} else {
-	    index += ((float) x - (float) v[i]) / step;
+	    index += ((double) x - (double) v[i]) / step;
 	}
     }
     return index;
@@ -2579,6 +2635,7 @@ Nap_HuntNao(
  *
  *   This is interface to Nap_IndexOf with vector specified as NAO.
  *   This enables optimisation using the step field.
+ *   Also handle case where vector is not monotonic (sorted).
  */
 
 EXTERN float
@@ -2588,7 +2645,10 @@ Nap_IndexOfNao(
     void		*x_ptr,	/* value to search for in v (in) */
     float		g)	/* initial guess (ignored unless 0 <= g <= n-1) (in) */
 {
-    size_t		n;
+    int			have0;		/* Is x0 present? */
+    int			have1;		/* Is x1 present? */
+    int			i;
+    int			n;
     float		result;
     int			status;
     float		x;
@@ -2598,13 +2658,13 @@ Nap_IndexOfNao(
     assert(nao_ptr);
     status = Nap_OilNao(nao_ptr);
     assert(status == TCL_OK);
-    if (nao_ptr->step == NAP_BOTH || nao_ptr->rank != 1 || nao_ptr->nels < 2) {
+    if (nao_ptr->rank != 1 || nao_ptr->nels < 2) {
 	return NAP_F32_NULL;
     }
     n = nao_ptr->nels;
     switch (nao_ptr->dataType) {
-        m4ForAllUnboxedDataType(`m4indexOfNao(', `)')
-        default:                /* error */
+	m4ForAllUnboxedDataType(`m4indexOfNao(', `)')
+	default:                /* error */
 	    return NAP_F32_NULL;
     }
     return result;
@@ -2623,13 +2683,16 @@ m4define(`m4NAME', `Nap_OilNao')
 #       Usage: m4oilInteger(dataType)
 m4define(`m4oilInteger', `
 	    case m4DataTypeEnum($1):
-		for (i = 1; i < n-1; i++) {
+		istep_min = istep_max = (long) naoPtr->data.$1[1] - (long) naoPtr->data.$1[0];
+		for (i = 2; i < n-1; i++) {
 		    istep = (long) naoPtr->data.$1[i] - (long) naoPtr->data.$1[i-1];
 		    if (istep < istep_min) {
 			istep_min = istep;
-		    }
-		    if (istep > istep_max) {
+		    } else if (istep > istep_max) {
 			istep_max = istep;
+		    }
+		    if (Sign(istep_min) * Sign(istep_max) < 0) {
+			break;
 		    }
 		}
 		istep = (long) naoPtr->data.$1[n-1] - (long) naoPtr->data.$1[n-2];
@@ -2643,7 +2706,8 @@ m4define(`m4oilReal', `
 		if (value > value_max) {
 		    value_max = value;
 		}
-		for (i = 1; i < n-1; i++) {
+		step_min = step_max = naoPtr->data.$1[1] - naoPtr->data.$1[0];
+		for (i = 2; i < n-1; i++) {
 		    value = fabs(naoPtr->data.$1[i]);
 		    if (value > value_max) {
 			value_max = value;
@@ -2651,9 +2715,11 @@ m4define(`m4oilReal', `
 		    step = naoPtr->data.$1[i] - naoPtr->data.$1[i-1];
 		    if (step < step_min) {
 			step_min = step;
-		    }
-		    if (step > step_max) {
+		    } else if (step > step_max) {
 			step_max = step;
+		    }
+		    if (Sign(step_min) * Sign(step_max) < 0) {
+			break;
 		    }
 		}
 		step = naoPtr->data.$1[n-1] - naoPtr->data.$1[n-2];
@@ -2688,8 +2754,6 @@ Nap_OilNao(
 	if (naoPtr->rank == 0  ||  n < 3) {
 	    naoPtr->step = NAP_EQUAL;
 	} else if (naoPtr->dataType == NAP_C8 || Nap_IsInteger(naoPtr)) {
-	    istep_max = LONG_MIN;
-	    istep_min = LONG_MAX;
 	    switch (naoPtr->dataType) {
 	    m4ForAllCharacterDataType(`m4oilInteger(', `)')
 	    m4ForAllIntegerDataType(`m4oilInteger(', `)')
@@ -2708,8 +2772,6 @@ Nap_OilNao(
 		naoPtr->step = NAP_BOTH;
 	    }
 	} else if (Nap_IsReal(naoPtr)) {
-	    step_max = -DBL_MAX;
-	    step_min =  DBL_MAX;
 	    switch (naoPtr->dataType) {
 	    m4ForAllRealDataType(`m4oilReal(', `)')
 	    default:            /* error */
@@ -2723,6 +2785,7 @@ Nap_OilNao(
 	    if (step_max - step_min < DBL_MAX
 	    		&&  step_max - step_min <= eps * value_max
 			&&  Sign(step) * step_max >= 0
+			&&  fabs(step) < DBL_MAX
 			&&  fabs(step) <= fabs(step_max) + eps * value_max) {
 		naoPtr->step = NAP_EQUAL;
 	    } else if (step_max >= 0.0  &&  step_min >= 0.0  &&  step >= 0) {
@@ -2893,6 +2956,8 @@ Nap_AttachCV(
 /*
  *  Nap_SetDimName --
  *      Assign name to dimension.
+ *
+ *      Change illegal chars to "_"
  */
 
 m4define(`m4NAME', `Nap_SetDimName')
@@ -3076,6 +3141,7 @@ Nap_CreateClientData(
 
     nap_cd = (NapClientData *) MALLOC(sizeof(NapClientData));
     nap_cd->interp = interp;
+    nap_cd->recursionLimit = 0;
     nap_cd->parseLevel = -1;
     nap_cd->totalBytesNAO = 0;
     nap_cd->maxTotalBytesNAO = 0;

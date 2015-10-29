@@ -1,4 +1,4 @@
-<!-- $Id: nap_get.html,v 1.4 2003/03/14 08:22:34 dav480 Exp $ -->
+<!-- $Id: nap_get.html,v 1.8 2004/11/15 06:13:48 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -33,7 +33,6 @@ Introduction
 The <code>nap_get</code> command creates a NAO containing data read from a file.
 The first argument specifies the type of file, which can be
 <code>binary</code>, <code>hdf</code>, <code>netcdf</code> or <code>swap</code>.
-</p>
 
 <p>
 <a href="http://hdf.ncsa.uiuc.edu">HDF</a>
@@ -44,9 +43,22 @@ such as meteorology and oceanography.
 (The new HDF5 format is not currently supported.)
 Such files contain data referenced by symbol tables containing the names, data-types
 and dimensions of variables.
-Each variable can also have attributes such as a label, a unit of measure and a missing-value.
-Note the similarity between these items and those in a NAO.
-</p>
+Each variable can also have attributes such as a label, 
+a format, a unit of measure and a missing-value.
+Note the similarity between these attributes and those in a NAO.
+
+<p>
+The
+<code>netcdf</code>
+option also supports (but only on the linux platform at the time of writing)
+access to remote data provided by an
+<a href="http://www.opendap.org/">OPeNDAP (a.k.a. DODS)</a>
+server.
+In this case the
+<var>filename</var>
+is a URL rather than the pathname of a local file.
+There is an OPeNDAP example at the end of 
+<a href="#Reading_netCDF_Data">Reading netCDF Data</a>.
 
 <h3>
 <a name=Reading_Binary_Data>
@@ -66,8 +78,9 @@ is similar, except that bytes are swapped.
 This enables reading of data written on a machine with opposite byte-order within words.
 
 <p>
-The following example first writes six 32-bit floating-point values to a file using standard
-Tcl commands.
+The following example first writes six 32-bit floating-point values to a file using the OOC
+<code>binary</code>
+method.
 It then reads them back into a NAO named
 &quot;<code>in</code>&quot;
 using 
@@ -75,16 +88,16 @@ using
 
 <pre>
 % set file [open float.dat w]
-file6
-% puts -nonewline $file [binary format f* {1.5 -3 0 2 4 5}]
+filee15170
+% [nap "f32{1.5 -3 0 2 4 5}"] binary $file
 % close $file
 % set file [open float.dat]
-file6
+filee15170
 % nap "in = [nap_get binary $file f32]"
 ::NAP::22-22
 % close $file
 % $in all
-::NAP::22-22  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+::NAP::22-22  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 6      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
 1.5 -3 0 2 4 5
@@ -115,10 +128,21 @@ NetCDF data is read using the command<br>
 <code>nap_get netcdf</code> <var>filename name</var> [<var>index</var> [<var>raw</var>]]<br>
 
 <p>
-<var>name</var> is the name of a variable or attribute and has the form
-<li> <var>varname</var> for a variable
-<li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of a variable
-<li> <code>:</code><var>attribute</var> for a global attribute<br>
+<var>filename</var> is the:
+<ul>
+    <li> pathname of a local file
+    <li> URL of a remote 
+	    <a href="http://www.opendap.org/">OPeNDAP (a.k.a. DODS)</a>
+	    server
+</ul>
+
+<p>
+<var>name</var> is the name of a variable or attribute and has the form:
+<ul>
+    <li> <var>varname</var> for a variable
+    <li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of a variable
+    <li> <code>:</code><var>attribute</var> for a global attribute<br>
+</ul>
 
 <p>
 If <var>index</var> is omitted then the entire variable is read in.
@@ -161,14 +185,25 @@ Value:
 </pre>
 
 <p>
-The following example specifies the index <code>{0 2}</code> to select the first and third
-elements:
+Now let's specify the index <code>{0 2}</code> to select the first and third elements:
 <pre>
 % [nap_get netcdf int.nc vec "{0 2}"] all
 ::NAP::58-58  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
 Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
 Value:
 6 4
+</pre>
+
+<p>
+The following is an 
+<a href="http://www.opendap.org/">OPeNDAP (a.k.a. DODS)</a>
+example.
+It displays the altitude of the south pole.
+
+<pre>
+% set url http://www.marine.csiro.au/dods/nph-dods/dods-data/climatology-netcdf/etopo5.nc
+% [nap_get netcdf $url height "@@-90, 0"]
+2810
 </pre>
 
 <h3>
@@ -181,10 +216,15 @@ HDF data is read using the command<br>
 <code>nap_get hdf</code> <var>filename name</var> [<var>index</var> [<var>raw</var>]]<br>
 
 <p>
-<var>name</var> is the name of an SDS or attribute and has the form
-<li> <var>sdsname</var> for a SDS
-<li> <var>sdsname</var><code>:</code><var>attribute</var> for an attribute of a SDS
-<li> <code>:</code><var>attribute</var> for a global attribute<br>
+<var>filename</var> is the pathname of a local file.
+
+<p>
+<var>name</var> is the name of an SDS or attribute and has the form:
+<ul>
+    <li> <var>sdsname</var> for a SDS
+    <li> <var>sdsname</var><code>:</code><var>attribute</var> for an attribute of a SDS
+    <li> <code>:</code><var>attribute</var> for a global attribute<br>
+</ul>
 
 <p>
 If <var>index</var> is omitted then the entire SDS is read in.
@@ -313,7 +353,7 @@ dimension of a specified variable/SDS in the specified file.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.4 2003/03/14 08:22:34 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.8 2004/11/15 06:13:48 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

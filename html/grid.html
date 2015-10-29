@@ -1,4 +1,4 @@
-<!-- $Id: grid.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: grid.html,v 1.5 2004/11/08 04:33:41 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -10,6 +10,19 @@ NAP Grids
 <h2> <center>
 Grids
 </center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Dims">Dimensions, Coordinate variables and Mappings</a>
+    <li><a href="#Dif">Difference between Grids and Scattered Data</a>
+    <li><a href="#Missing">Missing Data</a>
+    <li><a href="#Scattered">Processing Scattered Data</a>
+</ol>
+
+<h3>
+<a name=Dims>Dimensions, Coordinate variables and Mappings
+</h3>
 
 Traditional array-processors, such as APL, are based on a data-model which
 has discrete dimensions
@@ -23,9 +36,31 @@ spacio-temporal spaces, which are of course continuous.
 
 <p>
 If desired, a dimension can have an associated variable called the
-<em>coordinate variable</em>.
+<em>coordinate variable (CV)</em>.
 This is a vector which defines a piecewise-linear mapping from subscript to
 physical dimension.
+
+<p>
+CVs are convenient when each array dimension maps to a single physical dimension.
+However, the relationship between array dimensions and physical dimensions may be more complex.
+Consider the example of
+a satellite image with dimensions <em>line</em> (row) and <em>pixel</em> (column).
+The physical dimension <em>latitude</em> depends on both array dimensions
+(<em>line</em> and <em>pixel</em>).
+There is a matrix (with the same <em>line</em> and <em>pixel</em> dimensions as the image)
+giving the latitude at each point.
+There is another similar longitude matrix.
+These two matrices define piecewise-bilinear mappings from line/pixel space to
+latitude/longitude space.
+The task of warping the image to latitude/longitude space is essentially that of defining
+mappings from latitude/longitude space to line/pixel space
+i.e. the inverses of the given mappings.
+This can be done using the NAP functions
+<a href="function.html#Grid"><code>invert_grid</code> and <code>invert_grid_no_trim</code></a>.
+
+<h3>
+<a name=Dif>Difference between Grids and Scattered Data
+</h3>
 
 <p>
 Data in a continuous space with two or more dimensions
@@ -40,7 +75,7 @@ whereas <em>scattered</em> data is not.
 The following examples are intended to illustrate the difference between 
 <em>scattered</em> and <em>gridded</em> 2D data.
 
-<h3>Example of Scattered 2D Data (Not a Grid)</h3>
+<h4>Example of Scattered 2D Data (Not a Grid)</h4>
 
 <p>
 Note that the data are not aligned in rows and columns.
@@ -89,7 +124,9 @@ Note that the data are not aligned in rows and columns.
 </table>
 
 
-<h3>Example of 2D Grid</h3>
+<h4>
+<a name=ex2dgrid>Example of 2D Grid
+</h4>
 
 <p>
 The following example has the grid in black.
@@ -227,7 +264,9 @@ The coordinate variables are latitude and longitude.
 
 </table>
 
-<h3>Missing Data</h3>
+<h3>
+<a name=Missing>Missing Data
+</h3>
 
 The NAP data model allows any element of an array to have a value which is a
 <em>missing-value</em>.
@@ -532,22 +571,21 @@ There would be only one non-missing point in each row.
 There would be only one non-missing point in each column.
 Of course this would be very inefficient for a matrix of significant size.
 
-<h3>Processing Scattered Data</h3>
+<h3>
+<a name=Scattered>Processing Scattered Data
+</h3>
 
 <p>
-NAP has no facilities for directly processing scattered data.
-However it is possible to define a grid from scattered data.
-This can be done by
-<li>defining a least-squares best-fit n-dimensional surface and then
-    using this to define the grid values
-<li>using Delaunay triangulation (not yet implemented)
+Function
+<a href="nap_function_lib.html#scattered2grid"><code>scattered2grid</code></a>
+interpolates scattered data onto a grid.
 
 <p>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
   <TR>
     <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
 	&copy; 2002, CSIRO Australia.  Author: Harvey.Davies@CSIRO.AU<br>
-	CVS Version Details: $Id: grid.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+	CVS Version Details: $Id: grid.html,v 1.5 2004/11/08 04:33:41 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

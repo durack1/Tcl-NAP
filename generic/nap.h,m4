@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.189 2003/07/19 14:17:19 dav480 Exp $
+ * $Id: nap.h,m4,v 1.195 2004/11/17 23:12:46 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -114,9 +114,9 @@ m4dnl	If you see this line, you can ignore the next one.
 /*
  *  IsNaN32 tests for float NaN.
  */
-/* Following definition from ieeefp.h */
-#define IsNaN32(x)	(((*(long *)&(x) & 0x7f800000L)==0x7f800000L)&& \
-			 ((*(long *)&(x) & 0x007fffffL)!=0x00000000L) )
+/* Following definition from ieeefp.h (assume 32-bit int) */
+#define IsNaN32(x)	(((*(int *)&(x) & 0x7f800000)==0x7f800000)&& \
+			 ((*(int *)&(x) & 0x007fffff)!=0x00000000) )
 #ifndef IsNaN32
 #define IsNaN32(x) Nap_NE_f32(x, x)
 #endif /* IsNaN32 */
@@ -146,7 +146,6 @@ m4ForAllIntegerDataType(`m4tmp(', `)')
 
 #define NAP_MAX_MESSAGE_LENGTH 10000	/* max length of error message */
 #define NAP_MAX_RANK 32			/* equals MAX_VAR_DIMS in HDF hlimits.h */
-#define NAP_MAX_N_PARSE_LEVELS 64	/* max # levels recursive calls to parser */
 #define NAP_MAX_LEVEL 8			/* max. # levels indirection */
 #define NAP_NAMESPACE "::NAP::"
 #define NAP_NAO_ID_PREFIX NAP_NAMESPACE
@@ -354,6 +353,7 @@ typedef struct Nao {			/* numeric array object */
     Nap_dataType	dataType;
     Nap_step		step;		/* efficiency hint for vectors */
     char		mortal;		/* FALSE = do not delete */
+    char		*format;	/* C format for printing */
     char		*label;		/* title, description of data, etc. */
     char		*unit;		/* unit of measure */
     int			rank;		/* # dimensions */
@@ -409,9 +409,10 @@ typedef union {				/* Used by parser */
 typedef struct NapClientData_struct {
     Tcl_Interp			*interp;	/* interpreter which created this stucture */
     int				parseLevel;   	/* -1: outside parser; > 0: recursive call */
-    char 			*scanString[NAP_MAX_N_PARSE_LEVELS]; /* flex input stream */
-    size_t			commandLength[NAP_MAX_N_PARSE_LEVELS]; /* # characters in command */
-    char  			message[NAP_MAX_MESSAGE_LENGTH+1]; 	/* Nap_Check buffer */
+    int				recursionLimit;	/* max. NAP nesting depth */
+    char 			**scanString;	/* flex input stream */
+    size_t			*commandLength; /* # characters in command */
+    char  			message[NAP_MAX_MESSAGE_LENGTH+1]; /* Nap_Check buffer */
     size_t			totalBytesNAO;	/* total # bytes in NAOs */
     size_t			maxTotalBytesNAO; /* max. so far */
     size_t			seqNum;		/* sequence # of most recently created NAO */
@@ -443,6 +444,7 @@ EXTERN int		SAME_f32(float x, float y);
 EXTERN char		*Nap_Add(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_And(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_AP(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN int		Nap_AppendListElement(NapClientData *nap_cd, char *str);
 EXTERN void		Nap_AppendStr(NapClientData *nap_cd, char *str);
 EXTERN Nap_PNode	*Nap_AppendToPNodeList(NapClientData *nap_cd, Nap_PNode *head,
 				Nap_PNode *new);
@@ -512,6 +514,7 @@ EXTERN float		Nap_IndexOfNao(NapClientData *nap_cd, Nap_NAO *nao_ptr,
 				void *x_ptr, float g);
 EXTERN char		*Nap_IndexOf2(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_InnerProd(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN char		*Nap_inPolygon(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN void		Nap_InterpDeleteProc(ClientData clientData, Tcl_Interp *interp);
 EXTERN int		Nap_IsNAO(NapClientData *nap_cd, Nap_NAO *naoPtr);
 EXTERN char		*Nap_Laminate(NapClientData *nap_cd, char *str1, char *str2);
@@ -520,6 +523,7 @@ EXTERN char		*Nap_LesserOf(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_lex(Nap_stype *lvalp, NapClientData	*nap_cd);
 EXTERN size_t		Nap_lexID(char *str);
 EXTERN size_t		Nap_lexName(char *str);
+EXTERN size_t		Nap_lexSimpleName(char *str);
 EXTERN char		*Nap_Link(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN long		Nap_lmod(long x, long y);
 EXTERN char		*Nap_Lt(NapClientData *nap_cd, char *str1, char *str2);
@@ -582,7 +586,10 @@ EXTERN char		*Nap_Subscript(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_swap_bytes(NapClientData *nap_cd, char *a, int n, int size); 
 EXTERN char		*Nap_Tally(NapClientData *nap_cd, char *str);
 EXTERN char		*Nap_TclGetVar(NapClientData *nap_cd, char *name);
+EXTERN char		*Nap_Triangulate(NapClientData *nap_cd, Nap_NAO *box_nao);
+EXTERN char		*Nap_TriangulateEdges(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN Nap_dataType	Nap_TextToDataType(char *str);
+
 EXTERN Nap_NAO		*Nap_UnboxedElement1(NapClientData *nap_cd, Nap_NAO *naoPtr);
 
 m4define(`m4indexOf', `

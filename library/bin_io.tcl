@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: bin_io.tcl,v 1.19 2003/06/03 09:32:54 dav480 Exp $
+# $Id: bin_io.tcl,v 1.22 2004/06/29 01:20:49 dav480 Exp $
 
 
 # check --
@@ -359,16 +359,25 @@ proc get_nao {
 # Write NAO to cif (Conmap Input File)
 #
 # Usage
-#   put_cif1 <nap_expr> ?<fileId>? ?<mode>?
+#   put_cif1 <nap_expr> ?<fileId>? ?<mode>? ?<missing_value>?
 #	<nap_expr> is NAP expression to be evaluated in caller name-space
 #	<fileId> defaults to stdout
-#	<mode> is "binary" (default) or "swap"
+#	<mode> is "auto" (default) "binary" or "swap"
+#	<missing_value> for output (default: -7777777)
 
 proc put_cif1 {
     nap_expr
     {fileId stdout}
-    {mode binary}
+    {mode auto}
+    {missing_value -7777777f32}
 } {
+    if {$mode eq "auto"} {
+	if {$::tcl_platform(byteOrder) eq "littleEndian"} {
+	    set mode swap
+	} else {
+	    set mode binary
+	}
+    }
     nap "nao = [uplevel "nap \"f32($nap_expr)\""]"
     set rank [$nao rank]
     check {$rank == 2} "put_cif1: rank is $rank but should be 2"
@@ -380,6 +389,7 @@ proc put_cif1 {
     }
     nap "label = reshape(label(nao) // (80 # ' '), {80})"
     put_bin $label $fileId $mode
+    nap "nao = isPresent(nao) ? nao : f32(missing_value)"
     put_bin $nao   $fileId $mode
     return
 }
@@ -390,17 +400,19 @@ proc put_cif1 {
 # Write NAO as entire cif (Conmap Input File)
 #
 # Usage
-#   put_cif <nap_expr> ?<fileName>? ?<mode>?
+#   put_cif <nap_expr> ?<fileName>? ?<mode>? ?<missing_value>?
 #	<nap_expr> is NAP expression to be evaluated in caller name-space
 #	<fileName> defaults to standard output
-#	<mode> is "binary" (default) or "swap"
+#	<mode> is "auto" (default) "binary" or "swap"
+#	<missing_value> for output (default: -7777777)
 
 proc put_cif {
     nap_expr
     {fileName ""}
-    {mode binary}
+    {mode auto}
+    {missing_value -7777777f32}
 } {
-    if {"$fileName" == ""} {
+    if {"$fileName" eq ""} {
 	set fileId stdout
     } else {
 	if [catch {set fileId [open $fileName w]} message] {
@@ -408,7 +420,7 @@ proc put_cif {
 	}
     }
     nap "nao = [uplevel "nap \"f32($nap_expr)\""]"
-    put_cif1 $nao $fileId $mode
+    put_cif1 $nao $fileId $mode $missing_value
     close $fileId
     return
 }

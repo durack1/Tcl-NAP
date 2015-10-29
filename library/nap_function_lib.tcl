@@ -4,68 +4,10 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.34 2003/10/28 23:11:05 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.44 2004/08/10 01:48:02 dav480 Exp $
 
 
 namespace eval ::NAP {
-
-
-    # acof2boxed --
-    #
-    # read ascii cof (.acof) file & return boxed nao
-    # example: nap "i = acof2boxed('abc.acof')"
-    #
-    # This version returns longitudes in range 0 to 360
-    # Need arg to specify that want range -180 to 180
-
-    proc acof2boxed {
-	file_name_nao
-    } {
-	if [catch {set f [open [$file_name_nao value] r]} message] {
-	    error $message
-	}
-	nap "v = f32{0 360}"
-	nap "b = (0,0){}";  # create empty boxed nao
-	while {[gets $f title] >= 0} {
-	    set nchars [gets $f n]
-	    if {$nchars <= 0} {
-		error "acof2boxed: error reading n"
-	    }
-	    nap "yold = xold = 1nf32"
-	    nap "mat = reshape(0f32, {0 2})"
-	    for {set i 0} {$i < $n} {incr i} {
-		set nchars [gets $f line]
-		if {$nchars <= 0} {
-		    error "acof2boxed: error reading line"
-		}
-		nap "row = f32{$line}"
-		if {[$row shape] != 2} {
-		    error "acof2boxed: line does not contain exactly 2 numbers"
-		}
-		nap "x = row(0) % 360f32"
-		nap "y = row(1)"
-		if [[nap "x - xold > 180f32"]] {
-		    nap "xtmp = x - 360f32"
-		    nap "y0 = yold - xold * (y - yold) / (xtmp - xold)"
-		    nap "mat = mat // (0f32 // y0)"
-		    nap "b = b , mat"
-		    nap "mat = reshape(360f32 // y0, {1 2})"
-		} elseif [[nap "xold - x > 180f32"]] {
-		    nap "xtmp = x + 360f32"
-		    nap "y0 = yold - xold * (y - yold) / (xtmp - xold)"
-		    nap "mat = mat // (360f32 // y0)"
-		    nap "b = b , mat"
-		    nap "mat = reshape(0f32 // y0, {1 2})"
-		}
-		nap "mat = mat // (x // y)"
-		nap "xold = x"
-		nap "yold = y"
-	    }
-	    nap "b = b , mat"
-	}
-	close $f
-	nap "b"
-    }
 
 
     # ap --
@@ -96,24 +38,6 @@ namespace eval ::NAP {
 	    }
 	    nap "from .. to ... step"
 	}
-    }
-
-
-    # area_on_globe --
-    #
-    # Each element of matrix result is fraction of Earth's surface area
-
-    proc area_on_globe {
-	latitude
-	longitude
-    } {
-	nap "latitude = +latitude"
-	$latitude set unit degrees_north
-	nap "longitude = fix_longitude(longitude)"
-	nap "zw = transpose(reshape(zone_wt(latitude), nels(longitude) // nels(latitude)))"
-	nap "result = zw * merid_wt(longitude)"
-	$result set coo latitude longitude
-	nap "result"
     }
 
 
@@ -152,35 +76,179 @@ namespace eval ::NAP {
 
     # cv --
     #
-    # Simply alias for long word 'coordinate_variable'.
+    # Gives coordinate variable of specified dimension (default is 0).
+    # Mainly just alias for long word 'coordinate_variable', but also allows d to be name.
+    #
+    # Usage:
+    #	cv(x, d)
+    # or
+    #	cv(x)
+    #
+    # Examples (assuming matrix has dimensions 'latitude' & 'longitude'):
+    #	cv(matrix, 'latitude'); # result is coordinate variable of dimension 0
+    #	cv(matrix);             # result is coordinate variable of dimension 0
+    #	cv(matrix,  1);         # result is coordinate variable of dimension 1
+    #	cv(matrix, -1);         # result is coordinate variable of dimension 1
 
     proc cv {
-	main_nao
-	{dim_number 0}
+	x
+	{d 0}
     } {
-	nap "coordinate_variable(main_nao, dim_number)"
+	nap "coordinate_variable(x, dimension_number(x, d))"
     }
 
 
-    # fix_longitude --
+    # derivative --
     #
-    # Adjust elements of longitude vector by adding or subtracting multiple of 360 to ensure:
-    #     -180 <= x(0) < 180
-    #     0 <= x(i+1)-x(i) < 360
-    # Ensure unit is "degrees_east"
+    # Estimate derivative along dimension 'd' (default is 0) of array 'a'.
+    # Result has same shape as array.
+    #
+    # Usage:
+    #	derivative(a, d)
+    #
+    # Example (assuming 'vector' has dimension (& coordinate variable) 'time'
+    #	derivative(vector); # result is derivative with respect to time
+    #
+    # Examples (assuming 'matrix' has dimensions 'latitude' & 'longitude'):
+    #	derivative(matrix, 'latitude');	# result is derivative with respect to latitude
+    #	derivative(matrix, 0);		# result is derivative with respect to latitude
+    #	derivative(matrix);		# result is derivative with respect to latitude
+    #	derivative(matrix,'longitude');	# result is derivative with respect to longitude
+    #	derivative(matrix, 1);		# result is derivative with respect to longitude
+    #
+    # Based on quadratic through 3 points (provided size of dimension is > 2 -- if only 2 then
+    # based on straight line). These always include the point corresponding to the result.
+    # For interior points, the other 2 are the closest neighbour on each side.  For boundry
+    # points, these are the 2 closest neighbours.
+    #
+    # Let D(x) be the derivative of quadratic through points (x0,y0), (x1,y1), (x2,y2)
+    # D1 = D(x1) = a0 * y0 + a1 * y1 + a2 * y2
+    # where the coefficients a0, a1, a2 are defined by:
+    #	a0 = (x1 - x2) / ((x1 - x0) * (x2 - x0))
+    #	a1 = 1 / (x1 - x0) - 1 / (x2 - x1)
+    #	a2 = (x1 - x0) / ((x2 - x0) * (x2 - x1))
 
-    proc fix_longitude {
-	longitude
+    proc derivative {
+	a
+	{d 0}
     } {
-	nap "x = f64(longitude)"
-	nap "x0 = (x(0) + 180.0) % 360.0 - 180.0"
-	$x set value x0 0		;# Ensure -180 <= x(0) < 180
-	nap "n = nels(x)"
-	nap "d = (x(1 .. (n-1)) - x(0 .. (n-2))) % 360.0"
-	nap "x = psum(x0 // d)"
-	nap "result = [$longitude datatype](x)"
-	$result set unit "degrees_east"
+	set r [$a rank]
+	if {$r == 0} {
+	    error "derivative: x is scalar"
+	}
+	set dn [[nap "dimension_number(a, d)"]]
+	if {$dn < $r - 1} {
+	    nap "p = (0 .. (dn-1) ... 1) // (r-1) // ((dn+1) .. (r-2) ... 1) // dn"; # permutation
+	    nap "D1 = transpose(derivative(transpose(a, p), -1), p)"
+	} else {
+	    nap "x = coordinate_variable(a, dn)"
+	    if {[$x datatype] eq "f64"  ||  [$a datatype] eq "f64"} {
+		nap "x = f64 x"
+		nap "y = f64 a"
+	    } else {
+		nap "x = f32 x"
+		nap "y = f32 a"
+	    }
+	    nap "s = shape(a)"
+	    set c [commas [expr "$r - 1"]]
+	    set n [[nap "s(dn) - 1"]]
+	    switch $n {
+		-1 {
+		    error "derivative: x is empty"
+		}
+		0 {
+		    error "derivative: dimension size = 1"
+		}
+		1 {
+		    nap "i0 = {1 0}"
+		    nap "i1 = {0 1}"
+		    nap "y0 = y($c i0)"
+		    nap "y1 = y($c i1)"
+		    nap "D1 = (y1 - y0) / (x(i1) - x(i0))"
+		}
+		default {
+		    nap "i0 = 2 // (0 .. (n-1))"
+		    nap "i1 = 0 .. n"
+		    nap "i2 = (1 .. n) // -3"
+		    nap "x0 = x(i0)"
+		    nap "x1 = x(i1)"
+		    nap "x2 = x(i2)"
+		    nap "d10 = x1 - x0" 
+		    nap "d20 = x2 - x0" 
+		    nap "d21 = x2 - x1" 
+		    nap "a0 = - d21 / (d10 * d20)"
+		    nap "a1 = 1/d10 - 1/d21"
+		    nap "a2 = d10 / (d20 * d21)"
+		    nap "y0 = y($c i0)"
+		    nap "y1 = y($c i1)"
+		    nap "y2 = y($c i2)"
+		    nap "D1 = a0 * y0 + a1 * y1 + a2 * y2"
+		}
+	    }
+	    eval $D1 set coo [$a coo]
+	    eval $D1 set dim [$a dim]
+	}
+	nap "D1"
+    }
+
+
+    # dimension_number --
+    #
+    # Result is index of dimension
+    #
+    # Usage:
+    #	dimension_number(x, d)
+    #	where:
+    #	- 'x' is main array
+    #	- d is either integer (giving result "d % rank(x)") or name of dimension.
+    #
+    # Examples (assuming matrix has dimensions 'latitude' & 'longitude'):
+    #	dimension_number(matrix, 'latitude'); # result is 0
+    #	dimension_number(matrix, 'longitude'); # result is 1
+    #	dimension_number(matrix, 2); # result is 0
+    #	dimension_number(matrix, -1); # result is 1
+
+    proc dimension_number {
+	x
+	d
+    } {
+	if {[$d datatype] eq "c8"} {
+	    set result [lsearch [$x dimension] [$d]]
+	} else {
+	    nap "result = d % rank(x)"
+	}
 	nap "result"
+    }
+
+
+    # fill_holes --
+    #
+    # Replace missing values by estimates based on means of neighbours
+    #
+    # Usage:
+    #	fill_holes(x, max_nloops)
+    #	where:
+    #	- x is array to be filled
+    #	- max_nloops is max. no. iterations (Default is to keep going until
+    #     there are no missing values)
+
+    proc fill_holes {
+	x
+	{max_nloops -1}
+    } {
+	set max_nloops [[nap "max_nloops"]]
+	set n [$x nels]
+	set n_present 0; # ensure at least one loop
+	for {set nloops 0} {$n_present < $n  &&  $nloops != $max_nloops} {incr nloops} {
+	    nap "ip = count(x, 0)"; # Is present? (0 = missing, 1 = present)
+	    set n_present [[nap "sum_elements(ip)"]]
+	    if {$n_present == 0} {
+		error "fill_holes: All elements are missing"
+	    } elseif {$n_present < $n} {
+		nap "x = ip ? x : moving_average(x, 3, -1)"
+	    }
+	}
+	nap "x"
     }
 
 
@@ -205,48 +273,6 @@ namespace eval ::NAP {
 	{eps 1e-9}
     } {
 	nap "floor(x + eps)"
-    }
-
-
-    # get_gridascii --
-    #
-    # Read a file in ARC/INFO GRIDASCII format
-
-    proc get_gridascii {
-	filename
-    } {
-	set f [open [$filename value]]
-	foreach var_name {ncols nrows xllcorner yllcorner cellsize nodata_value} {
-	    if {[gets $f line] <= 0} {
-		error "Empty header record"
-	    }
-	    if {$var_name ne [string tolower [lindex $line 0]]} {
-		error "Wrong name in header line"
-	    }
-	    set $var_name [lindex $line 1]
-	}
-	nap "z = f32{}"
-	while {[gets $f line] > 0} {
-	    nap "z = z // f32{$line}"
-	}
-	close $f
-	set ne [expr $nrows * $ncols]
-	set na [$z nels]
-	if {$na != $ne} {
-	    error "Expected to read $ne values, but actually read $na values"
-	}
-	nap "z = reshape(z, nrows // ncols)"
-	nap "xmin = xllcorner + 0.5 * cellsize"
-	nap "xmax = xmin + (ncols - 1) * cellsize"
-	nap "ymin = yllcorner + 0.5 * cellsize"
-	nap "ymax = ymin + (nrows - 1) * cellsize"
-	nap "longitude = ncols ... xmin .. xmax"
-	nap "latitude  = nrows ... ymax .. ymin"
-	$longitude set unit degrees_east
-	$latitude  set unit degrees_north
-	$z set coo latitude longitude
-	$z set miss $nodata_value
-	nap "z"
     }
 
 
@@ -348,8 +374,13 @@ namespace eval ::NAP {
 
     # isInsidePolygon --
     #
+    # This function is deprecated.
+    # It has been replaced by the built-in function 'inPolygon'.
+    # This version of isInsidePolygon calls inPolygon.
+    #
     # Usage: isInsidePolygon(x, y, poly)
     # Tests whether points defined by x & y are inside polygon defined by poly.
+    # Result is 0 for outside, 1 for inside, 1 for exactly on edge.
     #
     # poly is normally matrix with 2 columns.  Each row corresponds to a point.
     # Column 0 contains x values & column 1 contains y values.
@@ -357,15 +388,6 @@ namespace eval ::NAP {
     #
     # x & y must have shapes which are compatible with each other.
     # Result has the same shape as x or y (whichever has the higher rank)
-    #
-    # Based on function 'pnpoly' by Randolph Franklin at URL
-    # http://astronomy.swin.edu.au/~pbourke/geometry/insidepoly/
-    # This page was written by Paul Bourke in November 1987 & is titled
-    # 'Determining if a point lies on the interior of a polygon'.
-    #
-    # Note that we loop for each vertex of the polygon, so this function is only suitable for
-    # polygons consisting of fairly small numbers of vertices. But it is efficient if x & y
-    # are large arrays.
 
     proc isInsidePolygon {
 	x
@@ -375,33 +397,7 @@ namespace eval ::NAP {
 	if {[$poly rank] == 1} {
 	    nap "poly = reshape(poly, (nels(poly) / 2) // 2)"
 	}
-	if {[[nap "rank(poly) != 2  ||  (shape(poly))(1) != 2"]]} {
-	    error "isInsidePolygon: poly has illegal shape"
-	}
-	set vars {x y poly}
-	foreach var $vars {
-	    lappend types [eval $$var datatype]
-	}
-	if {[lsearch $types f32] >= 0  &&  [lsearch $types f64] < 0} {
-	    set type f32
-	} else {
-	    set type f64
-	}
-	foreach var $vars {
-	    nap "$var = type($var)"
-	}
-	nap "c = 0"
-	set n [lindex [$poly shape] 0]
-	for {set i 0} {$i < $n} {incr i} {
-	    nap "j = i - 1"
-	    nap "xpi = poly(i,0)"
-	    nap "ypi = poly(i,1)"
-	    nap "xpj = poly(j,0)"
-	    nap "ypj = poly(j,1)"
-	    nap "c = c != ((((ypi <= y) && (y < ypj)) || ((ypj <= y) && (y < ypi)))
-		    && (x < (xpj - xpi) * (y - ypi) / (ypj - ypi) + xpi))"
-	}
-	nap "c"
+	nap "inPolygon(x, y, poly) >= 0"
     }
 
 
@@ -507,20 +503,6 @@ namespace eval ::NAP {
     }
 
 
-    # merid_wt --
-    #
-    # calculate normalised (so sum weights = 1) meridional weights from longitudes
-
-    proc merid_wt longitude {
-	nap "x = f64(longitude)"
-	nap "n = nels(x)"
-	nap "x1 = x(n-1) // x(0 .. (n-2))"
-	nap "x2 = x(1 .. n)"
-	nap "w = (x - x1) % 360.0 + (x2 - x) % 360.0"
-	nap "n > 1 ? w / sum(w) : {1}"
-    }
-
-
     # mixed_base --
     #
     # convert scalar value to mixed base (defined by vector)
@@ -546,51 +528,6 @@ namespace eval ::NAP {
 	    nap "result = rem // result"
 	}
 	nap "x // result"
-    }
-
-
-    # moving_average --
-    #
-    # Move window of specified shape by specified step (can vary for each dimension).
-    # Result is arithmetic mean of values in each window.
-    # x is array (ranks > 2 not supported yet)
-    # Both shape_window & step are vectors with an element for each dimension (after
-    # reshaping if necessary).
-    # Missing values in x are treated as 0 (which is probably not desired!).
-
-    proc moving_average {
-	x
-	shape_window
-	{step 1}
-    } {
-	set r [$x rank]
-	nap "w = i32(reshape(shape_window, r))"
-	nap "s = i32(reshape(step, r))"
-	switch $r {
-	    0 {
-		nap "result = x"
-	    }
-	    1 {
-		nap "w = w(0)"
-		nap "s = s(0)"
-		nap "n = nels(x) / s * s"
-		nap "p = 0 // psum(x)"
-		nap "result = f64(p(w .. n ... s) - p(0 .. (n-w) ... s)) / w"
-	    }
-	    2 {
-		nap "n = shape(x) / s * s"
-		nap "p = 0 // transpose(0 // transpose(psum(x)))"
-		nap "i0 = 0 .. (n(0) - w(0)) ... s(0)"
-		nap "j0 = 0 .. (n(1) - w(1)) ... s(1)"
-		nap "i1 = w(0) .. n(0) ... s(0)"
-		nap "j1 = w(1) .. n(1) ... s(1)"
-		nap "result = f64(p(i1,j1) + p(i0,j0) - p(i0,j1) - p(i1,j0)) / w(0) / w(1)"
-	    }
-	    default {
-		error "moving_average: Not implemented for rank > 2"
-	    }
-	}
-	nap "result"
     }
 
 
@@ -757,6 +694,62 @@ namespace eval ::NAP {
     }
 
 
+    # scattered2grid --
+    #
+    # Produce matrix grid from scattered x-y-z data.
+    #
+    # Method
+    # 1. (x,y) points are triangulated. 
+    # 2. Loop over triangles.
+    #      For each triangle define plane through its 3 vertices.
+    #      Define interpolated grid values within each triangle using this plane.
+    #
+    # Usage
+    #   scattered2grid(XYZ, YCV, XCV)
+    #       XYZ: matrix containing scattered data. Columns 0, 1, 2 contain x, y, z respectively.
+    #       YCV: y coordinate variable for grid
+    #       XCV: x coordinate variable for grid
+
+    proc scattered2grid {
+	xyz
+	ycv
+	xcv
+    } {
+	set vars {xyz ycv xcv}
+	set dataType f32
+	foreach var $vars {
+	    set dt [[set $var] datatype]
+	    if {[lsearch {f64 i32 u32} $dt] >= 0} {
+		set dataType f64
+	    }
+	}
+	foreach var $vars {
+	    nap "$var = ${dataType}($var)"
+	}
+	nap "nx = nels(xcv)"
+	nap "ny = nels(ycv)"
+	nap "s = ny // nx"; # shape of result
+	nap "x = reshape(xcv, s)"
+	nap "y = reshape(nx # ycv, s)"
+	nap "result = reshape(dataType(_), s)"
+	$result set dim y x
+	$result set coord ycv xcv
+	nap "A = reshape(dataType(1), {3 3})"; # Use for LHS of 3 linear equations
+	nap "triangles = triangulate(xyz)"
+	set nt [[nap "(shape triangles)(0)"]]; # no. triangles
+	for {set i 0} {$i < $nt} {incr i} {
+	    nap "j = triangles(i,)"
+	    nap "xy = xyz(j, {0 1})"
+	    $A set value xy ",{1 2}"
+	    nap "abc = solve_linear(A, xyz(j,2))"
+	    nap "z = abc(0) + abc(1) * x + abc(2) * y"
+	    nap "ip = inPolygon(x, y, xy)"
+	    nap "result = ip < 0 ? result : z"
+	}
+	nap "result"
+    }
+
+
     # range --
     #
     # Find min & max of any NAO.  Result is 2-element vector containing min & max.
@@ -800,6 +793,21 @@ namespace eval ::NAP {
     }
 
 
+    # sum_elements --
+    #
+    # Sum of elements of x
+    # i.e. scalar value defined by "sum(reshape(x))"
+
+    proc sum_elements {
+	x
+    } {
+	while {[$x rank] > 0} {
+	    nap "x = sum x"
+	}
+	nap "x"
+    }
+
+
     # tail --
     #
     # If n >= 0 then result is final n elements of x, cycling if n > nels(x)
@@ -811,19 +819,6 @@ namespace eval ::NAP {
     } {
 	nap "n = n < 0 ? n % nels(x) : n"
 	nap "x((-n) .. -1)"
-    }
-
-
-    # zone_wt --
-    #
-    # calculate normalised (so sum of weights is 1) zonal weights from latitudes
-
-    proc zone_wt latitude {
-	nap "s = sin(latitude / 180p-1)"
-	nap "n = nels(s)"
-	nap "mid = s(0 .. (n-2)) + s(1 .. (n-1))"
-        nap "c = 2.0 * sign(latitude(1) - latitude(0))"
-	nap "0.25 * abs((mid // c) - (-c // mid))"
     }
 
 

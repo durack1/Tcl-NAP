@@ -4,7 +4,7 @@
 #
 # Based on Brent Welch's 3rd edition CD Example 39-4
 # Modified by Harvey Davies, CSIRO.
-# $Id: select_font.tcl,v 1.3 2003/09/09 05:32:14 dav480 Exp $
+# $Id: select_font.tcl,v 1.4 2004/10/21 00:20:04 dav480 Exp $
 
 proc select_font {
     parent
@@ -14,7 +14,7 @@ proc select_font {
     upvar $varname f
     catch {font delete old_fontsel}
     eval font create old_fontsel [font actual $f]
-    set top [create_window tmp $parent "" $label]
+    set top [create_window tmp $parent NW $label]
     FontReset
     Font_Select $top
     destroy $top

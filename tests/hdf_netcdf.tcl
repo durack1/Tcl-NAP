@@ -5,7 +5,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: hdf_netcdf.tcl,v 1.15 2003/03/13 03:08:25 dav480 Exp $
+# $Id: hdf_netcdf.tcl,v 1.19 2004/10/25 04:10:50 dav480 Exp $
 
 switch $hdf_nc {
     hdf		{set ext hdf; set ishdf 1}
@@ -204,7 +204,7 @@ Test $hdf_nc-4.1 "OOC $hdf_nc write" {
 
 Test $hdf_nc-4.2 "check input from nap_get $hdf_nc" {
     $in a -c -1
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 20     Name: y         Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 10     Name: x         Coordinate-variable: [$in coo 1]
 Value:
@@ -251,7 +251,7 @@ Test $hdf_nc-5.1 "ragged array" {
 
 Test $hdf_nc-5.2 "check in" {
     $in all
-} "$in  f64  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f64  MissingValue: NaN  References: 1
 Dimension 0   Size: 5      Name: i         Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 5      Name: j         Coordinate-variable: [$in coo 1]
 Value:
@@ -278,7 +278,7 @@ Test $hdf_nc-6.1 "OOC $hdf_nc -datatype" {
 
 Test $hdf_nc-6.2 "check in" {
     $in all
-} "$in  f64  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f64  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: i         Coordinate-variable: (NULL)
 Value:
 3 4 5 6"
@@ -296,7 +296,7 @@ Test $hdf_nc-7.1 "OOC $hdf_nc -datatype -scale" {
 
 Test $hdf_nc-7.2 "check in" {
     $in all
-}        "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+}        "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 2      Name: row       Coordinate-variable: (NULL)
 Dimension 1   Size: 2      Name: col       Coordinate-variable: (NULL)
 Value:
@@ -316,7 +316,7 @@ Test $hdf_nc-8.1 "OOC $hdf_nc -datatype -offset" {
 
 Test $hdf_nc-8.2 "check in" {
     $in all
-} "$in  i16  MissingValue: -32768  References: 1  Unit: (NULL)
+} "$in  i16  MissingValue: -32768  References: 1
 Dimension 0   Size: 4      Name: ii        Coordinate-variable: (NULL)
 Value:
 903 904 905 906"
@@ -342,7 +342,7 @@ Test $hdf_nc-9.3 "check cv1" {
 
 Test $hdf_nc-9.4 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 4      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -351,8 +351,40 @@ Value:
         _         _         _         _
         _         _         _         _"
 
-unset in
-put_info "after $hdf_nc-9.4 19"
+unset in 
+put_info "before $hdf_nc-10.1 19"
+
+Test $hdf_nc-10.1 "OOC $hdf_nc -coord" {
+    file delete v.$ext
+    [nap 3] $hdf_nc v.$ext v -coo "{2 4 6}" -index -1
+    nap "in = [nap_get $hdf_nc v.$ext v]"
+    $in
+} {_ _ 3}
+
+Test $hdf_nc-10.2 "OOC $hdf_nc check cv" {
+    [$in coo]
+} {2 4 6}
+
+Test $hdf_nc-10.3 "OOC $hdf_nc -coord" {
+    file delete v.$ext
+    nap "x = {2 4 6}"
+    $x set dim x
+    [nap 3] $hdf_nc v.$ext v -coo x -index -1
+    nap "in = [nap_get $hdf_nc v.$ext v]"
+    $in
+} {_ _ 3}
+
+Test $hdf_nc-10.4 "OOC $hdf_nc check cv" {
+    [$in coo]
+} {2 4 6}
+
+Test $hdf_nc-10.5 "OOC $hdf_nc check dim name" {
+    $in dim
+} x
+
+unset in x
+file delete v.$ext
+put_info "after $hdf_nc-10.2 19"
 
 Test $hdf_nc-11.1 "OOC $hdf_nc use cv" {
     $m set coo "{9 1}" "{0 -2}"
@@ -363,7 +395,7 @@ Test $hdf_nc-11.1 "OOC $hdf_nc use cv" {
 
 Test $hdf_nc-11.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 4      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -383,7 +415,7 @@ Test $hdf_nc-12.1 "OOC $hdf_nc -subscript" {
 
 Test $hdf_nc-12.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 4      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -400,7 +432,7 @@ Test $hdf_nc-13.1 "OOC $hdf_nc -subscript. put scalar" {
 
 Test $hdf_nc-13.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 4      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -420,7 +452,7 @@ Test $hdf_nc-14.1 "OOC $hdf_nc -subscript. put scalar" {
 
 Test $hdf_nc-14.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 4      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -439,7 +471,7 @@ Test $hdf_nc-15.1 "nap_get $hdf_nc with subscript" {
 
 Test $hdf_nc-15.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 2      Name: Col       Coordinate-variable: [$in coo]
 Value:
 -8.96e+09 -1.04e+09"
@@ -458,7 +490,7 @@ Test $hdf_nc-16.1 "nap_get $hdf_nc with subscript" {
 
 Test $hdf_nc-16.2 "check in" {
     $in all
-} "$in  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f32  MissingValue: NaN  References: 1
 Dimension 0   Size: 4      Name: Row       Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 3      Name: Col       Coordinate-variable: [$in coo 1]
 Value:
@@ -488,7 +520,7 @@ Test $hdf_nc-17.1 "scaled ragged array" {
 
 Test $hdf_nc-17.2 "check in" {
     $in all -format "%0.2f"
-} "$in  f64  MissingValue: NaN  References: 1  Unit: (NULL)
+} "$in  f64  MissingValue: NaN  References: 1
 Dimension 0   Size: 5      Name: i         Coordinate-variable: [$in coo 0]
 Dimension 1   Size: 5      Name: j         Coordinate-variable: [$in coo 1]
 Value:
@@ -583,4 +615,21 @@ Test $hdf_nc-18.10 {check cv 0} {[$in coo 0]} {2 4 5}
 Test $hdf_nc-18.11 {check cv 1} {[$in coo 1]} {1 2 3}
 
 unset in mat
+put_info "before $hdf_nc-19.1 12"
 file delete unlimited.$ext
+
+Test $hdf_nc-19.1 "error handling" {
+    nap "v = {-1 4 2}"
+    file delete e.$ext
+    catch {$v $hdf_nc e.$ext v:a}
+} {1}
+
+Test $hdf_nc-19.2 "continue after error" {
+    $v $hdf_nc e.$ext v
+    nap "in = [nap_get $hdf_nc e.$ext v]"
+    file delete e.$ext
+    $in
+} {-1 4 2}
+
+unset in v
+put_info "after $hdf_nc-19.2 12"

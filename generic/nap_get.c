@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.21 2003/04/15 02:18:43 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.22 2004/05/14 08:01:07 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -168,7 +168,7 @@ Nap_GetHDF_metaVar(
 	break;
     case 5: /* -shape */
 	for (i = 0; i < rank; i++) {
-	    status = sprintf(s, "%d", shape[i]);
+	    status = sprintf(s, "%d", (int) shape[i]);
 	    CHECK2(status > 0, TEXT0 "Error calling sprintf");
 	    status = Nap_AppendWords(nap_cd, s);
 	    CHECK(status == 0);
@@ -434,7 +434,7 @@ Nap_GetNetcdf_metaVar(
 	break;
     case 5: /* -shape */
 	for (i = 0; i < rank; i++) {
-	    status = sprintf(s, "%d", shape[i]);
+	    status = sprintf(s, "%d", (int) shape[i]);
 	    CHECK2(status > 0, TEXT0 "Error calling sprintf");
 	    status = Nap_AppendWords(nap_cd, s);
 	    CHECK(status == 0);

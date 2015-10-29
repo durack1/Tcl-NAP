@@ -1,8 +1,0 @@
-netcdf u {
-dimensions:
-	time = UNLIMITED ;
-variables:
-	float time(time) ;
-data:
- time = 2, 4;
-}

@@ -1,0 +1,137 @@
+<!-- $Id: hdf.html,v 1.3 2004/12/17 08:03:11 dav480 Exp $ -->
+<html>
+
+<head> <title>
+HDF/netCDF Browser
+</title> </head>
+
+<body>
+
+<h2> <center>
+HDF/netCDF Browser
+</center> </h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+    <li><a href="#Introduction">Introduction</a>
+    <li><a href="#Instructions">Instructions</a>
+</ol>
+
+<h3><a name=Introduction>Introduction</h3>
+
+The HDF/netCDF browser is a powerful tool for viewing <em>HDF</em> and <em>netCDF</em>
+files and selecting data from them for further processing.
+<em>HDF</em> and <em>netCDF</em>
+are two similar common file formats used for data in the form of
+arrays and grids, especially in the earth sciences such as Meteorology and Oceanography.
+
+<p>
+The term <em>variable/SDS</em> is used below.  This means 
+<em>variable</em> for netCDF and
+<em>SDS</em> for HDF.
+
+<p>
+The HDF/netCDF browser is defined by the file <code>hdf.tcl</code>.
+
+<h3><a name=Instructions>Instructions</h3>
+
+<ol>
+
+    <li> Use the
+	<a href="choose_file.html"><code>choose_file</code></a>
+	GUI to open an input file.
+	Instructions can be displayed by pressing this GUI's own <code>help</code> button.
+	Opening the file should result in the display of a <em>file structure tree</em>.
+
+    <li> Use this tree as follows to select either a variable/SDS or an attribute. 
+	(The default selection is a variable/SDS with the maximum number of elements.)
+	<ul>
+	    <li> Click on a variable/SDS to select it and display the spatial sampling widget. 
+	    <li> Click on a '<code>+</code>' to display attribute names. 
+	    <li> Click on an attribute select it and display its value. 
+	</ul>
+
+    <li> The spatial sampling widget allows you to select part of a variable/SDS. 
+	(The entire variable/SDS is selected by default.) 
+
+	<br>
+	Each dimension is represented by a row containing one or two lines. 
+	The first line represents subscript values. 
+	If a coordinate variable exists then it is represented on a second line. 
+
+	<br>
+	Change a subscript using any of the following: 
+	<ul>
+	    <li> Drag the slider along the scale widget.
+		This is convenient for coarse adjustment. 
+	    <li> Click on the spinbox arrows or scale troughs. 
+	    <li> Press the keyboard up/down keys. 
+	    <li> Use the keyboard to enter numbers. 
+		Fractional subscript values can be used to produce magnification.
+	    <li> On an image, drag the mouse to define a bounding box.
+	    <li> Press the <code>Dimension</code> button to restore all defaults.
+	    <li> Press the <code>From</code>, <code>To</code> or <code>Step</code>
+		column heading button to restore defaults in a column.
+	    <li> Press the row heading buttons to toggle a row between defaults 
+		and saved values.
+	</ul>
+
+	The values selected along a dimension are defined as follows: 
+	<ul>
+	    <li> If <em>step</em> > 0 then <em>from</em>, <em>to</em>
+		and <em>step</em> define an arithmetic progression. 
+	    <li> If <em>step</em> = 0 and expression is blank then use single
+		value <em>from</em>. 
+	    <li> If <em>step</em> = 0 and expression is not blank then use this expression. 
+	</ul>
+
+    <li> The following buttons along the bottom are used to select an action:
+	    <br>
+	    <code>Range</code>:
+	    Display minimum and maximum value. 
+	    <br>
+	    <code>Text</code>:
+	    Display start of data as text. 
+	    <br>
+	    <code>Graph</code>:
+	    Display data as XY graph(s). 
+	    <br>
+	    <code>Image</code>:
+	    Display data as image(s). 
+	    <br>
+	    <code>Animate</code>:
+	    Animate window-sequence produced by <code>Graph</code> or <code>Image</code>. 
+	    <br>
+	    <code>NAO</code>:
+	    Create Numeric Array Object. 
+	    <br>
+	    <code>Re-read</code>:
+	    Force a read (e.g. after rewriting the file).  
+
+	<p>
+	Select <code>Raw</code> mode if you want the following attributes to be ignored: 
+	<br>
+	<code>scale_factor, add_offset, valid_min, valid_max, valid_range</code>.
+
+</ol>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: hdf.html,v 1.3 2004/12/17 08:03:11 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

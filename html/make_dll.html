@@ -1,4 +1,4 @@
-<!-- $Id: make_dll.html,v 1.2 2003/03/17 05:12:27 dav480 Exp $ -->
+<!-- $Id: make_dll.html,v 1.4 2004/11/12 12:37:22 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -25,6 +25,11 @@ Interfacing NAP to a DLL based on C or Fortran Code
 	<var>argDec</var>
 	&hellip;
 	</a>
+
+	    <ul>
+		<li> <a href="#C_example">C Example</a>
+		<li> <a href="#f90_example">Fortran 90 Example</a>
+	    </ul>
 
     <li><a href="#make_dll_i">
 	<code>make_dll_i</code>
@@ -93,8 +98,11 @@ Each argument-declaration <var>argDec</var> is a list with the form
     (default: <var>newCommand</var><code>_i.c</code>)
 <br> <code>-version</code> <n.m>: Version number (default: <code>1.0</code>)
 
-<p>
-The following example (under Linux) defines a new NAP function <code>partialProd</code> 
+<h4>
+<a name=C_example>C Example
+</h4>
+
+The following example (under SunOS 5.8) defines a new NAP function <code>partialProd</code> 
 which calculates partial-products.
 This is analogous to the standard nap function <code>psum</code> which calculates partial sums.
 The new function is based on the following C file <code>pprod.c</code>:
@@ -112,20 +120,24 @@ void pprod(int *n, float *x, float *result) {
 <pre>
 % exec cc -c -o pprod.o pprod.c
 % make_dll pprod {n i32 in} {x f32} {y f32 inout}
-cc -I/home/dav480/tcl/include -c pprod_i.c
-ld -shared -o libpprod.so pprod_i.o pprod.o  
-% load ./libpprod.so
+cc -I/sol/home/dav480/tcl/include -c pprod_i.c
+ld -G -o libpprod.so pprod_i.o pprod.o  
+% load ./libpprod.so                             
 % proc partialProd x {
-    set result [nap "reshape(0f, shape(x))"]
+    nap "result = reshape(f32(_), shape(x))"
     pprod  "nels(x)" x result
-    return $result
+    nap "result"
 }
 % [nap "partialProd({2 1.5 3 0.5})"]
 2 3 9 4.5
 </pre>
 
-<p>
-You can do the same thing in fortran 90 using the following source code:
+<h4>
+<a name=f90_example>Fortran 90 Example
+</h4>
+
+The following fortran 90 example does the same thing as the above C example.
+The f90 source code in the file <code>pprod.f90</code> is:
 
 <pre>
 subroutine pprod(n, x, result)
@@ -143,24 +155,19 @@ end subroutine pprod
 </pre>
 
 <p>
-The following log was produced using the Linux Lahey f95 compiler.
-(Note that the entry point is <code>pprod_</code>)
+The following log was produced using the SunOS 5.8 f95 compiler.
+(Note that the entry point is "<code>pprod_</code>".)
 
 <pre>
-% exec lf95 -c pprod.f90
-Compiling file pprod.f90.
-Compiling program unit pprod at line 1:
-/home/dav480/tmp/asm03529aaa.s: Assembler messages:
-/home/dav480/tmp/asm03529aaa.s:86: Warning: translating to `fstp %st'
-/home/dav480/tmp/asm03529aaa.s:90: Warning: translating to `fstp %st'
+% exec f95 -c pprod.f90
 % make_dll -entry pprod_ pprod {n i32 in} {x f32} {y f32 inout}
-cc -I/home/dav480/tcl/include -c pprod_i.c
-ld -shared -o libpprod.so pprod_i.o pprod.o  
+cc -I/sol/home/dav480/tcl/include -c pprod_i.c
+ld -G -o libpprod.so pprod_i.o pprod.o  
 % load ./libpprod.so
 % proc partialProd x {
-    set result [nap "reshape(0f, shape(x))"]
+    nap "result = reshape(f32(_), shape(x))"
     pprod  "nels(x)" x result
-    return $result
+    nap "result"
 }
 % [nap "partialProd({2 1.5 3 0.5})"]
 2 3 9 4.5
@@ -199,7 +206,7 @@ The arguments are similar to <code>make_dll</code>, except that the only options
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: make_dll.html,v 1.2 2003/03/17 05:12:27 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: make_dll.html,v 1.4 2004/11/12 12:37:22 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>
