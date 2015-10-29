@@ -4,13 +4,16 @@
 #
 # Copyright (c) 2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: geog.test,v 1.7 2005/10/20 05:24:56 dav480 Exp $
+# $Id: geog.test,v 1.8 2007/11/10 04:28:32 dav480 Exp $
 
 proc put_info text {
     # puts "${text}: [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
 }
 
 source $env(LIBRARY_DIR)/geog.tcl
+source $env(LIBRARY_DIR)/gshhs.tcl
+source $env(LIBRARY_DIR)/proj4.tcl
+namespace import -force ::NAP::*
 
 Test geog-1.1 {put_text_surfer} {
     nap "z = {
@@ -148,5 +151,23 @@ Test geog-8.2 {fraction_land} {
            *         **************  
    ********* * ********************  
 *************************************}
+
+Test geog-9.1 {dmp_gshhs} {
+    dmp_gshhs 1 2 dmp_gshhs.tmp
+    gets_file dmp_gshhs.tmp} "GSHHS File $env(GSHHS_DATA_DIR)/gshhs_c.b
+
+record 0, 1240 points, level=1, area=79793839.9 km^2
+west=-17.533778 east=190.326000 south=-34.830444 north=77.716250
+start:
+68.993778
+180.000000
+end:
+68.993778
+180.000000
+1 records read
+"
+file delete dmp_gshhs.tmp
+
+Test geog-9.2 {list_gshhs_resolutions} {list_gshhs_resolutions} {1 5 25}
 
 unset in f expect

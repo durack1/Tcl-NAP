@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: plot_nao_procs.tcl,v 1.137 2006/09/26 06:29:23 dav480 Exp $
+# $Id: plot_nao_procs.tcl,v 1.151 2007/11/08 10:09:44 dav480 Exp $
 #
 # Produce xy-graph, barchart (histogram), z-plot (image) or tiled-plot (multiple images).
 
@@ -73,6 +73,8 @@ namespace eval Plot_nao {
 	    variable font_title    "courier 16";
 	    variable gap_height "";	# height (pixels) of horizontal white space between tiles
 	    variable gap_width  "";	# width (pixels) of vertical white space
+	    variable gshhs_min_area -1;	# Exclude polygons with area (square km) < this
+	    variable gshhs_resolution -1; # Required resolution of GSHHS shoreline (km)
 	    variable histograms "";	# List of histogram IDs (so can destroy at end)
 	    variable image_format gif;	# format of output image file
 	    variable image_nao "";	# Image NAO after any inversion
@@ -109,6 +111,8 @@ namespace eval Plot_nao {
 	    variable percentileTo;	# Used to define scalingToZ
 	    variable plot_type "";	# "bar", "tile", "xy" or "z"
 	    variable print_command "";	# 
+	    variable projection "";	# Map projection name for PROJ.4
+	    variable proj4spec "";	# PROJ.4 specification
 	    variable save "";		# Used to save crosshair data
 	    variable save_nao_ids "";	# List of nao ids to be saved until end.
 	    variable symbols "";	# Symbol drawn at each point of xy-graph
@@ -123,6 +127,7 @@ namespace eval Plot_nao {
 	    variable scalingToU;	# Used to scale z plots (NAO)
 	    variable title "";		# Main title
 	    variable upper 255;		# Upper limit of mapping
+	    variable use_gshhs 0;	# 0 = Use nap_land_flag, 1 = use gshhs
 	    variable want_equalise 0;	# 1 = equalise histogram
 	    variable want_menu_bar 1;	# Display menu bar at top?
 	    variable want_scaling_widget 1; # Display scaling widget?
@@ -159,8 +164,9 @@ namespace eval Plot_nao {
 	set range_nao ""
 	set rank_nao 3
 	set type "";			# "bar", "tile", "xy" or "z" (copy to plot_type)
-	set want_yflip geog; # Reverse row dimension? 0 = no, 1 = yes, ascending = "if y ascending",
-			    # geog = "if ascending & (dimname = latitude or unit = degrees_north")
+	set want_yflip geog; # Reverse row dimension? 0 = no, 1 = yes,
+		    # ascending = "if y ascending",
+		    # geog = "if ascending & (dimname = latitude|nothing or unit = degrees_north")
 	set width "";			# width (in pixels) of image (can be "min max" for image)
 	set dim_names [$nao dim]
 	set title [$nao label]
@@ -212,6 +218,8 @@ namespace eval Plot_nao {
 		{-gap_height {set gap_height $option_value}}
 		{-gap_width  {set gap_width  $option_value}}
 		{-geometry {set geometry $option_value}}
+		{-gshhs_min_area {nap "gshhs_min_area = [uplevel 3 "nap \"$option_value\""]"}}
+		{-gshhs_resolution {set gshhs_resolution $option_value}}
 		{-height {set height $option_value}}
 		{-key {set key_width $option_value}}
 		{-labels {set labels $option_value}}
@@ -226,6 +234,7 @@ namespace eval Plot_nao {
 		{-parent {set parent $option_value}}
 		{-print {set auto_print $option_value}}
 		{-printer {set ::Print_gui::printer_name $option_value}}
+		{-proj4spec {set proj4spec $option_value}}
 		{-range {nap "range_nao = [uplevel 3 "nap \"$option_value\""]"}}
 		{-rank  {nap "rank_nao  = [uplevel 3 "nap \"$option_value\""]"}}
 		{-scaling {set want_scaling_widget $option_value}}
@@ -233,6 +242,7 @@ namespace eval Plot_nao {
 		{-symbols {set symbols $option_value}}
 		{-title {set title $option_value}}
 		{-type {set type $option_value}}
+		{-use_gshhs {set use_gshhs $option_value}}
 		{-width {set width $option_value}}
 		{-xaxis {set want_x_axis $option_value}}
 		{-xflip {set xflip $option_value}}
@@ -491,6 +501,11 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::plot_type
 	set options_menu $parent.options_menu
 	menu $options_menu
+	$options_menu add checkbutton -label "automatic redraw?" \
+		-variable Plot_nao::${window_id}::auto_redraw
+	$options_menu add checkbutton -label "allow scrolling?" \
+		-variable Plot_nao::${window_id}::allow_scroll \
+		-command $cond_redraw_command
 	$options_menu add checkbutton -label "display menu-bar?" \
 		-variable Plot_nao::${window_id}::want_menu_bar \
 		-command [list Plot_nao::toggle_menu_bar $all $window_id]
@@ -499,11 +514,6 @@ namespace eval Plot_nao {
 		    -variable Plot_nao::${window_id}::want_scaling_widget \
 		    -command [list Plot_nao::toggle_scaling $all $window_id]
 	}
-	$options_menu add checkbutton -label "automatic redraw?" \
-		-variable Plot_nao::${window_id}::auto_redraw
-	$options_menu add checkbutton -label "allow scrolling?" \
-		-variable Plot_nao::${window_id}::allow_scroll \
-		-command $cond_redraw_command
 	if {[lsearch "tile z" $plot_type] >= 0} {
 	    $options_menu add checkbutton -label "discrete colors?" \
 		    -variable Plot_nao::${window_id}::discrete_colors \
@@ -514,26 +524,39 @@ namespace eval Plot_nao {
 	    $options_menu add checkbutton -label "flip upside down?" \
 		    -variable Plot_nao::${window_id}::yflip \
 		    -command $cond_redraw_command
+	    set command "[list Plot_nao::create_overlay_menu $all $options_menu \
+		    $window_id $cond_redraw_command $redraw_command $nao]; $cond_redraw_command"
+	    $options_menu add checkbutton -label "use GSHHS shorelines?" \
+		    -variable Plot_nao::${window_id}::use_gshhs \
+		    -command $command
 	}
 	$options_menu add separator
-	create_enter $all $window_id $options_menu $cond_redraw_command "main title" title
 	#
-	$options_menu add cascade -label "select fonts" -menu $options_menu.font
+	$options_menu add cascade -label "axes" -menu $options_menu.axis
+	create_axis_menu $all $options_menu $window_id $cond_redraw_command
+	#
+	$options_menu add cascade -label "fonts" -menu $options_menu.font
 	create_font_menu $all $options_menu $window_id $cond_redraw_command
 	#
+	$options_menu add cascade -label "size" -menu $options_menu.size
+	create_size_menu $all $options_menu $window_id $cond_redraw_command
+	#
+	create_enter $all $window_id $options_menu $cond_redraw_command "title" title
+	#
+	$options_menu add separator
 	if {[lsearch "tile z" $plot_type] >= 0} {
-	    $options_menu add cascade -label "define main palette" \
-		    -menu $options_menu.main_palette
-	    create_palette_menu main_palette $all $options_menu $window_id \
-		    $cond_redraw_command $redraw_command
-	    $options_menu add cascade -label "define overlay (eg coasts)" \
+	    $options_menu add cascade -label "map projection" \
+		    -menu $options_menu.projection
+	    create_projection_menu $all $options_menu $window_id $cond_redraw_command $nao
+	    $options_menu add cascade -label "overlay (eg coasts)" \
 		    -menu $options_menu.overlay
 	    create_overlay_menu $all $options_menu $window_id $cond_redraw_command \
 		    $redraw_command $nao
+	    $options_menu add cascade -label "palette" \
+		    -menu $options_menu.main_palette
+	    create_palette_menu main_palette $all $options_menu $window_id \
+		    $cond_redraw_command $redraw_command
 	}
-	#
-	$options_menu add cascade -label "adjust various sizes" -menu $options_menu.size
-	create_size_menu $all $options_menu $window_id $cond_redraw_command
 	#
 	switch $plot_type {
 	    bar {
@@ -549,9 +572,6 @@ namespace eval Plot_nao {
 		create_tile_menu $all $options_menu $window_id $cond_redraw_command
 	    }
 	}
-	#
-	$options_menu add cascade -label "configure axes" -menu $options_menu.axis
-	create_axis_menu $all $options_menu $window_id $cond_redraw_command
 	#
 	$options_menu add separator
 	#
@@ -589,11 +609,15 @@ namespace eval Plot_nao {
 	cond_redraw_command
 	label
 	var
+	{title ""}
     } {
+	if {$title eq ""} {
+	    set title $label
+	}
 	set v ::Plot_nao::${window_id}::$var
-	set command "set $v \[get_entry [list $label] -geometry NW -parent $all "
+	set command "set $v \[get_entry [list $title] -geometry NW -parent $all "
 	append command "-text \$$v\]; $cond_redraw_command"
-	$menu add command -label "define $label" -command $command
+	$menu add command -label $label -command $command
     }
 
 
@@ -895,17 +919,26 @@ namespace eval Plot_nao {
 	redraw_command
 	nao
     } {
+	global Plot_nao::${window_id}::use_gshhs
 	set m $parent.overlay
+	destroy $m
 	menu $m
 	$m add command -label "set overlay NAO coast values to 0" \
 		-command "set ::Plot_nao::${window_id}::overlay_option C; $cond_redraw_command"
-	#
-	$m add command -label "set overlay NAO land values to 2" \
-		-command "set ::Plot_nao::${window_id}::overlay_option L; $cond_redraw_command"
-	#
-	$m add command -label "set overlay NAO sea values to 4" \
-		-command "set ::Plot_nao::${window_id}::overlay_option S; $cond_redraw_command"
-	#
+	if {$use_gshhs} {
+	    create_enter $all $window_id $m $cond_redraw_command \
+		"minimum area of GSHHS polygons" gshhs_min_area \
+		"Enter up to 4 values ('-1' means 'automatic') to specify minimum area (km**2) of:\
+		\nland, lakes, islands in lakes, ponds in such islands"
+	    create_enter $all $window_id $m $cond_redraw_command \
+		"GSHHS resolution" gshhs_resolution \
+		"Enter resolution in km ('-1' means 'automatic')"
+	} else {
+	    $m add command -label "set overlay NAO land values to 2" \
+		    -command "set ::Plot_nao::${window_id}::overlay_option L; $cond_redraw_command"
+	    $m add command -label "set overlay NAO sea values to 4" \
+		    -command "set ::Plot_nao::${window_id}::overlay_option S; $cond_redraw_command"
+	}
 	$m add command -label "set overlay NAO using NAP expression" \
 		-command "::Plot_nao::overlay_nap $all $window_id $nao; $cond_redraw_command"
 	#
@@ -916,6 +949,114 @@ namespace eval Plot_nao {
 	#
 	$m add cascade -label "define overlay palette" -menu $m.overlay_palette
 	create_palette_menu overlay_palette $all $m $window_id $cond_redraw_command $redraw_command
+    }
+
+
+    # select_utm_zone_ok --
+    # Procedure called by select_utm_zone ok button
+
+    proc select_utm_zone_ok {
+	window_id
+	cond_redraw_command
+	nao
+	win
+    } {
+	global ::Plot_nao::${window_id}::proj4spec
+	set zone [$win.spin set]
+	set proj4spec "proj=utm zone=$zone"
+	destroy $win
+	eval $cond_redraw_command
+    }
+
+
+    # select_utm_zone --
+
+    proc select_utm_zone {
+	all
+	window_id
+	cond_redraw_command
+	nao
+    } {
+	set win [create_window plot_nao_zone $all NW]
+	label $win.label -text "Select UTM zone"
+	spinbox $win.spin -from 1 -to 60 -state readonly -wrap 1
+	nap "longitude = coordinate_variable(nao, -1)"
+	nap "lon_mid = 0.5 * (longitude(0) + longitude(-1))"
+	set zone [[nap "<((lon_mid + 180.0) % 360.0 / 6.0) + 1"]]
+	$win.spin set $zone
+	set command [list Plot_nao::select_utm_zone_ok $window_id $cond_redraw_command $nao $win]
+	button $win.ok -text OK -command $command
+	pack $win.label $win.spin $win.ok
+    }
+
+
+    # set_proj4spec --
+    # Used by create_projection_menu
+
+    proc set_proj4spec {
+	window_id
+	cond_redraw_command
+	nao
+    } {
+	global ::Plot_nao::${window_id}::projection
+	global ::Plot_nao::${window_id}::proj4spec
+	nap "longitude = coordinate_variable(nao, -1)"
+	nap "lon_mid = longitude(0) + 180"
+	if {$projection eq "eqc"} {
+	    set proj4spec ""
+	} else {
+	    set proj4spec "proj=$projection lon_0=[$lon_mid]"
+	}
+	eval $cond_redraw_command
+    }
+
+
+    # create_projection_menu --
+
+    proc create_projection_menu {
+	all
+	parent
+	window_id
+	cond_redraw_command
+	nao
+    } {
+	set m $parent.projection
+	menu $m
+	set var ::Plot_nao::${window_id}::projection
+	set $var [proj4parameter $window_id proj]
+	if {[set $var] eq ""} {
+	    set $var eqc
+	}
+	set command [list Plot_nao::set_proj4spec $window_id $cond_redraw_command $nao]
+	$m add radiobutton -variable $var -command $command \
+		-value eqc -label "Equidistant Cylindrical"
+	foreach lat_ts {0 30 45} {
+	    $m add radiobutton -variable $var -command $command \
+		    -value "cea lat_ts=$lat_ts" \
+		    -label "Lambert Cylindrical Equal-Area with true scale at latitude $lat_ts"
+	}
+	$m add radiobutton -variable $var -command $command \
+		-value "laea lat_0=90" -label "Lambert Azimuthal Equal-Area North"
+	$m add radiobutton -variable $var -command $command \
+		-value "laea lat_0=-90" -label "Lambert Azimuthal Equal-Area South"
+	$m add radiobutton -variable $var -command $command \
+		-value merc -label "Mercator"
+	$m add radiobutton -variable $var -command $command \
+		-value moll -label "Mollweide"
+	$m add radiobutton -variable $var -command $command \
+		-value ortho -label "Orthographic"
+	$m add radiobutton -variable $var -command $command \
+		-value robin -label "Robinson"
+	$m add radiobutton -variable $var -command $command \
+		-value "sinu" -label "Sinusoidal Equal-Area"
+	$m add radiobutton -variable $var -command $command \
+		-value "ups" -label "Universal Polar Stereographic (UPS) North"
+	$m add radiobutton -variable $var -command $command \
+		-value "ups south" -label "Universal Polar Stereographic (UPS) South"
+	set command [list Plot_nao::select_utm_zone $all $window_id $cond_redraw_command $nao]
+	$m add radiobutton -variable $var -value utm \
+		-label "Universal Transverse Mercator (UTM)" -command $command
+	create_enter $all $window_id $m $cond_redraw_command other proj4spec "PROJ.4 specification" 
     }
 
 
@@ -1055,24 +1196,107 @@ namespace eval Plot_nao {
 
     proc overlay_land_flag {
 	window_id
-	func
+	f
 	value
 	nao
+	{latitude ""}
+	{longitude ""}
     } {
+	global Plot_nao::${window_id}::use_gshhs
+	global Plot_nao::${window_id}::gshhs_min_area
+	global Plot_nao::${window_id}::gshhs_resolution
 	global Plot_nao::${window_id}::overlay_nao
-	nap "longitude = coordinate_variable(nao, -1)"
-	nap "latitude  = coordinate_variable(nao, -2)"
+	global Plot_nao::${window_id}::proj4spec
 	if {$overlay_nao == ""  ||
 		[[nap "! prod((shape overlay_nao){-2 -1} == (shape nao){-2 -1})"]]} {
 	    nap "overlay_nao = 255u8"
 	    $overlay_nao set missing 255
 	}
-	if [catch "nap overlay_nao = ${func}(latitude,longitude)?u8(value):overlay_nao" result] {
-	    puts "overlay_land_flag: Error defining overlay"
-	    nap "overlay_nao = reshape(255u8, nels(latitude) // nels(longitude))"
+	nap "area = {[[nap "reshape{$gshhs_min_area}"] value]}"
+	switch [projection_type $window_id] {
+	    0 -
+	    1 {
+		nap "longitude = coordinate_variable(nao, -1)"
+		nap "latitude  = coordinate_variable(nao, -2)"
+		if {$use_gshhs} {
+		    nap "tmp = reshape(255f32, nels(latitude) // nels(longitude))"
+		    $tmp set coo latitude longitude
+		    nap "o = u8(^proj4gshhs(tmp, '$proj4spec', 0, 0, value, area,
+			    gshhs_resolution))"
+		} else {
+		    if [catch "nap o = ${f}(latitude, longitude) ? u8(value) : overlay_nao" r] {
+			handle_error "overlay_land_flag: Error defining overlay"
+			nap "o = reshape(255u8, nels(latitude) // nels(longitude))"
+		    }
+		}
+		nap "overlay_nao = o"
+		$overlay_nao set coo latitude longitude
+	    }
+	    2 {
+		if {$use_gshhs} {
+		    if {$latitude ne ""  &&  $longitude ne ""} {
+			nap "tmp = reshape(255f32, nels(latitude) // nels(longitude))"
+			$tmp set coo latitude longitude
+			$tmp set missing 255f32
+			nap "o = proj4gshhs(tmp, '$proj4spec', 0, 0, value, area, gshhs_resolution)"
+			nap "overlay_nao = u8(^o)"
+		    } else {
+			handle_error "overlay_land_flag: latitude or longitude not defined"
+		    }
+		} else {
+		    nap "easting  = coordinate_variable(nao, -1)"
+		    nap "northing = coordinate_variable(nao, -2)"
+		    nap "ymat = reshape(nels(easting) # northing, nels(northing) // nels(easting))"
+		    nap "latlon = cart_proj_inv('$proj4spec', easting, ymat)"
+		    nap "latitude  = latlon(,,0)"
+		    nap "longitude = latlon(,,1)"
+		    if [catch "nap o = ${f}(latitude, longitude) ? u8(value) : overlay_nao" r] {
+			handle_error "overlay_land_flag: Error defining overlay"
+			nap "o  = reshape(255u8, nels(northing) // nels(easting))"
+		    }
+		    nap "overlay_nao = o"
+		    $overlay_nao set coo northing easting
+		}
+	    }
 	}
 	$overlay_nao set missing 255
-	$overlay_nao set coo latitude longitude
+    }
+
+
+    # proj4parameter --
+    # Extract value of 1st parameter 'name' from variable 'proj4spec'
+    # If 'name' exists without '=' then return "yes"
+    # If no 'name' exists then return ""
+
+    proc proj4parameter {
+	window_id
+	name
+    } {
+	global ::Plot_nao::${window_id}::proj4spec
+	set exp "^$name="
+	foreach s $proj4spec {
+	    if {[regexp $exp $s]} {
+		return [regsub $exp $s {}]
+	    } elseif {$s eq $name} {
+		return yes
+	    }
+	}
+	return
+    }
+
+
+    # projection_type --
+    #
+    # Return 0 if none, 1 if simple cylindrical projection, 2 if other projection
+
+    proc projection_type {
+	window_id
+    } {
+	switch -regexp [proj4parameter $window_id proj] {
+	    {^$}		{return 0}
+	    {cea.*|eqc|merc}	{return 1}
+	    default		{return 2}
+	}
     }
 
 
@@ -1080,7 +1304,7 @@ namespace eval Plot_nao {
 
     proc display_help {
     } {
-	set file [file dirname $::tcl_library]/nap$::nap_version/help_plot_nao.pdf
+	set file [file join $::nap_library help_plot_nao.pdf]
 	if {[file readable $file]} {
 	    auto_open $file
 	} else {
@@ -1271,21 +1495,24 @@ namespace eval Plot_nao {
     proc set_overlay {
 	window_id
 	nao
+	{latitude ""}
+	{longitude ""}
 	{call_level #0}
     } {
 	global Plot_nao::${window_id}::overlay_nao
 	global Plot_nao::${window_id}::overlay_option
+	global Plot_nao::${window_id}::proj4spec
 	switch [string toupper [string index $overlay_option 0]] {
 	    N	{set overlay_nao ""}
-	    C	{overlay_land_flag $window_id isCoast 0 $nao}
-	    L	{overlay_land_flag $window_id is_land  2 $nao}
-	    S	{overlay_land_flag $window_id isSea 4 $nao}
+	    C	{overlay_land_flag $window_id isCoast 0 $nao $latitude $longitude}
+	    L	{overlay_land_flag $window_id is_land  2 $nao $latitude $longitude}
+	    S	{overlay_land_flag $window_id isSea 4 $nao $latitude $longitude}
 	    A	{
 		set overlay_nao ""
 		set unit_x [fix_unit [[nap "coordinate_variable(nao,-1)"] unit]]
 		set unit_y [fix_unit [[nap "coordinate_variable(nao,-2)"] unit]]
-		if {$unit_x eq "degrees_east"  &&  $unit_y eq "degrees_north"} {
-		    overlay_land_flag $window_id isCoast 0 $nao
+		if {$unit_x eq "degrees_east" && $unit_y eq "degrees_north" || $proj4spec ne ""} {
+		    overlay_land_flag $window_id isCoast 0 $nao $latitude $longitude
 		}
 	    }
 	    E	{
@@ -1314,6 +1541,8 @@ namespace eval Plot_nao {
 		    $overlay_nao draw col_row 0
 		}
 	    } else {
+		nap "cvx = coordinate_variable(overlay_nao,-1)"
+		nap "cvy = coordinate_variable(overlay_nao,-2)"
 		nap "overlay_nao = overlay_nao(@@$y,@@$x)"
 		nap "cvx = coordinate_variable(overlay_nao,-1)"
 		nap "cvy = coordinate_variable(overlay_nao,-2)"
@@ -2107,8 +2336,6 @@ namespace eval Plot_nao {
         global Plot_nao::${window_id}::new_width
         global Plot_nao::${window_id}::main_palette
         global Plot_nao::${window_id}::want_scaling_widget
-	global Plot_nao::${window_id}::xlabel
-	global Plot_nao::${window_id}::ylabel
 	if {[[nap "rank(nao) < 2  ||  rank(nao) > 3"]]} {
 	    handle_error "Illegal rank"
 	    return
@@ -2119,7 +2346,6 @@ namespace eval Plot_nao {
 	}
 	set new_width $width
 	set new_height $height
-	set_yflip $window_id $want_yflip $nao
 	set cvx [$nao coord -1]
 	set cvy [$nao coord -2]
 	set cv0 [$nao coord  0]
@@ -2135,7 +2361,8 @@ namespace eval Plot_nao {
 	    # Decrement when widget destroyed (in procedure "close_window")
 	Plot_nao::incrRefCount $window_id $nao
 	Plot_nao::incrRefCount $window_id $range_nao
-	set redraw_command [list Plot_nao::redraw_z $all $window_id $graph $nao $range_nao]
+	set redraw_command \
+		[list Plot_nao::redraw_z $all $window_id $graph $nao $range_nao $want_yflip]
 	create_main_menu $all $window_id $graph $redraw_command $nao
 	frame $all.scaling_range
 	if {$want_scaling_widget} {
@@ -2175,7 +2402,8 @@ namespace eval Plot_nao {
 	    }
 	    g {
 		set dimname [$nao dim -2]
-		if {$ascending  &&  ($dimname == "latitude"  ||  $unit == "degrees_north")} {
+		if {$ascending  && \
+			([regexp {latitude|northing} $dimname]  ||  $unit == "degrees_north")} {
 		    set yflip 1
 		} else {
 		    set yflip 0
@@ -2292,6 +2520,7 @@ namespace eval Plot_nao {
 	graph
 	nao
 	range_nao
+	want_yflip
 	{min_dim 360}
     } {
 	global Plot_nao::${window_id}::allow_scroll
@@ -2305,7 +2534,10 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::main_palette
 	global Plot_nao::${window_id}::new_height
 	global Plot_nao::${window_id}::new_width
+	global Plot_nao::${window_id}::proj4spec
 	global Plot_nao::${window_id}::title
+	global Plot_nao::${window_id}::want_x_axis
+	global Plot_nao::${window_id}::want_y_axis
 	global Plot_nao::${window_id}::xflip
 	global Plot_nao::${window_id}::xlabel
 	global Plot_nao::${window_id}::yflip
@@ -2315,8 +2547,55 @@ namespace eval Plot_nao {
 	if {$gap_width eq ""} {
 	    set gap_width 20
 	}
-	set nx [[nap "(shape nao)(-1)"]]
-	set ny [[nap "(shape nao)(-2)"]]
+	set comma(2) ""
+	set comma(3) ","
+	nap "latitude = coordinate_variable(nao, -2)"
+	nap "longitude = coordinate_variable(nao, -1)"
+	switch [proj4parameter $window_id proj] {
+	    ups {
+		if {[proj4parameter $window_id south] eq "yes"} {
+		    if {[[nap "max(latitude)"]] > 0} {
+			nap "nao = nao($comma($rank_nao) @@-90 .. @@0,)"
+		    }
+		} else {
+		    if {[[nap "min(latitude)"]] < 0} {
+			nap "nao = nao($comma($rank_nao) @@0 .. @@90,)"
+		    }
+		}
+	    }
+	    utm {
+		set zone [proj4parameter $window_id zone]
+		set lon0 [[nap "longitude(0)"]]
+		set lon1 [[nap "longitude(-1)"]]
+		set lon_min [[nap "lon0 >>> ((6 * zone + 162 - lon0) % 360.0 + lon0)"]]
+		set lon_max [[nap "lon1 <<< ((6 * zone + 192 - lon0) % 360.0 + lon0)"]]
+		if {$lon_min > $lon0  ||  $lon_max < $lon1} {
+		    nap "nao = nao($comma($rank_nao), @@lon_min .. @@lon_max)"
+		}
+	    }
+	}
+	nap "latitude = coordinate_variable(nao, -2)"
+	nap "longitude = coordinate_variable(nao, -1)"
+	if {[$latitude nels] < 2} {
+	    handle_error "Only [$latitude nels] latitudes!"
+	}
+	if {[$longitude nels] < 2} {
+	    handle_error "Only [$longitude nels] longitudes!"
+	}
+	switch [projection_type $window_id] {
+	    0	{nap "proj_nao = nao"}
+	    1	{nap "proj_nao = proj4gshhs(nao, '$proj4spec', 1, 0, {})"}
+	    2	{
+		    nap "proj_nao = proj4gshhs(nao, '$proj4spec', 0, 0, {})"
+		    set want_x_axis 0
+		    set want_y_axis 0
+		    set xlabel [$proj_nao dim -1]
+		    set ylabel [$proj_nao dim -2]
+		}
+	}
+	set_yflip $window_id $want_yflip $nao
+	set nx [[nap "(shape proj_nao)(-1)"]]
+	set ny [[nap "(shape proj_nao)(-2)"]]
 	set nxy [expr $nx > $ny ? $nx : $ny]; # greater of nx & ny
 	if {$nxy < $min_dim  &&  $new_width eq ""  &&  $new_height eq ""} {
 	    set magnification [expr round(($min_dim - 1.0) / ($nxy - 1.0))]
@@ -2341,6 +2620,12 @@ namespace eval Plot_nao {
 		set magnification [$magnification_x]
 	    }
 	    nap "nao = magnify_nearest(nao, (rank_nao-2) # 1 // magnification_y // magnification_x)"
+	    nap "latitude = coordinate_variable(nao, -2)"
+	    nap "longitude = coordinate_variable(nao, -1)"
+	    switch [projection_type $window_id] {
+		1	{nap "nao = proj4gshhs(nao, '$proj4spec', 1, 0, {})"}
+		2	{nap "nao = proj4gshhs(nao, '$proj4spec', 0, 0, {})"}
+	    }
 	    nap "cvx = coordinate_variable(nao, -1)"
 	    nap "cvy = coordinate_variable(nao, -2)"
 	    set new_width  [$cvx nels]
@@ -2354,27 +2639,25 @@ namespace eval Plot_nao {
 	if {$xflip || $yflip} {
 	    set reverse(0) ""
 	    set reverse(1) "-"
-	    set comma(2) ""
-	    set comma(3) ","
 	    nap "nao = nao($comma($rank_nao)$reverse($yflip),$reverse($xflip))"
 	}
 	set_scaling $window_id $nao $range_nao
 	if [[nap "rank_nao == 3  &&  (shape(nao))(0) > 3"]] {
 	    nap "nao = nao(0 .. 2, , )"
 	}
+	set linespace_standard [font metrics $font_standard -linespace]
+	set linespace_title    [font metrics $font_title    -linespace]
 	set width_title [font measure $font_title $title]
-	set linespace [font metrics $font_title -linespace]
-	set margin_top [expr $linespace * int(ceil(2 + double($width_title) / $new_width))]
-	set linespace [font metrics $font_standard -linespace]
-	set margin_bottom [expr 3 * $linespace + $major_tick_length]
 	set width_char [font measure $font_standard A]
-	set margin_left  [expr $linespace + $major_tick_length + 10 * $width_char]
-	set height_total [expr "$new_height + $margin_top + $margin_bottom"]
+	set margin_left  [expr $linespace_standard + $major_tick_length + 10 * $width_char]
 	set width_total  [expr "$new_width + $margin_left + $gap_width"]
 	set have_key [expr {$key_width ne ""  &&  $key_width > 0  &&  $rank_nao == 2}]
 	if {$have_key} {
 	    incr width_total [expr $key_width + $margin_left]
 	}
+	set margin_top [expr $linespace_title * int(ceil(2 + double($width_title) / $width_total))]
+	set margin_bottom [expr 3 * $linespace_standard + $major_tick_length]
+	set height_total [expr "$new_height + $margin_top + $margin_bottom"]
 	$graph delete all
 	set tmp [resize_canvas $all $window_id $width_total $height_total]
 	set new_width_total  [lindex $tmp 0]
@@ -2400,7 +2683,7 @@ namespace eval Plot_nao {
 	    set x [expr $margin_left + $new_width + $gap_width]
 	    draw_key $window_id $graph $x $margin_top $new_height
 	}
-	nao2image u $window_id $nao 1
+	nao2image u $window_id $nao 1 $latitude $longitude
 	set x [expr $width_total / 2] 
 	set y [expr $margin_top/2]
 	$graph create text $x $y -font $font_title -text $title -tags title -width $width_total
@@ -2445,15 +2728,15 @@ namespace eval Plot_nao {
         global Plot_nao::${window_id}::want_equalise
 	global Plot_nao::${window_id}::zlabels
 
-	if {$scalingFromZ(0) == ""} {
+	if {[string is double -strict $scalingFromZ(0)]} {
+	    set ymin $scalingFromZ(0)
+	} else {
 	    set ymin 0
-	} else {
-	    set ymin [string map {Inf 1nf32} $scalingFromZ(0)]
 	}
-	if {$scalingToZ(0) == ""} {
-	    set ymax 255
+	if {[string is double -strict $scalingToZ(0)]} {
+	    set ymax $scalingToZ(0)
 	} else {
-	    set ymax [string map {Inf 1nf32} $scalingToZ(0)]
+	    set ymax 0
 	}
 	if {$ymin == $ymax} {
 	    incr ymax
@@ -3588,6 +3871,8 @@ namespace eval Plot_nao {
 	window_id
 	nao
 	{allow_overlay 0}
+	{latitude ""}
+	{longitude ""}
     } {
         global Plot_nao::${window_id}::main_palette
         global Plot_nao::${window_id}::mapping
@@ -3632,7 +3917,7 @@ namespace eval Plot_nao {
 	    nap "u = (rgb_mat(,0))(u) /// (rgb_mat(,1))(u) // (rgb_mat(,2))(u)"
 	}
 	if {$allow_overlay} {
-	    set_overlay $window_id $nao
+	    set_overlay $window_id $nao $latitude $longitude
 	    if {$overlay_nao ne ""  &&  $overlay_palette ne ""} {
 		nap "ov_rgb_mat = palette3(overlay_palette)"
 		nap "ip = isPresent(overlay_nao)"

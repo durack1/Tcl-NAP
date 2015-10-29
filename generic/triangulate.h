@@ -4,10 +4,12 @@
  * Used by triangulate.c
  *
  * Modified for NAP by Harvey Davies, CSIRO Atmospheric Research in July 2004.
+ *
+ * $Id: triangulate.h,v 1.4 2006/11/15 06:34:17 dav480 Exp $
  */
 
 /*
-/*   Author: Geoff Leach, Department of Computer Science, RMIT.
+ *   Author: Geoff Leach, Department of Computer Science, RMIT.
  *   email: gl@cs.rmit.edu.au
  *
  *   Date: 6/10/93

@@ -7,7 +7,7 @@
 #
 # Harvey Davies, CSIRO Atmospheric Research
 #
-# $Id: choose_file.tcl,v 1.13 2006/06/27 05:26:31 dav480 Exp $
+# $Id: choose_file.tcl,v 1.14 2007/03/30 09:29:16 dav480 Exp $
 
 namespace eval ChooseFile {
     variable count 0;		# Increment each time choose_file_gui is called 
@@ -238,7 +238,7 @@ namespace eval ChooseFile {
 
     proc display_help {
     } {
-	set file [file dirname $::tcl_library]/nap$::nap_version/help_choose_file.pdf
+	set file [file join $::nap_library help_choose_file.pdf]
 	if {[file readable $file]} {
 	    auto_open $file
 	} else {

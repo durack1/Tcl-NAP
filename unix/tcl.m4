@@ -757,7 +757,6 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SHLIB_CFLAGS="-fPIC"
 	    SHLIB_LD_LIBS='${LIBS}'
 	    SHLIB_SUFFIX=".so"
-	    SYS_LIBS="-lpthread -lssl -lstdc++"
 
 	    # egcs-2.91.66 on Redhat Linux 6.0 generates lots of warnings 
 	    # when you inline the string and math operations.  Turn this off to
@@ -1114,6 +1113,7 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
     AC_MSG_RESULT($tcl_ok)
     if test "$tcl_ok" = "yes"; then
 	AC_DEFINE(USE_TCL_STUBS)
+	AC_DEFINE(USE_TK_STUBS)
     else
 	AC_DEFINE(STATIC_BUILD)
 	DL_OBJS=""

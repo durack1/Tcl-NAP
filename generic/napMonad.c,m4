@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.210 2006/03/10 01:44:23 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.212 2007/11/01 09:04:06 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -363,6 +363,7 @@ Nap_Negate(
  * Nap_Identity --
  *
  * Operator "+"  i.e. Identity function (copy of argument, not argument itself)
+ * New version copies missing value
  */
 
 m4define(`m4NAME', `Nap_Identity')
@@ -379,8 +380,8 @@ Nap_Identity(
     naoPtr = Nap_GetNumericNaoFromId(nap_cd, str);
     CHECK2NULL(naoPtr, "m4NAME: Non-numeric argument");
     Nap_IncrRefCount(nap_cd, naoPtr);
-    new = Nap_DupNAO(nap_cd, naoPtr);
-    CHECK2NULL(new, "m4NAME: Error calling Nap_DupNAO");
+    new = Nap_DupAllNAO(nap_cd, naoPtr);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_DupAllNAO");
     Nap_DecrRefCount(nap_cd, naoPtr);
     return new->id;
 }
@@ -558,6 +559,7 @@ Nap_Indirect(
     int			op,
     char		*right)			/* argument */
 {   
+    int			base_rank;		/* rank of base array */
     Nap_NAO		*cv_nao;		/* coord var */
     char		*fmt_s = "m4NAME: Illegal coordinate variable corresponding to unary '%s'";
     int			i;			/* dimension number of base array */
@@ -582,14 +584,15 @@ Nap_Indirect(
     }
     level = nap_cd->parseLevel;
     assert(level >= 0);
-    if (right_nao->rank < 2) {
-	indexBaseCV = nap_cd->indexBaseCV[level];
-	CHECK3NULL(indexBaseCV, fmt_s, symbol);
-	CHECK3NULL(Nap_IsNAO(nap_cd, indexBaseCV), fmt_s, symbol);
-	CHECK3NULL(Nap_IsBoxed(indexBaseCV), fmt_s, symbol);
+    indexBaseCV = nap_cd->indexBaseCV[level];
+    CHECK3NULL(indexBaseCV, fmt_s, symbol);
+    CHECK3NULL(Nap_IsNAO(nap_cd, indexBaseCV), fmt_s, symbol);
+    CHECK3NULL(Nap_IsBoxed(indexBaseCV), fmt_s, symbol);
+    base_rank = indexBaseCV->nels;
+    if (base_rank < 2  ||  right_nao->rank < 2) {
 	i = nap_cd->indexDimNum[level];
 	assert(i >= 0);
-	assert(i < indexBaseCV->nels);
+	assert(i < base_rank);
 	cv_nao = Nap_GetNaoFromSlot(indexBaseCV->data.Boxed[i]);
 	CHECK3NULL(cv_nao, fmt_s, symbol);
 	CHECK3NULL(cv_nao->rank == 1, fmt_s, symbol);

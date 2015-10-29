@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: aa_nap.test,v 1.33 2006/06/29 04:49:17 dav480 Exp $
+# $Id: aa_nap.test,v 1.44 2007/11/01 08:54:38 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
@@ -143,6 +143,14 @@ Test nap-3.8 {unary |vector} { [nap "|{7.1 -2.1 0.6 9}"] v } {7.1 2.1 0.6 9}
 Test nap-3.9 {unary ^vector} { [nap "^{7.1 -2.1 0.6 9}"] v } {7 -2 1 9}
 Test nap-3.10 {unary <vector} { [nap "<{7.1 -2.1 0.6 9}"] v } {7 -3 0 9}
 Test nap-3.11 {unary >vector} { [nap ">{7.1 -2.1 0.6 9}"] v } {8 -2 1 9}
+Test nap-3.12 {unary +vector with non-std missing value} {
+    nap "a = {0 3}"
+    $a set miss 0
+    nap "b = +a"
+    $b missing
+} {0}
+Test nap-3.13 {check value} {$b} {_ 3}
+unset a b
 
 Test nap-4.1 {+} {aeq [expr $i+$r] [[nap $i+$r] v] } 1
 Test nap-4.2 {-} {aeq [expr $i-$r] [[nap $i-$r] v] } 1
@@ -382,7 +390,7 @@ Test nap-12.5 {coordinate_variable(m,1)} {
     [nap coordinate_variable(m,1)] v } {8 9 9.3}
 
 Test nap-12.6 {set dimension names} {
-    $m set d lat lon
+    $m set dim lat lon
     $m dim
 } {lat lon}
 
@@ -401,7 +409,7 @@ Test nap-12.12 {rm coordinate variables} {
 } {(NULL) (NULL)}
 
 Test nap-12.13 {rm dimension names} {
-    $m set d
+    $m set dim
     $m dim
 } {(NULL) (NULL)}
 
@@ -721,6 +729,13 @@ Test nap-14.112 {index: 1 dim has cv, other doesn't} {
 2 4 8}
 Test nap-14.113 {index: cv} {$tmp coo 0} {(NULL)}
 Test nap-14.114 {index: cv} {[$tmp coo 1]} {90 180 270}
+
+Test nap-14.115 {unary @ with shape preserving indexing} {
+    nap "tmp = {6 8}"
+    $tmp set coo "{3 5}"
+    [nap "tmp(@{{3 5}{4 4.5}})"]
+} {6.0 8.0
+7.0 7.5}
 
 unset closest in02 in_closest lat lon mat tmp v
 # keep c in(+2) a i j m
@@ -2815,5 +2830,186 @@ Test nap-62.2 {?: coord. var 1} {[$y coo 1]} {3 4 5}
 Test nap-62.3 {?: coord. var 2} {[$y coo 2]} {11 12 13 14}
 
 unset a b m a3 y
+put_info "nap-62.3 12"
 
-put_info "nap-62.1 12"
+Test nap-63.1 {set datatype c8} {
+    nap "a = reshape(i8(65 .. 70), {2 3})"
+    $a set dat c8
+    $a
+} {ABC
+DEF}
+
+Test nap-63.2 {set datatype} {
+    $a set dat
+    $a
+} {65 66 67
+68 69 70}
+
+Test nap-63.3 {set datatype u32} {
+    $a set dat u32
+    $a dat
+} {u32}
+
+Test nap-63.4 {check shape} {
+    $a shape
+} {1}
+
+Test nap-63.5 {check MV} {
+    $a miss
+} {(NULL)}
+
+Test nap-63.6 {set datatype} {
+    $a set dat
+    $a
+} {65 66 67 68 69 70}
+
+Test nap-64.1 {set shape} {
+    $a set shape "{3 2}"
+    $a
+} {65 66
+67 68
+69 70}
+
+Test nap-64.2 {set shape} {
+    $a set shape "{1 2 2}"
+    $a
+} {65 66
+67 68}
+
+Test nap-64.3 {set shape} {
+    $a set shape "{}"
+    $a
+} {65}
+
+Test nap-64.4 {set shape} {
+    $a set shape
+    $a
+} {65 66 67 68 69 70}
+
+unset a
+put_info "nap-64.3 12"
+
+Test nap-65.1 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{5 9}})"]
+} {3 7
+4 8}
+
+Test nap-65.2 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{3 9}})"]
+} {3 7
+3 8}
+
+Test nap-65.3 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{1 9}})"]
+} {3 7
+2 8}
+
+Test nap-65.4 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{5 5}})"]
+} {3 7
+4 6}
+
+Test nap-65.5 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{3 5}})"]
+} {3 7
+3 6}
+
+Test nap-65.6 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{1 5}})"]
+} {3 7
+2 6}
+
+Test nap-65.7 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{0 0}{1 5}})"]
+} {_ _
+_ _}
+
+Test nap-65.8 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 7}{3.5 7.5}})"]
+} {3.0 7.0
+3.5 7.5}
+
+Test nap-65.9 {clip2d} {
+    [nap "clip2d({{0 -90}{360 90}}, {{360.9 41}{3 41}})"]
+} {360  41
+  3  41}
+
+Test nap-65.10 {clip2d} {
+    [nap "clip2d({{0 -90}{358 90}}, {{357.61 47.5062}{358.187 46.4929}})"]
+} {357.6100  47.5062
+358.0000  46.8213}
+
+Test nap-65.11 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{5 9}{3 7}})"]
+} {4 8
+3 7}
+
+Test nap-65.12 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 9}{3 7}})"]
+} {3 8
+3 7}
+
+Test nap-65.13 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{1 9}{3 7}})"]
+} {2 8
+3 7}
+
+Test nap-65.14 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{5 5}{3 7}})"]
+} {4 6
+3 7}
+
+Test nap-65.15 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3 5}{3 7}})"]
+} {3 6
+3 7}
+
+Test nap-65.16 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{1 5}{3 7}})"]
+} {2 6
+3 7}
+
+Test nap-65.17 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{1 5}{0 0}})"]
+} {_ _
+_ _}
+
+Test nap-65.18 {clip2d} {
+    [nap "clip2d({{2 6}{4 8}}, {{3.5 7.5}{3 7}})"]
+} {3.5 7.5
+3.0 7.0}
+
+Test nap-65.19 {clip2d} {
+    [nap "clip2d({{0 -90}{360 90}}, {{3 41}{360.9 41}})"]
+} {  3  41
+360  41}
+
+Test nap-65.20 {clip2d} {
+    [nap "clip2d({{0 -90}{358 90}}, {{358.187 46.4929}{357.61 47.5062}})"]
+} {358.0000  46.8213
+357.6100  47.5062}
+
+Test nap-65.21 {clip2d} {
+    [nap "clip2d({{0 -90}{358 90}}, {{-359.02 41.0346}{3.20331 41.8912}})"] -f %.5f
+} { 0.00000 41.88362
+ 3.20331 41.89120}
+
+Test nap-65.22 {clip2d} {
+    [nap "clip2d({{0 -90}{358 90}}, {{-359.02 41.0346}{3.20331 41.8912}})"] -f %.5f
+} { 0.00000 41.88362
+ 3.20331 41.89120}
+
+Test nap-65.23 {clip2d with corners of rectangle reversed} {
+    [nap "clip2d({{358 90}{0 -90}}, {{-359.02 41.0346}{3.20331 41.8912}})"] -f %.5f
+} { 0.00000 41.88362
+ 3.20331 41.89120}
+
+Test nap-65.24 {clip2d 3D} {
+    [nap "clip2d({{2 6}{4 8}}, {{{3 7}{5 9}} {{3 7}{3 9}}})"]
+} {3 7
+4 8
+
+3 7
+3 8}
+
+put_info "nap-65.8 12"

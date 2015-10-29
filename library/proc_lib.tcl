@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: proc_lib.tcl,v 1.117 2006/09/22 07:49:37 dav480 Exp $
+# $Id: proc_lib.tcl,v 1.118 2007/03/15 02:21:34 dav480 Exp $
 
 
 # aeq --
@@ -227,6 +227,53 @@ proc date_time_now {
     }
     set seconds [expr int(3600 * $hours_ahead + [clock seconds])]
     clock format $seconds -format $format$tz -gmt 1
+}
+
+
+# fdiff --
+#
+# Fuzzy diff between 2 files
+#
+# Like standard unix diff except:
+# - Allow fields to vary in size if numeric
+# - Compare floating-point fields allowing for rounding error
+
+proc fdiff {
+    file1
+    file2
+    {max_rel_abs_dif 1e-6}
+    {max_abs_dif 1e-10}
+} {
+    set f1 [open $file1]
+    set f2 [open $file2]
+    while {![eof $f1] || ![eof $f2]} {
+	set line1 [gets $f1]
+	set line2 [gets $f2]
+	set n [max [llength $line1] [llength $line2]]
+	set same 1
+	for {set i 0} {$i < $n} {incr i} {
+	    set v1 [lindex $line1 $i]
+	    set v2 [lindex $line2 $i]
+	    if {[string is double -strict $v1] && [string is double -strict $v2]} {
+		set maxabs [max [expr {abs($v1)}] [expr {abs($v2)}]]
+		if {$maxabs > 0} {
+		    set abs_dif [expr {abs($v1 - $v2)}]
+		    set rel_abs_dif [expr {$abs_dif / $maxabs}]
+		    set same [expr {$same  &&  
+			    ($rel_abs_dif <= $max_rel_abs_dif  ||  $abs_dif <= $max_abs_dif)}]
+		}
+	    } else {
+		set same [expr {$same  &&  "$v1" eq "$v2"}]
+	    }
+	}
+	if {! $same} {
+	    puts {---}
+	    puts $line1
+	    puts $line2
+	}
+    }
+    close $f1
+    close $f2
 }
 
 

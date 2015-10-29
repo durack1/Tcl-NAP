@@ -63,7 +63,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: triangulate.c,v 1.5 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: triangulate.c,v 1.6 2006/10/09 02:30:39 dav480 Exp $";
 #endif /* not lint */
 
 #include  <stddef.h>
@@ -112,20 +112,33 @@ alloc_memory(
     tri_index i;
 
     /* Point storage. */
-    p_array = (point *) NAP_ALLOC0(nap_cd, n * sizeof(point));
-    if (p_array == NULL)
+    p_array = (point *) NAP_ALLOC(nap_cd, n * sizeof(point));
+    if (! p_array) {
         return 1;
-
+    }
     /* Edges. */
     n_free_e = 3 * n;   /* Eulers relation */
-    e_array = e = (edge *) NAP_ALLOC0(nap_cd, n_free_e * sizeof(edge));
-    if (e_array == NULL)
+    e_array = e = (edge *) NAP_ALLOC(nap_cd, n_free_e * sizeof(edge));
+    if (p_array) {
+	for (i = 0; i < n_free_e; i++) {
+	    e_array[i].org   = NULL;
+	    e_array[i].dest  = NULL;
+	    e_array[i].onext = NULL;
+	    e_array[i].oprev = NULL;
+	    e_array[i].dnext = NULL;
+	    e_array[i].dprev = NULL;
+	}
+    } else {
         return 1;
-    free_list_e = (edge **) NAP_ALLOC0(nap_cd, n_free_e * sizeof(edge *));
-    if (free_list_e == NULL)
+    }
+    free_list_e = (edge **) NAP_ALLOC(nap_cd, n_free_e * sizeof(edge *));
+    if (free_list_e) {
+	for (i = 0; i < n_free_e; i++, e++) {
+	    free_list_e[i] = e;
+	}
+    } else {
         return 1;
-    for (i = 0; i < n_free_e; i++, e++)
-        free_list_e[i] = e;
+    }
     return 0;
 }
 

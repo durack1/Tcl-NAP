@@ -1,4 +1,4 @@
-%  $Id: ooc_modify.tex,v 1.9 2006/06/07 04:58:19 dav480 Exp $ 
+%  $Id: ooc_modify.tex,v 1.12 2007/10/24 10:33:00 dav480 Exp $ 
     % OOC Methods: Modify
 
 \section{OOC Methods which Modify NAO}
@@ -6,7 +6,7 @@
 \subsection{Method \texttt{draw}}
     \label{ooc-modify-draw}
 
-$ooc\_name$ \texttt{draw} $xy$ ?$value$?
+$ooc\_name$ \texttt{draw} $xy$ [$value$]
 
 This draws a polyline in the NAO 
   $ooc\_name$, which must be type 
@@ -40,7 +40,7 @@ Example:
 \subsection{Method \texttt{fill}}
     \label{ooc-modify-fill}
 
-$ooc\_name$ \texttt{fill} $xy$ ?$value$?
+$ooc\_name$ \texttt{fill} $xy$ [$value$]
 
 This fills a polygon in the NAO 
   $ooc\_name$, which must be type 
@@ -114,7 +114,7 @@ An example is provided in section \ref{ooc-meta-coordinate}.
 \subsubsection{set count}
     \label{ooc-modify-set-count}
 
-  $ooc\_name$ \texttt{set count} ?$int$? ?\texttt{-keep}?
+  $ooc\_name$ \texttt{set count} [$int$] [\texttt{-keep}]
 
 This sets or increments the reference count. One situation where
   this facility is needed is where a GUI window points to a NAO and
@@ -127,6 +127,43 @@ If $int$ is signed then add it to reference count.
 If $int$ is unsigned then set reference count to $int$.
   \\
 If $int$ not specified then add 1 to reference count (i.e.  treat as `+1')
+
+\subsubsection{set datatype}
+    \label{ooc-modify-set-datatype}
+
+  $ooc\_name$ \texttt{set datatype} [$datatype$]
+
+This changes the data-type without any change to the (binary) data.
+The new rank is 1.
+If the new data-type is larger than the old then any partial new element at the end is discarded.
+  \\
+If $datatype$ is not specified then it defaults to the original (when NAO created) data-type.
+
+The following example creates a NAO with 
+data-type \texttt{c8},
+changes the data-type to \texttt{u8},
+then changes it back to \texttt{c8}.
+  \begin{verbatim}
+% nap "c = 'ABC'"
+::NAP::13-13
+% $c all
+::NAP::13-13  c8  MissingValue: (NULL)  References: 1
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+ABC
+% $c set datatype u8
+% $c all
+::NAP::13-13  u8  MissingValue: (NULL)  References: 1
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+65 66 67
+% $c set datatype
+% $c all
+::NAP::13-13  c8  MissingValue: (NULL)  References: 1
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+ABC
+\end{verbatim}
 
 \subsubsection{Set dimension}
     \label{ooc-modify-set-dimension}
@@ -162,7 +199,7 @@ time
 \subsubsection{set format}
     \label{ooc-modify-set-format}
 
-$ooc\_name$ \texttt{set format} ?$string$?
+$ooc\_name$ \texttt{set format} [$string$]
 
 This sets the C format for printing. The default is NULL i.e. no
   format.
@@ -173,7 +210,7 @@ An example is provided in section \ref{ooc-meta-format}.
 \subsubsection{set label}
     \label{ooc-modify-set-label}
 
-$ooc\_name$ \texttt{set label} ?$string$?
+$ooc\_name$ \texttt{set label} [$string$]
 
 This sets the label (title). The default is NULL i.e. no
   label.
@@ -184,18 +221,22 @@ An example is provided in section \ref{ooc-meta-label}.
 \subsubsection{Set link}
     \label{ooc-modify-set-link}
 
-$ooc\_name$ \texttt{set link} ?$nao$?
+$ooc\_name$ \texttt{set link} [$nao$]
 
 This sets the link slot number to point to a NAO
   \\The default is NULL i.e. no link.
   
+As discussed in section \ref{nao}, this enables additional information to be attached to a NAO.
+For example the linked NAO could contain an error estimate.
+It could also be a boxed NAO pointing to any number of other NAOs (which might correspond
+to the attributes of a netCDF variable).
 
 An example is provided in section \ref{ooc-meta-link}.
 
 \subsubsection{Set missing}
     \label{ooc-modify-set-missing}
 
-$ooc\_name$ \texttt{set missing} ?$value$?
+$ooc\_name$ \texttt{set missing} [$value$]
 
 This sets the missing value. The default is NULL i.e. no missing
   value.
@@ -209,10 +250,35 @@ _ 0.5 1 1.5 2
 
 Note that the value of 0 is now treated as missing.
 
+\subsubsection{Set shape}
+    \label{ooc-modify-set-shape}
+
+$ooc\_name$ \texttt{set shape} [$shape$]
+
+This sets the shape of the NAO to that defined by the vector expression $shape$.
+The default shape corresponds to a vector containing all the original (when NAO created) elements.
+  
+Example:
+  \begin{verbatim}
+% [nap "m = {{0 2 4 6 8}{1 3 5 7 9}}"]
+0 2 4 6 8
+1 3 5 7 9
+% $m set shape "{2 2 2}"
+% $m
+0 2
+4 6
+
+8 1
+3 5
+% $m set shape
+% $m value
+0 2 4 6 8 1 3 5 7 9
+\end{verbatim}
+
 \subsubsection{Set unit}
     \label{ooc-modify-set-unit}
 
-$ooc\_name$ \texttt{set unit} ?$unit$?
+$ooc\_name$ \texttt{set unit} [$unit$]
 
 This sets the unit of measure. The default is NULL i.e. no
   unit.
@@ -223,7 +289,7 @@ An example is provided in section \ref{ooc-meta-unit}.
 \subsubsection{Set value}
     \label{ooc-modify-set-value}
 
-$ooc\_name$ \texttt{set value} ?$value$? ?$index$?
+$ooc\_name$ \texttt{set value} [$value$] [$index$]
 
 This sets the value of data elements selected by NAO 
   $index$ to new values copied from successive elements of NAO

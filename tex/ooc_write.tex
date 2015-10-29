@@ -1,4 +1,4 @@
-%  $Id: ooc_write.tex,v 1.6 2006/06/06 08:09:42 dav480 Exp $ 
+%  $Id: ooc_write.tex,v 1.7 2006/10/27 08:05:37 dav480 Exp $ 
     % OOC Methods: Write
 
 \section{OOC Methods which Write to File}
@@ -23,7 +23,7 @@ Value:
 \subsection{Method \texttt{binary}}
     \label{ooc-write-binary}
 
-  $ooc\_name$ \texttt{binary} ?$tcl\_channel$?
+  $ooc\_name$ \texttt{binary} [$tcl\_channel$]
 
 This writes raw (binary) data to the file specified by 
   $tcl\_channel$, which defaults to 
@@ -46,7 +46,7 @@ Value:
 \subsection{Method \texttt{hdf}}
     \label{ooc-write-hdf}
 
-  $ooc\_name$ \texttt{hdf} ?$switches$?  $filename$ $name$
+  $ooc\_name$ \texttt{hdf} [$switches$]  $filename$ $name$
 
 This writes data from the NAO to an SDS or attribute within an HDF
   file named 
@@ -171,7 +171,7 @@ Procedure \texttt{put16}
 \subsection{Method \texttt{netcdf}}
     \label{ooc-write-netcdf}
 
-  $ooc\_name$ \texttt{netcdf} ?$switches$?  $filename$ $name$
+  $ooc\_name$ \texttt{netcdf} [$switches$]  $filename$ $name$
 
 This writes data from the NAO to a variable or attribute within a
   netCDF file named 
@@ -287,7 +287,7 @@ can be used to write an automatically-scaled 16-bit variable to
 \subsection{Method \texttt{swap}}
     \label{ooc-write-swap}
 
-  $ooc\_name$ \texttt{swap} ?$tcl\_channel$?
+  $ooc\_name$ \texttt{swap} [$tcl\_channel$]
 
 Method 
   \texttt{swap} is like method 

@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.123 2006/06/27 05:26:31 dav480 Exp $
+# $Id: hdf.tcl,v 1.126 2007/03/30 09:29:16 dav480 Exp $
 
 
 # hdf --
@@ -623,7 +623,7 @@ namespace eval ::Hdf {
 
     proc hdf_help {
     } {
-	set file [file dirname $::tcl_library]/nap$::nap_version/help_hdf.pdf
+	set file [file join $::nap_library help_hdf.pdf]
 	if {[file readable $file]} {
 	    auto_open $file
 	} else {
@@ -1055,18 +1055,18 @@ namespace eval ::Hdf {
 		global ${dim_ns}::step
 		if {$step == 0} {
 		    if {$expr eq ""} {
-			lappend list $from
+			lappend list "^ $from"
 		    } else {
 			lappend list $expr
 		    }
 		} elseif {$from == 0  &&  $to == $n-1  &&  $step == 1} {
 		    lappend list ""
 		} elseif {$from < $to} {
-		    lappend list "($from .. $to ... $step)"
+		    lappend list "^($from .. $to ... $step)"
 		} elseif {$from > $to} {
-		    lappend list "($to .. $from ... $step)"
+		    lappend list "^($to .. $from ... $step)"
 		} else {
-		    lappend list $from
+		    lappend list "^ $from"
 		}
 	    }
 	    set nap_expr [join $list ,]
@@ -1155,7 +1155,7 @@ namespace eval ::Hdf {
     #
     # Set specified columns (specified by words) of specified dim to defaults
     # If dim_num is "all" then do all dims
-    # words can by "from", "to", "step"
+    # words can be "from", "to", "step"
 
     proc init_dim {
 	top_ns

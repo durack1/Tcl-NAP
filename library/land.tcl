@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2002, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: land.tcl,v 1.7 2005/10/03 08:13:58 dav480 Exp $
+# $Id: land.tcl,v 1.9 2007/03/30 09:29:17 dav480 Exp $
 
 namespace eval ::NAP {
 
@@ -25,8 +25,7 @@ namespace eval ::NAP {
 	    if {[info exists ::env(LAND_FLAG_DATA_DIR)]} {
 		nap "data_dir = '$::env(LAND_FLAG_DATA_DIR)'"
 	    } else {
-		nap "data_dir = '[lindex [lsort [glob \
-			[file dirname $::tcl_library]/nap*.*/data/land_flag]] end]'"
+		nap "data_dir = '[file join $::nap_library data land_flag]'"
 	    }
 	}
 	nap "err = 0"
@@ -142,23 +141,29 @@ namespace eval ::NAP {
 	{nlon nlat}
 	{data_dir "''"}
     } {
-	if {[$latitude rank] != 1} {
-	    error "rank of latitude != 1"
+	if {[$latitude rank] == 1  &&  [$longitude rank] == 1} {
+	    nap "lat = +f32(latitude)"
+	    nap "lon = +f32(longitude)"
+	    $lat set unit degrees_north
+	    $lon set unit degrees_east
+	    nap "lat2 = (lat(0) + lat(0) - lat(1)) // lat // (lat(-1) + lat(-1) - lat(-2))"
+	    nap "lon2 = (lon(0) + lon(0) - lon(1)) // lon // (lon(-1) + lon(-1) - lon(-2))"
+	    nap "land = fraction_land(lat2, lon2, nlat, nlon, data_dir) > 0.5f32"
+	    nap "se = {{0 1 0}{1 0 1}{0 1 0}}"
+	    nap "result = (land && !erode(land, se, {1 1}))(1 .. nels(lat), 1 .. nels(lon))"
+	    $result set dim latitude longitude
+	    $result set coo lat lon
+	} else {
+	    nap "isLand = is_land(latitude, longitude, data_dir)"
+	    nap "s = shape(isLand)"
+	    nap "i1 = s(0) - 1"
+	    nap "j1 = s(1) - 1"
+	    nap "north = isLand(0 // 0 .. i1-1,)"
+	    nap "south = isLand(1 .. i1 // i1,)"
+	    nap "west  = isLand(, 0 // 0 .. j1-1)"
+	    nap "east  = isLand(, 1 .. j1 // j1)"
+	    nap "result = isLand && !(north && south && west && east)"
 	}
-	if {[$longitude rank] != 1} {
-	    error "rank of longitude != 1"
-	}
-	nap "lat = +f32(latitude)"
-	nap "lon = +f32(longitude)"
-	$lat set unit degrees_north
-	$lon set unit degrees_east
-	nap "lat2 = (lat(0) + lat(0) - lat(1)) // lat // (lat(-1) + lat(-1) - lat(-2))"
-	nap "lon2 = (lon(0) + lon(0) - lon(1)) // lon // (lon(-1) + lon(-1) - lon(-2))"
-	nap "land = fraction_land(lat2, lon2, nlat, nlon, data_dir) > 0.5f32"
-	nap "se = {{0 1 0}{1 0 1}{0 1 0}}"
-	nap "result = (land && !erode(land, se, {1 1}))(1 .. nels(lat), 1 .. nels(lon))"
-	$result set dim latitude longitude
-	$result set coo lat lon
 	nap "result"
     }
 

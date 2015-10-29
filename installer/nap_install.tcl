@@ -34,11 +34,19 @@ proc copy_tree {
 	    copy_tree $src/$file $dst/$file
 	} else {
 	    file copy -force $src/$file $dst
+	    switch $::tcl_platform(platform) {
+		unix {
+		    file attributes $dst/$file -permissions +r
+		    if {[file tail $dst] eq "bin"} {
+			file attributes $dst/$file -permissions +x
+		    }
+		}
+	    }
 	}
     }
 }
 
-switch $tcl_platform(platform) {
+switch $::tcl_platform(platform) {
     unix {
 	set dir1 ~
 	set dirs {/usr/tcl /usr/local/tcl ~/tcl}
@@ -61,7 +69,9 @@ set dst [tk_chooseDirectory \
     -initialdir $dir1 \
     -title "directory in which to install nap"]
 if {$dst ne ""} {
-    if {$tcl_platform(machine) ne "ia64" } {
+    if {$::tcl_platform(machine) eq "ia64" } {
+	set include include
+    } else {
 	set include [file tail [lindex [glob $dst/include*] end]]
 	foreach dir "bin $include lib" {
 	    if {![file isdirectory $dst/$dir]} {
@@ -94,12 +104,18 @@ if {$dst ne ""} {
     cd home
     set files "[glob -nocomplain *] [glob -nocomplain -types {f hidden} *]"
     set files [string trim [lsort -unique $files]]
+    foreach file $files {
+	file copy -force $file $dst
+    }
     set reply [tk_messageBox \
-	-message "Install startup files ($files) in [file nativename ~]?" \
+	-message "Install startup files ($files)?" \
 	-type yesno]
     if {$reply eq "yes"} {
+	set dst [tk_chooseDirectory \
+	    -initialdir ~ \
+	    -title "directory in which to install startup files ($files)"]
 	foreach file $files {
-	    file copy -force $file ~
+	    file copy -force $file $dst
 	}
     }
 }

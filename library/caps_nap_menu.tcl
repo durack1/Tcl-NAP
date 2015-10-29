@@ -2,7 +2,7 @@
 #
 # Copyright (c) 1998-2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: caps_nap_menu.tcl,v 1.19 2006/09/29 12:12:14 dav480 Exp $
+# $Id: caps_nap_menu.tcl,v 1.20 2007/03/30 09:29:16 dav480 Exp $
 
 
 # caps_nap_menu --
@@ -149,7 +149,7 @@ namespace eval NAP {
 	set label "Tcl/Tk Web documentation"
 	$help add command -label $label -command [list ::NAP::display_help $file $label]
 	#
-	set file [file dirname $::tcl_library]/nap$::nap_version/nap_users_guide.pdf
+	set file [file join $::nap_library nap_users_guide.pdf]
 	if {[file readable $file]} {
 	    set label "NAP Local documentation"
 	    $help add command -label $label -command [list ::NAP::display_help $file $label]
@@ -166,7 +166,7 @@ namespace eval NAP {
 
 
     proc help_caps_nap_menu {} {
-	set file [file dirname $::tcl_library]/nap$::nap_version/help_caps_nap_menu.pdf
+	set file [file join $::nap_library help_caps_nap_menu.pdf]
 	if {[file readable $file]} {
 	    ::NAP::display_help $file "Help on CAPS/NAP Main Menu"
 	} else {

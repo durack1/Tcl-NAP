@@ -4,7 +4,7 @@
 #
 # Author: Harvey Davies, CSIRO Marine and Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile,v 1.13 2006/09/29 00:19:29 dav480 Exp $
+# RCS: @(#) $Id: Makefile,v 1.16 2006/10/27 06:20:48 dav480 Exp $
 
 MAIN = nap_users_guide
 
@@ -60,6 +60,7 @@ NAP_TEX_FILES = \
 	nap_function_lib.tex \
 	nap_get.tex \
 	nap_info.tex \
+	nap_version.tex \
 	ooc.tex \
 	ooc_data.tex \
 	ooc_meta.tex \
@@ -77,8 +78,8 @@ NAP_TEX_FILES = \
 	syntax.tex \
 	tcl_log.tex \
 	term.tex \
+	title_pages.tex \
 	typo.tex \
-	version.tex \
 	writing_procs.tex \
 	$(MAIN).tex
 
@@ -97,7 +98,7 @@ view: $(MAIN).pdf
 
 all: $(MAIN).pdf help_caps_nap_menu.pdf help_choose_file.pdf help_hdf.pdf help_plot_nao.pdf
 
-$(MAIN).pdf: $(NAP_TEX_FILES) $(COMMON)
+$(MAIN).pdf: $(NAP_TEX_FILES) $(COMMON) 20050921_CSIRO_logo_RGB_colour_small.png screen.png
 	- $(LATEX2PDF) $(MAIN).tex
 	- $(LATEX2PDF) $(MAIN).tex
 

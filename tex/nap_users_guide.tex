@@ -1,14 +1,9 @@
-% $Id: nap_users_guide.tex,v 1.8 2006/10/02 01:52:48 dav480 Exp $
+% $Id: nap_users_guide.tex,v 1.12 2006/11/23 22:39:10 dav480 Exp $
 
 \documentclass[a4paper]{book}
 
 \input{common.tex}
-
-\title {Nap 
-\input{version.tex}
-User's Guide}
-\author{Harvey Davies\\CSIRO Marine and Atmospheric Research\\Melbourne, Australia}
-\date{\today}
+\input{nap_version.tex}
 
 \setcounter{secnumdepth}{4}
 \setcounter{tocdepth}{4}
@@ -16,8 +11,9 @@ User's Guide}
 \begin{document}
 
 \pagenumbering{roman}
-\maketitle
-\copyright CSIRO Australia 2006
+
+\input{title_pages.tex}
+
 \tableofcontents
 
 \chapter{Introduction}
@@ -25,6 +21,7 @@ User's Guide}
     \input{overview.tex}
     \input{typo.tex}
     \input{ack.tex}
+
 \chapter{Background}
     \input{tcl_log.tex}
     \input{model.tex}
@@ -32,41 +29,50 @@ User's Guide}
     \input{grid.tex}
     \input{hdf_netcdf.tex}
     \input{refs.tex}
+
 \chapter{Installation}
     \input{install.tex}
     \input{scripts.tex}
+
 \chapter{Nap Basics}
     \input{sample.tex}
     \input{nao_ooc.tex}
     \input{nap_args.tex}
     \input{data_type.tex}
     \input{array.tex}
+
 \chapter{Nap Expressions}
     \input{syntax.tex}
     \input{const.tex}
     \input{op.tex}
     \input{indexing.tex}
     \input{function.tex}
+
 \chapter{Object-Oriented Commands (OOCs)}
     \input{ooc.tex}
     \input{ooc_data.tex}
     \input{ooc_meta.tex}
     \input{ooc_modify.tex}
     \input{ooc_write.tex}
+
 \chapter{Reading Files using \texttt{nap\_get} Command}
     \input{nap_get.tex}
+
 \chapter{Other Nap Commands}
     \input{nap_info.tex}
     \input{land_flag.tex}
+
 \chapter{Defining New Nap Commands and Functions}
     \input{writing_procs.tex}
     \input{make_dll.tex}
+
 \chapter{Tcl Library Procedures called as Nap Functions}
     \input{lib_function_intro.tex}
     \input{date_function.tex}
     \input{stat.tex}
     \input{geog.tex}
     \input{nap_function_lib.tex}
+
 \chapter{Tcl Library Procedures called as Commands}
     \input{lib_proc_intro.tex}
     \input{date_proc.tex}
@@ -74,14 +80,18 @@ User's Guide}
     \input{geog_proc.tex}
     \input{projection.tex}
     \input{misc_proc.tex}
+
 \chapter{Tk GUI Procedures}
     \input{gui_intro.tex}
     \input{caps_nap_menu.tex}
     \input{choose_file.tex}
     \input{plot_nao.tex}
+
 \chapter{Nap Internal Details}
     \input{nao.tex}
     \input{photo.tex}
+
+\appendix
 \chapter{Demonstrations of Nap}
     \input{demo_intro.tex}
     \input{demo_simple.tex}

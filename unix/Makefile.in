@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.196 2006/10/05 06:33:33 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.199 2006/10/20 01:17:15 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -249,9 +249,9 @@ LDFLAGS_OUT = @LDFLAGS_OUT@
 LINK = @PURIFY@@LINK@ $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 SHLIB_LD = @PURIFY@@SHLIB_LD@ $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 
+LD_LIBRARY_PATH = @LD_LIBRARY_PATH@
 TCL_LIB_PATH = @TCL_LIB_PATH@
 TCL_STUB_LIB_PATH = @TCL_STUB_LIB_PATH@
-TK_LIB_PATH = @TK_LIB_PATH@
 TK_STUB_LIB_PATH = @TK_STUB_LIB_PATH@
 HDF_LIB_PATH = @HDF_LIB_PATH@
 HDF_LIB_SPEC = @HDF_LIB_SPEC@
@@ -260,7 +260,6 @@ NC_LIB_SPEC = @NC_LIB_SPEC@
 PROJ_LIB_PATH = @PROJ_LIB_PATH@
 PROJ_LIB_SPEC = @PROJ_LIB_SPEC@
 
-TK_LIB_SPEC = @TK_LIB_SPEC@
 TCL_LINK_SPEC = @TCL_LINK_SPEC@
 TCL_SHLIB_SPEC = @TCL_SHLIB_SPEC@
 
@@ -270,8 +269,8 @@ XLIBSW = @XLIBSW@
 SYS_LIBS = @SYS_LIBS@
 STD_LIBS = $(MATH_LIBS) $(XLIBSW) $(SYS_LIBS)
 MISC_LIB_SPECS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(PROJ_LIB_SPEC)
-LINK_LIBS     = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
-SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
+LINK_LIBS     = $(MISC_LIB_SPECS) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
+SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TCL_SHLIB_SPEC) $(STD_LIBS)
 
 #------------------------------------------------------------------------------
 # Tcl directories and files
@@ -474,7 +473,6 @@ LIB_PATHS = \
 	$(PROJ_LIB_PATH) \
 	$(TCL_LIB_PATH) \
 	$(TCL_STUB_LIB_PATH) \
-	$(TK_LIB_PATH) \
 	$(TK_STUB_LIB_PATH)
 
 $(PACKAGE_SHLIB): $(OBJS) $(LIB_PATHS)
@@ -769,6 +767,7 @@ ENV = \
 	PROJ_LIB="`$(NATIVE_PATH) $(PROJ_DATA_DIR)`" \
 	TEST_DATA_DIR="`$(NATIVE_PATH) $(TEST_DIR)/data`" \
 	LIBRARY_DIR="`$(NATIVE_PATH) $(LIBRARY_DIR)`" \
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" \
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR)
 
 test0.tcl:

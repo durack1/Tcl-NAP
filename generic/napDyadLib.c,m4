@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.101 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.103 2006/11/30 03:09:55 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -590,7 +590,7 @@ Nap_ReverseVector(
 	assert(naoArray->rank == 1);
 	n = naoArray->nels;
 	naoResult = Nap_DupNAO(nap_cd, naoArray);
-	naoResult->step = NAP_UNKNOWN;
+	naoResult->step = NAP_STEP_UNKNOWN;
 	oldCV = Nap_GetCoordVar(nap_cd, naoArray, 0);
 	if (oldCV) {
 	    status = Nap_ReverseVector(nap_cd, oldCV, &newCV);
@@ -1811,8 +1811,8 @@ Nap_IndexOf2(
     int			r;		/* rank of arg1 */
     float		range;
     Nap_NAO		*result;
-    size_t		*S;		/* shape of arg2 */
-    size_t		*s;		/* shape of arg1 */
+    size_t		S[NAP_MAX_RANK];/* shape of arg2 */
+    size_t		s[NAP_MAX_RANK];/* shape of arg1 */
     size_t		sz;		/* sizeof dataType */
     size_t              shape[1];
     int			status;
@@ -1832,8 +1832,12 @@ Nap_IndexOf2(
 	Nap_IncrRefCount(nap_cd, naoPtr2);
 	r = naoPtr1->rank;
 	R = naoPtr2->rank;
-	s = naoPtr1->shape;
-	S = naoPtr2->shape;
+	for (j = 0; j < r; j++) {
+	    s[j] = naoPtr1->shape[j];
+	}
+	for (j = 0; j < R; j++) {
+	    S[j] = naoPtr2->shape[j];
+	}
 	CHECK2NULL(r > 0, "m4NAME: Left argument is scalar");
 	    /* cyclic (currently just longitude as indicated by unit "degrees_east")? */
 	if (r == 1  &&  naoPtr1->unit  &&  !strcmp(naoPtr1->unit, "degrees_east")
@@ -1929,7 +1933,7 @@ Nap_IndexOf2(
 			for (k = 0; k < s[0]; k++) {
 			    memcpy(naoTmp->data.c + sz * k, naoPtr1->data.c + sz * (m*k+j), sz);
 			}
-			naoTmp->step = NAP_UNKNOWN;
+			naoTmp->step = NAP_STEP_UNKNOWN;
 			result->data.F32[j] = Nap_IndexOfNao(nap_cd, naoTmp,
 				naoPtr2->data.c+sz*i, guess);
 		    }
@@ -1952,7 +1956,7 @@ Nap_IndexOf2(
 		    for (k = 0; k < s[0]; k++) {
 			memcpy(naoTmp->data.c + sz * k, naoPtr1->data.c + sz * (m*k+i), sz);
 		    }
-		    naoTmp->step = NAP_UNKNOWN;
+		    naoTmp->step = NAP_STEP_UNKNOWN;
 		    guess = -1;
 		    for (j = 0; j < n; j++) {
 			k = j * m + i;
@@ -1996,7 +2000,7 @@ m4define(`m4NAME', `Nap_Match')
 m4define(`m4match', `
     case m4DataTypeEnum($1):
 	switch (naoPtr1->step) {
-	case NAP_EQUAL:
+	case NAP_STEP_EQUAL:
 	    if (n == 2) {
 		step = naoPtr1->data.$1[1] - naoPtr1->data.$1[0];
 	    } else if (n > 2) {
@@ -2023,8 +2027,8 @@ m4define(`m4match', `
 		result->data.I32[j] = r;
 	    }
 	    break;
-	case NAP_NON_NEGATIVE:
-	case NAP_NON_POSITIVE:
+	case NAP_STEP_NON_NEGATIVE:
+	case NAP_STEP_NON_POSITIVE:
 	    g = n;
 	    for (j = 0; j < naoPtr2->nels; j++) {
 		r = Nap_HuntNao(nap_cd, naoPtr1, naoPtr2->data.$1+j, g);
@@ -2038,7 +2042,8 @@ m4define(`m4match', `
 		result->data.I32[j] = r;
 	    }
 	    break;
-	case NAP_BOTH:
+	case NAP_STEP_BOTH:
+	case NAP_STEP_NULL:
 	    for (j = 0; j < naoPtr2->nels; j++) {
 		r = m4MissingValue(I32);
 		if (! IsMissing(naoPtr2, j)) {
@@ -2087,7 +2092,7 @@ Nap_Match(
     naoPtr2 = Nap_GetNumericNaoFromId(nap_cd, str2);
     CHECK2NULL(naoPtr2, "m4NAME: Undefined right-hand operand");
     Nap_IncrRefCount(nap_cd, naoPtr2);
-    if (naoPtr1->step == NAP_UNKNOWN) {
+    if (naoPtr1->step == NAP_STEP_UNKNOWN) {
 	status = Nap_OilNao(naoPtr1);
 	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
     }
@@ -2138,7 +2143,7 @@ m4define(`m4NAME', `Nap_Closest')
 m4define(`m4closest', `
     case m4DataTypeEnum($1):
 	switch (naoPtr1->step) {
-	case NAP_EQUAL:
+	case NAP_STEP_EQUAL:
 	    if (n < 2) {
 		step = 0.0;
 	    } else if (n == 2) {
@@ -2161,8 +2166,8 @@ m4define(`m4closest', `
 		result->data.I32[j] = r;
 	    }
 	    break;
-	case NAP_NON_NEGATIVE:
-	case NAP_NON_POSITIVE:
+	case NAP_STEP_NON_NEGATIVE:
+	case NAP_STEP_NON_POSITIVE:
 	    g = n;
 	    for (j = 0; j < naoPtr2->nels; j++) {
 		if (IsMissing(naoPtr2, j)) {
@@ -2172,7 +2177,23 @@ m4define(`m4closest', `
 		}
 	    }
 	    break;
-	case NAP_BOTH:
+	case NAP_STEP_BOTH:
+	    for (j = 0; j < naoPtr2->nels; j++) {
+		if (IsMissing(naoPtr2, j)) {
+		    result->data.I32[j] = m4MissingValue(I32);
+		} else {
+		    r = -1;
+		    for (i = 0; i < n; i++) {
+			if (r < 0  ||  AbsDiff(naoPtr2->data.$1[j], naoPtr1->data.$1[i]) <
+				       AbsDiff(naoPtr2->data.$1[j], naoPtr1->data.$1[r])) {
+			    r = i;
+			}
+		    }
+		    result->data.I32[j] = r < 0 ? m4MissingValue(I32) : r;
+		}
+	    }
+	    break;
+	case NAP_STEP_NULL:
 	    for (j = 0; j < naoPtr2->nels; j++) {
 		if (IsMissing(naoPtr2, j)) {
 		    result->data.I32[j] = m4MissingValue(I32);
@@ -2290,7 +2311,7 @@ Nap_Closest(
 	    Nap_DecrRefCount(nap_cd, naoPtr2);
 	    naoPtr2 = naoTmp;
 	}
-	if (naoPtr1->step == NAP_UNKNOWN) {
+	if (naoPtr1->step == NAP_STEP_UNKNOWN) {
 	    status = Nap_OilNao(naoPtr1);
 	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
 	}

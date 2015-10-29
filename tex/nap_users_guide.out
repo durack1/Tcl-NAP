@@ -120,7 +120,8 @@
 \BOOKMARK [3][-]{subsubsection.5.5.8.2}{Function moving\137correlation\(x,y,[lag0[,lag1]]\)}{subsection.5.5.8}
 \BOOKMARK [2][-]{subsection.5.5.9}{Geometry}{section.5.5}
 \BOOKMARK [3][-]{subsubsection.5.5.9.1}{Testing whether points are in polygon}{subsection.5.5.9}
-\BOOKMARK [3][-]{subsubsection.5.5.9.2}{Triangulation}{subsection.5.5.9}
+\BOOKMARK [3][-]{subsubsection.5.5.9.2}{Clip 2D line segments by Rectangular Window}{subsection.5.5.9}
+\BOOKMARK [3][-]{subsubsection.5.5.9.3}{Triangulation}{subsection.5.5.9}
 \BOOKMARK [2][-]{subsection.5.5.10}{Grid Functions}{section.5.5}
 \BOOKMARK [2][-]{subsection.5.5.11}{Cartographic Projection Functions}{section.5.5}
 \BOOKMARK [3][-]{subsubsection.5.5.11.1}{Function cart\137proj\137fwd\(proj\137spec, lat, lon\)}{subsection.5.5.11}
@@ -165,13 +166,15 @@
 \BOOKMARK [2][-]{subsection.6.4.3}{Method set}{section.6.4}
 \BOOKMARK [3][-]{subsubsection.6.4.3.1}{set coordinate}{subsection.6.4.3}
 \BOOKMARK [3][-]{subsubsection.6.4.3.2}{set count}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.3}{Set dimension}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.4}{set format}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.5}{set label}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.6}{Set link}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.7}{Set missing}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.8}{Set unit}{subsection.6.4.3}
-\BOOKMARK [3][-]{subsubsection.6.4.3.9}{Set value}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.3}{set datatype}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.4}{Set dimension}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.5}{set format}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.6}{set label}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.7}{Set link}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.8}{Set missing}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.9}{Set shape}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.10}{Set unit}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.11}{Set value}{subsection.6.4.3}
 \BOOKMARK [1][-]{section.6.5}{OOC Methods which Write to File}{chapter.6}
 \BOOKMARK [2][-]{subsection.6.5.1}{Method binary}{section.6.5}
 \BOOKMARK [2][-]{subsection.6.5.2}{Method hdf}{section.6.5}
@@ -250,14 +253,18 @@
 \BOOKMARK [3][-]{subsubsection.10.4.3.5}{zone\137bounds\(latitude\)}{subsection.10.4.3}
 \BOOKMARK [3][-]{subsubsection.10.4.3.6}{zone\137wt\(latitude\)}{subsection.10.4.3}
 \BOOKMARK [2][-]{subsection.10.4.4}{Land, Water and Shoreline}{section.10.4}
-\BOOKMARK [3][-]{subsubsection.10.4.4.1}{Functions based on land\137flag}{subsection.10.4.4}
+\BOOKMARK [3][-]{subsubsection.10.4.4.1}{Functions based on nap\137land\137flag}{subsection.10.4.4}
 \BOOKMARK [4][-]{paragraph.10.4.4.1.1}{is\137land\(latitude, longitude[, data\137dir]\)}{subsubsection.10.4.4.1}
 \BOOKMARK [4][-]{paragraph.10.4.4.1.2}{is\137coast\(latitude, longitude[, nlat, nlon, data\137dir]\)}{subsubsection.10.4.4.1}
 \BOOKMARK [4][-]{paragraph.10.4.4.1.3}{fraction\137land\(latitude, longitude[, nlat, nlon, data\137dir]\)}{subsubsection.10.4.4.1}
 \BOOKMARK [3][-]{subsubsection.10.4.4.2}{acof2boxed\(filename[, min\137longitude]\)}{subsection.10.4.4}
-\BOOKMARK [3][-]{subsubsection.10.4.4.3}{get\137gshhs\(resolution, min\137area, max\137level, min\137longitude, max\137longitude, min\137latitude, max\137latitude, data\137dir\)}{subsection.10.4.4}
-\BOOKMARK [2][-]{subsection.10.4.5}{Reading Miscellaneous Geographic Files}{section.10.4}
-\BOOKMARK [3][-]{subsubsection.10.4.5.1}{get\137gridascii\(filename[, unit]\)}{subsection.10.4.5}
+\BOOKMARK [3][-]{subsubsection.10.4.4.3}{Functions based on GSHHS}{subsection.10.4.4}
+\BOOKMARK [4][-]{paragraph.10.4.4.3.1}{get\137gshhs\(resolution, min\137area, min\137longitude, max\137longitude, min\137latitude, max\137latitude, data\137dir\)}{subsubsection.10.4.4.3}
+\BOOKMARK [4][-]{paragraph.10.4.4.3.2}{read\137gshhs\(channelId, min\137area, min\137longitude, max\137longitude, min\137latitude, max\137latitude\)}{subsubsection.10.4.4.3}
+\BOOKMARK [2][-]{subsection.10.4.5}{Cartographic Projections}{section.10.4}
+\BOOKMARK [3][-]{subsubsection.10.4.5.1}{proj4gshhs\(in[, projection\137spec, want\137lat\137lon, nx, s, min\137area, resolution, data\137dir, lat\137min, lat\137max, lon\137min, lon\137max]\)}{subsection.10.4.5}
+\BOOKMARK [2][-]{subsection.10.4.6}{Reading Miscellaneous Geographic Files}{section.10.4}
+\BOOKMARK [3][-]{subsubsection.10.4.6.1}{get\137gridascii\(filename[, unit]\)}{subsection.10.4.6}
 \BOOKMARK [1][-]{section.10.5}{Miscellaneous Functions}{chapter.10}
 \BOOKMARK [2][-]{subsection.10.5.1}{Introduction}{section.10.5}
 \BOOKMARK [2][-]{subsection.10.5.2}{color\137wheel\(n, v, b\)}{section.10.5}
@@ -307,14 +314,15 @@
 \BOOKMARK [3][-]{subsubsection.11.3.4.4}{Procedure put\137cif1 napExpr [fileId [mode]]}{subsection.11.3.4}
 \BOOKMARK [2][-]{subsection.11.3.5}{Writing HDF and netCDF files}{section.11.3}
 \BOOKMARK [3][-]{subsubsection.11.3.5.1}{Procedure put16 napExpr fileName variableName}{subsection.11.3.5}
+\BOOKMARK [2][-]{subsection.11.3.6}{Utilities}{section.11.3}
+\BOOKMARK [3][-]{subsubsection.11.3.6.1}{Procedure byte\137order\137mode mode}{subsection.11.3.6}
 \BOOKMARK [1][-]{section.11.4}{Geographic Procedures}{chapter.11}
 \BOOKMARK [2][-]{subsection.11.4.1}{Introduction}{section.11.4}
-\BOOKMARK [2][-]{subsection.11.4.2}{Write ARC/INFO GRIDASCII file using put\137gridascii}{section.11.4}
-\BOOKMARK [3][-]{subsubsection.11.4.2.1}{Usage}{subsection.11.4.2}
-\BOOKMARK [3][-]{subsubsection.11.4.2.2}{Example}{subsection.11.4.2}
-\BOOKMARK [2][-]{subsection.11.4.3}{Write Surfer file using put\137text\137surfer}{section.11.4}
-\BOOKMARK [3][-]{subsubsection.11.4.3.1}{Usage}{subsection.11.4.3}
-\BOOKMARK [3][-]{subsubsection.11.4.3.2}{Example}{subsection.11.4.3}
+\BOOKMARK [2][-]{subsection.11.4.2}{GSHHS Procedures}{section.11.4}
+\BOOKMARK [3][-]{subsubsection.11.4.2.1}{dmp\137gshhs nrecords\137max npoints\137max out\137file\137name resolution min\137area min\137longitude max\137longitude min\137latitude max\137latitude data\137dir }{subsection.11.4.2}
+\BOOKMARK [3][-]{subsubsection.11.4.2.2}{list\137gshhs\137resolutions data\137dir}{subsection.11.4.2}
+\BOOKMARK [2][-]{subsection.11.4.3}{Write ARC/INFO GRIDASCII file using put\137gridascii}{section.11.4}
+\BOOKMARK [2][-]{subsection.11.4.4}{Write Surfer file using put\137text\137surfer}{section.11.4}
 \BOOKMARK [1][-]{section.11.5}{Map Projection Procedures}{chapter.11}
 \BOOKMARK [2][-]{subsection.11.5.1}{Introduction}{section.11.5}
 \BOOKMARK [2][-]{subsection.11.5.2}{projection code p0 p1 p2 \203}{section.11.5}
@@ -351,69 +359,69 @@
 \BOOKMARK [0][-]{chapter.13}{Nap Internal Details}{}
 \BOOKMARK [1][-]{section.13.1}{N-dimensional Array Objects \(NAOs\)}{chapter.13}
 \BOOKMARK [1][-]{section.13.2}{Nap Photo Image Format}{chapter.13}
-\BOOKMARK [0][-]{chapter.14}{Demonstrations of Nap}{}
-\BOOKMARK [1][-]{section.14.1}{Introduction to Demonstrations of Nap}{chapter.14}
-\BOOKMARK [1][-]{section.14.2}{Simple Nap}{chapter.14}
-\BOOKMARK [1][-]{section.14.3}{Constants}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.3.1}{Scalar Constants}{section.14.3}
-\BOOKMARK [2][-]{subsection.14.3.2}{Array Constants}{section.14.3}
-\BOOKMARK [2][-]{subsection.14.3.3}{String Constants}{section.14.3}
-\BOOKMARK [1][-]{section.14.4}{Arithmetic}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.4.1}{Binary arithmetic operators}{section.14.4}
-\BOOKMARK [2][-]{subsection.14.4.2}{Unary arithmetic operators - +}{section.14.4}
-\BOOKMARK [2][-]{subsection.14.4.3}{Ternary choice operator ?:}{section.14.4}
-\BOOKMARK [1][-]{section.14.5}{OOCs \(Object-Oriented Commands\)}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.5.1}{Display contents \(data and attributes\) of NAO}{section.14.5}
-\BOOKMARK [3][-]{subsubsection.14.5.1.1}{Default OOC}{subsection.14.5.1}
-\BOOKMARK [3][-]{subsubsection.14.5.1.2}{Method value: Display all lines and columns}{subsection.14.5.1}
-\BOOKMARK [3][-]{subsubsection.14.5.1.3}{Method head}{subsection.14.5.1}
-\BOOKMARK [3][-]{subsubsection.14.5.1.4}{Method all}{subsection.14.5.1}
-\BOOKMARK [3][-]{subsubsection.14.5.1.5}{Individual attributes}{subsection.14.5.1}
-\BOOKMARK [2][-]{subsection.14.5.2}{Method set: Change these contents}{section.14.5}
-\BOOKMARK [3][-]{subsubsection.14.5.2.1}{Set missing value}{subsection.14.5.2}
-\BOOKMARK [3][-]{subsubsection.14.5.2.2}{Set coordinate variable}{subsection.14.5.2}
-\BOOKMARK [2][-]{subsection.14.5.3}{Write data to \(netCDF\) file}{section.14.5}
-\BOOKMARK [1][-]{section.14.6}{Built-in Functions}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.6.1}{Built-in elemental functions}{section.14.6}
-\BOOKMARK [3][-]{subsubsection.14.6.1.1}{Mathematical Elemental Functions}{subsection.14.6.1}
-\BOOKMARK [3][-]{subsubsection.14.6.1.2}{Type-conversion Elemental Functions}{subsection.14.6.1}
-\BOOKMARK [3][-]{subsubsection.14.6.1.3}{Elemental Functions which test for Special Values}{subsection.14.6.1}
-\BOOKMARK [3][-]{subsubsection.14.6.1.4}{Elemental Function random, which generates random numbers}{subsection.14.6.1}
-\BOOKMARK [2][-]{subsection.14.6.2}{Non-elemental functions}{section.14.6}
-\BOOKMARK [3][-]{subsubsection.14.6.2.1}{Meta-data functions}{subsection.14.6.2}
-\BOOKMARK [3][-]{subsubsection.14.6.2.2}{Reduction functions applied to vector}{subsection.14.6.2}
-\BOOKMARK [3][-]{subsubsection.14.6.2.3}{Reduction functions applied to matrix defined above}{subsection.14.6.2}
-\BOOKMARK [3][-]{subsubsection.14.6.2.4}{Partial sum function psum}{subsection.14.6.2}
-\BOOKMARK [1][-]{section.14.7}{Constructing Arrays}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.7.1}{Arithmetic Progression}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.2}{Catenate: \(`//'\)}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.3}{Laminate \(`///'\)}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.4}{Reverse \(niladic `-'\)}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.5}{Replicate \(binary `\043'\)}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.6}{Function reshape}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.7}{Function transpose}{section.14.7}
-\BOOKMARK [2][-]{subsection.14.7.8}{Function sort}{section.14.7}
-\BOOKMARK [1][-]{section.14.8}{Indexing}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.8.1}{Indexing of vectors}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.2}{Inverse indexing of vectors \(position of specified value\)}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.3}{Indirect indexing \(via coordinate variable\)}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.4}{Shape-preserving indexing}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.5}{Indexing of Matrices}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.6}{Cross-product indexing to extract single element \(scalar\)}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.7}{Cross-product indexing to extract multiple elements}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.8}{Full indexing to extract single element}{section.14.8}
-\BOOKMARK [2][-]{subsection.14.8.9}{Full indexing to form a new array from randomly selected elements of an existing array}{section.14.8}
-\BOOKMARK [1][-]{section.14.9}{Linear algebra}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.9.1}{Solving System of Linear Equations}{section.14.9}
-\BOOKMARK [2][-]{subsection.14.9.2}{Inner-product operator \(`.'\)}{section.14.9}
-\BOOKMARK [2][-]{subsection.14.9.3}{Linear Regression}{section.14.9}
-\BOOKMARK [2][-]{subsection.14.9.4}{Multiple Regression}{section.14.9}
-\BOOKMARK [2][-]{subsection.14.9.5}{Least-squares Polynomial}{section.14.9}
-\BOOKMARK [1][-]{section.14.10}{Input/Output}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.10.1}{ASCII input/output}{section.14.10}
-\BOOKMARK [2][-]{subsection.14.10.2}{netCDF input/output}{section.14.10}
-\BOOKMARK [2][-]{subsection.14.10.3}{CIF Input/output}{section.14.10}
-\BOOKMARK [1][-]{section.14.11}{Defining Nap functions}{chapter.14}
-\BOOKMARK [1][-]{section.14.12}{Statistics}{chapter.14}
-\BOOKMARK [2][-]{subsection.14.12.1}{Elementary Descriptive Statistics \(Toy example\)}{section.14.12}
-\BOOKMARK [2][-]{subsection.14.12.2}{Example using real satellite data}{section.14.12}
+\BOOKMARK [0][-]{appendix.A}{Demonstrations of Nap}{}
+\BOOKMARK [1][-]{section.A.1}{Introduction to Demonstrations of Nap}{appendix.A}
+\BOOKMARK [1][-]{section.A.2}{Simple Nap}{appendix.A}
+\BOOKMARK [1][-]{section.A.3}{Constants}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.3.1}{Scalar Constants}{section.A.3}
+\BOOKMARK [2][-]{subsection.A.3.2}{Array Constants}{section.A.3}
+\BOOKMARK [2][-]{subsection.A.3.3}{String Constants}{section.A.3}
+\BOOKMARK [1][-]{section.A.4}{Arithmetic}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.4.1}{Binary arithmetic operators}{section.A.4}
+\BOOKMARK [2][-]{subsection.A.4.2}{Unary arithmetic operators - +}{section.A.4}
+\BOOKMARK [2][-]{subsection.A.4.3}{Ternary choice operator ?:}{section.A.4}
+\BOOKMARK [1][-]{section.A.5}{OOCs \(Object-Oriented Commands\)}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.5.1}{Display contents \(data and attributes\) of NAO}{section.A.5}
+\BOOKMARK [3][-]{subsubsection.A.5.1.1}{Default OOC}{subsection.A.5.1}
+\BOOKMARK [3][-]{subsubsection.A.5.1.2}{Method value: Display all lines and columns}{subsection.A.5.1}
+\BOOKMARK [3][-]{subsubsection.A.5.1.3}{Method head}{subsection.A.5.1}
+\BOOKMARK [3][-]{subsubsection.A.5.1.4}{Method all}{subsection.A.5.1}
+\BOOKMARK [3][-]{subsubsection.A.5.1.5}{Individual attributes}{subsection.A.5.1}
+\BOOKMARK [2][-]{subsection.A.5.2}{Method set: Change these contents}{section.A.5}
+\BOOKMARK [3][-]{subsubsection.A.5.2.1}{Set missing value}{subsection.A.5.2}
+\BOOKMARK [3][-]{subsubsection.A.5.2.2}{Set coordinate variable}{subsection.A.5.2}
+\BOOKMARK [2][-]{subsection.A.5.3}{Write data to \(netCDF\) file}{section.A.5}
+\BOOKMARK [1][-]{section.A.6}{Built-in Functions}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.6.1}{Built-in elemental functions}{section.A.6}
+\BOOKMARK [3][-]{subsubsection.A.6.1.1}{Mathematical Elemental Functions}{subsection.A.6.1}
+\BOOKMARK [3][-]{subsubsection.A.6.1.2}{Type-conversion Elemental Functions}{subsection.A.6.1}
+\BOOKMARK [3][-]{subsubsection.A.6.1.3}{Elemental Functions which test for Special Values}{subsection.A.6.1}
+\BOOKMARK [3][-]{subsubsection.A.6.1.4}{Elemental Function random, which generates random numbers}{subsection.A.6.1}
+\BOOKMARK [2][-]{subsection.A.6.2}{Non-elemental functions}{section.A.6}
+\BOOKMARK [3][-]{subsubsection.A.6.2.1}{Meta-data functions}{subsection.A.6.2}
+\BOOKMARK [3][-]{subsubsection.A.6.2.2}{Reduction functions applied to vector}{subsection.A.6.2}
+\BOOKMARK [3][-]{subsubsection.A.6.2.3}{Reduction functions applied to matrix defined above}{subsection.A.6.2}
+\BOOKMARK [3][-]{subsubsection.A.6.2.4}{Partial sum function psum}{subsection.A.6.2}
+\BOOKMARK [1][-]{section.A.7}{Constructing Arrays}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.7.1}{Arithmetic Progression}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.2}{Catenate: \(`//'\)}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.3}{Laminate \(`///'\)}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.4}{Reverse \(niladic `-'\)}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.5}{Replicate \(binary `\043'\)}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.6}{Function reshape}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.7}{Function transpose}{section.A.7}
+\BOOKMARK [2][-]{subsection.A.7.8}{Function sort}{section.A.7}
+\BOOKMARK [1][-]{section.A.8}{Indexing}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.8.1}{Indexing of vectors}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.2}{Inverse indexing of vectors \(position of specified value\)}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.3}{Indirect indexing \(via coordinate variable\)}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.4}{Shape-preserving indexing}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.5}{Indexing of Matrices}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.6}{Cross-product indexing to extract single element \(scalar\)}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.7}{Cross-product indexing to extract multiple elements}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.8}{Full indexing to extract single element}{section.A.8}
+\BOOKMARK [2][-]{subsection.A.8.9}{Full indexing to form a new array from randomly selected elements of an existing array}{section.A.8}
+\BOOKMARK [1][-]{section.A.9}{Linear algebra}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.9.1}{Solving System of Linear Equations}{section.A.9}
+\BOOKMARK [2][-]{subsection.A.9.2}{Inner-product operator \(`.'\)}{section.A.9}
+\BOOKMARK [2][-]{subsection.A.9.3}{Linear Regression}{section.A.9}
+\BOOKMARK [2][-]{subsection.A.9.4}{Multiple Regression}{section.A.9}
+\BOOKMARK [2][-]{subsection.A.9.5}{Least-squares Polynomial}{section.A.9}
+\BOOKMARK [1][-]{section.A.10}{Input/Output}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.10.1}{ASCII input/output}{section.A.10}
+\BOOKMARK [2][-]{subsection.A.10.2}{netCDF input/output}{section.A.10}
+\BOOKMARK [2][-]{subsection.A.10.3}{CIF Input/output}{section.A.10}
+\BOOKMARK [1][-]{section.A.11}{Defining Nap functions}{appendix.A}
+\BOOKMARK [1][-]{section.A.12}{Statistics}{appendix.A}
+\BOOKMARK [2][-]{subsection.A.12.1}{Elementary Descriptive Statistics \(Toy example\)}{section.A.12}
+\BOOKMARK [2][-]{subsection.A.12.2}{Example using real satellite data}{section.A.12}

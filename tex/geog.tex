@@ -1,4 +1,4 @@
-%  $Id: geog.tex,v 1.9 2006/09/28 08:18:52 dav480 Exp $ 
+%  $Id: geog.tex,v 1.13 2007/11/09 09:32:08 dav480 Exp $ 
     % Nap Library: Geographic
 
 \section{Geographic Functions}
@@ -197,9 +197,10 @@ If the Earth's radius is
     \label{geog-land}
 
 Functions \texttt{is\_land}, \texttt{is\_coast} and \texttt{fraction\_land} produce grid results.
-Functions \texttt{acof2boxed} and \texttt{get\_gshhs} produce boxed arrays of polyline shorelines.
+Function \texttt{acof2boxed} produces a boxed array of polyline matrix NAOs.
+Function \texttt{get\_gshhs} produces a {\em linked list} of polyline matrix NAOs.
 
-\subsubsection{Functions based on \texttt{land\_flag}}
+\subsubsection{Functions based on \texttt{nap\_land\_flag}}
 \label{land-flag-functions}
 
 The functions 
@@ -444,30 +445,17 @@ can be used in conjunction with \texttt{plot\_nao} to draw shorelines:
 plot_nao u -overlay "E acof2boxed('nz_tas.acof')"
 \end{verbatim}
 
-\subsubsection{\texttt{get\_gshhs(}$\mathit{resolution}$\texttt{,} 
-$\mathit{min\_area}$\texttt{,} 
-$\mathit{max\_level}$\texttt{,} 
-$\mathit{min\_longitude}$\texttt{,} 
-$\mathit{max\_longitude}$\texttt{,} 
-$\mathit{min\_latitude}$\texttt{,} 
-$\mathit{max\_latitude}$\texttt{,} 
-$\mathit{data\_dir}$\texttt{)}}
-    \label{geog-get-gshhs}
+\subsubsection{Functions based on GSHHS}
+\label{gshhs-functions}
 
-Read 
+The following functions are defined in the file \texttt{gshhs.tcl}.
 \href{http://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html}
 {\emph{GSHHS}}
-(Global Self-consistent Hierarchical High-resolution Shorelines)
-shoreline data and return a boxed nao.
-
-Each element of this boxed nao result is a 2-row matrix.
-Row 0 contains longitudes.
-Row 1 contains latitudes.
-These coordinates define a polyline shoreline of an island, lake, etc.
-
-Function \texttt{get\_gshhs} is defined in the file \texttt{gshhs.tcl}.
-
-GSHHS is distributed with the following data files:
+stands for
+\emph{Global Self-consistent Hierarchical High-resolution Shorelines}.
+This data was produced by the National Geophysical Data Center (NGDC), which is part of
+the U.S. National Oceanic and Atmospheric Administration (NOAA).
+GSHHS includes the following data files:
 
 \begin{tabular}{|l|l|r|r|}
 \hline
@@ -482,46 +470,129 @@ Filename & Description & Resolution & File Size \\
 \end{tabular}
 
 Only the crude, low and intermediate resolution files are distributed with Nap.
-If higher resolution is required then copy the required files to the data directory before
-calling \texttt{get\_gshhs}.
+If higher resolution is required then copy the required files to the
+{\em GSHHS data directory}.
+
+The {\em GSHHS data directory} contains GSHHS files with various resolutions.
+This directory can be specified using an optional argument of each function.
+The default directory is
+    \\
+    $\mathit{tcl\_root}$\texttt{/lib/nap*.*/data/gshhs}
+    \\
+     unless the environment variable
+    \texttt{GSHHS\_DATA\_DIR}
+     is defined to overide this.
+
+Function \texttt{proj4gshhs}, described in section \ref{geog-proj4gshhs},
+overlays a GSHHS coastline on various map projections.
+
+\paragraph{\texttt{get\_gshhs(}$\mathit{resolution}$\texttt{,} 
+$\mathit{min\_area}$\texttt{,} 
+$\mathit{min\_longitude}$\texttt{,} 
+$\mathit{max\_longitude}$\texttt{,} 
+$\mathit{min\_latitude}$\texttt{,} 
+$\mathit{max\_latitude}$\texttt{,} 
+$\mathit{data\_dir}$\texttt{)}\\}
+    \label{geog-get-gshhs}
+
+Read GSHHS data to produce a {\em linked list} of \texttt{f64} NAOs.
+Each NAO defines the polyline shoreline (of an island, lake, etc.)
+and is a matrix with two rows containing longitudes and latitudes respectively.
+Each NAO (except the final one) points to the next using the
+the {\em link} component described in sections
+\ref{ooc-meta-link}, \ref{ooc-modify-set-link} and \ref{nao}.
 
 The arguments are:
 \begin{simpleitems}
 \item $\mathit{resolution}$ (default: 1):
     Required accuracy (km).
     This determines which data file is used.
-\item $\mathit{min\_area}$ (default: 0):
-    Exclude polygons whose area (square km) is less than $\mathit{min\_area}$.
-\item $\mathit{max\_level}$ (default: 4):
-    Exclude polygons whose $\mathit{level} > \mathit{max\_level}$.
-    The value of $\mathit{level}$ is
-    1 for \emph{land},
-    2 for \emph{lake},
-    3 for \emph{island in lake}
-    and
-    4 for \emph{pond in island in lake}.
+\item $\mathit{min\_area}$ (default: \texttt{"\{-1 -1 -1 -1\}"}): \\
+This is a four-element vector specifying the minimum area (square km) of:
+    \begin{bullets}
+	\item land with sea boundary,
+	\item lake (including inland sea),
+	\item island in lake,
+	\item pond in island in lake.
+    \end{bullets}
+If the value is scalar or contains less than 4 elements
+then the final element is repeated to give a 4-element vector.
+A value of $-1$ is treated as $\mathit{resolution}^2/4$.
 \item $\mathit{min\_longitude}$ (default: $-180$):
-    Left boundary of region. Resultant longitudes range from 
-    $\mathit{min\_longitude}$ to $\mathit{min\_longitude + 360}$.
-\item $\mathit{max\_longitude}$ (default: $\mathit{min\_longitude + 360}$):
+    Left boundary of region. 
+\item $\mathit{max\_longitude}$ (default: $\mathit{min\_longitude} + 360$):
     Right boundary of region.
 \item $\mathit{min\_latitude}$ (default: $-90$):
     Bottom boundary of region.
 \item $\mathit{max\_latitude}$ (default: $90$):
     Top boundary of region.
 \item $\mathit{data\_dir}$:
-    Directory containing GSHHS files with various resolutions. The default is
-    \\
-    $\mathit{tcl\_root}$\texttt{/lib/nap*.*/data/gshhs}
-     unless environment variable
-    \texttt{GSHHS\_DATA\_DIR}
-     is defined to overide this.
+    GSHHS data directory (see above)
 \end{simpleitems}
 
-The following example shows how \texttt{get\_gshhs}
-can be used in conjunction with \texttt{plot\_nao} to draw shorelines:
-\\
-\texttt{plot\_nao u -overlay "E get\_gshhs(25)"}
+An example of the use of \texttt{get\_gshhs}
+can be found in the definition of the library function \texttt{proj4gshhs} in the library
+file \texttt{proj4.tcl}.
+
+\paragraph{\texttt{read\_gshhs(}$\mathit{channelId}$\texttt{,} 
+$\mathit{min\_area}$\texttt{,} 
+$\mathit{min\_longitude}$\texttt{,} 
+$\mathit{max\_longitude}$\texttt{,} 
+$\mathit{min\_latitude}$\texttt{,} 
+$\mathit{max\_latitude}$\texttt{)}\\}
+    \label{geog-read-gshhs}
+
+Read next record of GSHHS data which satifies the specified conditions.
+The first argument is the Tcl I/O channel (file) ID.
+The remaining arguments are the same as those described above for function \texttt{get\_gshhs} in
+section \ref{geog-get-gshhs}.
+The data is read using the \texttt{nap\_get} command.
+
+\subsection{Cartographic Projections}
+    \label{geog-Cartographic}
+
+The following functions are defined in the file \texttt{proj4.tcl}
+and are based on the built-in cartographic projections functions described in
+\ref{function-Cart-Proj}.
+
+\subsubsection{\texttt{proj4gshhs(}$\mathit{in}$[\texttt{,}
+$\mathit{projection\_spec}$\texttt{,}
+$\mathit{want\_lat\_lon}$\texttt{,}
+$\mathit{nx}$\texttt{,}
+$\mathit{s}$\texttt{,}
+$\mathit{min\_area}$\texttt{,}
+$\mathit{resolution}$\texttt{,}
+$\mathit{data\_dir}$\texttt{,}
+$\mathit{lat\_min}$\texttt{,}
+$\mathit{lat\_max}$\texttt{,}
+$\mathit{lon\_min}$\texttt{,}
+$\mathit{lon\_max}$]\texttt{)}}
+    \label{geog-proj4gshhs}
+
+This performs the forward mapping of any PROJ.4 projection.
+The input matrix has latitude and longitude as coordinate variables.
+GSHHS (see section \ref{gshhs-functions})
+shorelines are overlaid unless suppressed by setting $s$ to be an empty vector.
+The arguments are:
+\begin{simpleitems}
+\item $\mathit{in}$ Input matrix
+\item $\mathit{projection\_spec}$ PROJ.4 specification. (default: \texttt{'proj=eqc'})
+\item $\mathit{want\_lat\_lon}$ Type of coordinate variables of result: \\
+    $0=$ northing and easting (This is default), \\
+    $1=$ latitude and longitude (Legal only for projections which produce
+    rows of constant latitude and columns of constant longitude)
+\item $\mathit{nx}$ Number of columns in result (default: number of input columns)
+\item $\mathit{s}$ Shoreline value (scalar). No shorelines if s is \texttt{\{\}} (empty vector).
+    (default: missing value)
+\item $\mathit{min\_area}$ Exclude shoreline polygons whose area (square km)
+$< \mathit{min\_area}$ (default: 0)
+\item $\mathit{resolution}$ Required shoreline accuracy (km). (default: mean input latitude step)
+\item $\mathit{data\_dir}$ GSHHS data directory (default: \texttt{''} giving GSHHS default)
+\item $\mathit{lat\_min}$ Minimum latitude in result (default: minimum input latitude)
+\item $\mathit{lat\_max}$ Maximum latitude in result (default: maximum input latitude)
+\item $\mathit{lon\_max}$ Minimum longitude in result (default: minimum input longitude)
+\item $\mathit{lon\_max}$ Maximum longitude in result (default: maximum input longitude)
+\end{simpleitems}
 
 \subsection{Reading Miscellaneous Geographic Files}
     \label{geog-Reading}

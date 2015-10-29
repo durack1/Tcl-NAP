@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: function.c,m4,v 1.15 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: function.c,m4,v 1.17 2007/11/01 09:01:30 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -256,14 +256,14 @@ Nap_Reshape(
 	for (i = 0; i < naoPtr3->nels; i++) {
 	    shape[i] = naoPtr3->data.I32[i];
 	}
-	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, naoPtr3->nels, shape, 1, 0);
+	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, naoPtr3->nels, shape, 1, 0, 0);
 	Nap_IncrRefCount(nap_cd, new);
 	Nap_DecrRefCount(nap_cd, naoPtr3);
 	CHECK2NULL(new, "m4NAME: error calling Nap_ReshapeNAO2");
 	Nap_DecrRefCount(nap_cd, naoPtr2);
     } else {
 	shape[0] = naoPtr1->nels;
-	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, 1, shape, 1, 0);
+	new = Nap_ReshapeNAO2(nap_cd, naoPtr1, naoPtr1->dataType, 1, shape, 1, 0, 0);
 	Nap_IncrRefCount(nap_cd, new);
 	CHECK2NULL(new, "m4NAME: error calling Nap_ReshapeNAO2");
     }
@@ -2311,6 +2311,8 @@ boxed_function(
 	result = Nap_cart_proj_fwd(nap_cd, boxed);
     } else if (strcmp(name, "cart_proj_inv") == 0) {
 	result = Nap_cart_proj_inv(nap_cd, boxed);
+    } else if (strcmp(name, "clip2d") == 0) {
+	result = Nap_clip2d(nap_cd, boxed);
     } else if (strcmp(name, "correlation") == 0) {
 	result = Nap_Correlation(nap_cd, boxed);
     } else if (strcmp(name, "dilate") == 0) {

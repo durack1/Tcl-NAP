@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.153 2006/06/29 05:08:57 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.154 2006/11/30 03:07:40 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -764,6 +764,6 @@ Nap_AP(
     Nap_DecrRefCount(nap_cd, naoStep);
     Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);
-    result->step = NAP_EQUAL;
+    result->step = NAP_STEP_EQUAL;
     return result->id;
 }

@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.53 2006/09/19 02:28:52 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.55 2006/11/21 00:32:00 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -38,6 +38,53 @@ namespace eval ::NAP {
 	    }
 	    nap "from .. to ... step"
 	}
+    }
+
+
+    # boxed2mask --
+    #
+    # Convert boxed polylines in some coordinate system to single matrix with coordinate
+    # variables corresponding to that coordinate system
+    #
+    # Usage
+    #   boxed2mask(x, y, b)
+    #   where
+    #	    x is desired coordinate variable in x direction
+    #	    y is desired coordinate variable in y direction
+    #	    b is a boxed vector pointing to boxed polylines in x,y coordinate system
+    #
+    # Example
+    #   nap "longitude = -180 .. 180"
+    #   nap "latitude  =  -90 .. 90"
+    #   $longitude set unit degrees_east
+    #   $latitude  set unit degrees_north
+    #   nap "m = boxed2mask(longitude, latitude, get_gshhs(25))"
+    #
+    # Note that the fact that b is boxed means that x, y and b are merged into a single
+    # argument 'args' which is Tcl list of OOC-names.
+
+    proc boxed2mask {
+	args
+    } {
+	set proc_name boxed2mask
+	nap "x = [lindex $args 0]"
+	if {[$x rank] != 1} {
+	    error "$proc_name: argument x is not vector"
+	}
+	nap "y = [lindex $args 1]"
+	if {[$y rank] != 1} {
+	    error "$proc_name: argument y is not vector"
+	}
+	nap "result = reshape(0f32, nels(y) // nels(x))"
+	$result set coord y x
+	foreach arg $args {
+	    switch [$arg rank] {
+		1	{}
+		2	{$result draw "x @@ arg(0,) /// y @@ arg(1,)" 1f32}
+		default {error "$proc_name: argument b points to NAO with rank other than 1 or 2"}
+	    }
+	}
+	nap "u8 result"
     }
 
 

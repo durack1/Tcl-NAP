@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001-2004, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: geog.tcl,v 1.12 2006/09/08 02:47:52 dav480 Exp $
+# $Id: geog.tcl,v 1.13 2007/04/11 06:37:14 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -397,7 +397,7 @@ proc put_gridascii {
     if {$xstep <= 0} {
 	error "put_gridascii: longitude step size <= 0"
     }
-    if {$xstep != abs($ystep)} {
+    if {abs($xstep - abs($ystep)) > 0.01 * abs($xstep)} {
 	error "put_gridascii: latitude step size differs from longitude step size"
     }
     nap "row = 0 .. (nels(y) - 1)"

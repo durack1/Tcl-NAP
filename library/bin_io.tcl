@@ -4,7 +4,33 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: bin_io.tcl,v 1.23 2005/07/28 06:47:03 dav480 Exp $
+# $Id: bin_io.tcl,v 1.24 2007/11/09 04:04:42 dav480 Exp $
+
+
+# byte_order_mode
+#
+# Result is "binary" or "swap"
+#
+# Argument has value "auto", "bigEndian", "binary", "littleEndian" or "swap"
+# These can be abbreviated to unique prefix
+# Note that "auto" is treated as "bigEndian" for historic reasons 
+
+proc byte_order_mode {
+    mode
+} {
+    switch -glob $mode {
+	a*	{set mode bigEndian}
+	big*	{set mode bigEndian}
+	bin*	{return binary}
+	l*	{set mode littleEndian}
+	s*	{return swap}
+	default	{error {byte_order_mode: illegal argument} }
+    }
+    if {$mode eq $::tcl_platform(byteOrder)} {
+	return binary
+    }
+    return swap
+}
 
 
 # check --
@@ -371,13 +397,7 @@ proc put_cif1 {
     {mode auto}
     {missing_value -7777777f32}
 } {
-    if {$mode eq "auto"} {
-	if {$::tcl_platform(byteOrder) eq "littleEndian"} {
-	    set mode swap
-	} else {
-	    set mode binary
-	}
-    }
+    set mode [byte_order_mode $mode]
     nap "nao = [uplevel "nap \"f32($nap_expr)\""]"
     set rank [$nao rank]
     check {$rank == 2} "put_cif1: rank is $rank but should be 2"

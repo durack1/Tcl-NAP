@@ -1,4 +1,4 @@
-%  $Id: bin_io.tex,v 1.9 2006/09/22 06:28:17 dav480 Exp $ 
+%  $Id: bin_io.tex,v 1.11 2007/12/01 05:43:36 dav480 Exp $ 
     % Nap Library: bin\_io.tcl
 
 \section{Binary Input/Output Procedures}
@@ -319,7 +319,8 @@ Value:
 \subsection{Writing HDF and netCDF files}
     \label{bin-io-hdf-netcdf}
 
-\subsubsection{Procedure \texttt{put16} $napExpr$ $\mathit{fileName}$ $\mathit{variableName}$}
+\subsubsection{Procedure \texttt{put16} $\mathit{napExpr}$
+$\mathit{fileName}$ $\mathit{variableName}$}
     \label{bin-io-put16}
 
   Write automatically-scaled 16-bit variable to netCDF or HDF
@@ -336,4 +337,47 @@ Value:
 Example:
   \begin{verbatim}
 % put16 "{{1.2e4 -99 _}{_ 101 0}}" m.nc matrix
+\end{verbatim}
+
+\subsection{Utilities}
+    \label{bin-io-Utilities}
+
+\subsubsection{Procedure \texttt{byte\_order\_mode} $\mathit{mode}$}
+    \label{bin-io-byte-order-mode}
+
+Binary I/O may require byte swapping.
+Some Nap commands take an argument with the value \texttt{"swap"} to specify \emph{byte swapping}
+and \texttt{"binary"} to specify \emph{no byte swapping}.
+
+The need for byte swapping depends on two things.
+Is the file big-endian or little-endian?
+Is the computer platform big-endian or little-endian?
+
+Procedure \texttt{byte\_order\_mode} allows one to specify whether 
+the file is big-endian or little-endian without having to worry about whether
+this matches the platform.
+The result of this procedure is \texttt{"binary"} or \texttt{"swap"}.
+
+The argument can be the value \texttt{"auto"}, \texttt{"bigEndian"}, \texttt{"binary"},
+\texttt{"littleEndian"} or \texttt{"swap"}.
+These can be abbreviated to a unique prefix.
+Note that \texttt{"auto"} is treated as \texttt{"bigEndian"} for historic reasons.
+
+The following example (run on a little-endian PC) shows how \texttt{byte\_order\_mode} 
+can be used with
+the \texttt{nap\_get} command (see section \ref{nap-get-Reading-Binary-Data})
+and the binary output object-oriented commands (see sections \ref{ooc-write-binary}
+and \ref{ooc-write-swap}).
+  \begin{verbatim}
+% set mode [byte_order_mode bigEndian]
+swap
+% set f [open a.big w]
+file131c788
+% [nap "0 .. 3"] $mode $f
+% close $f
+% set f [open a.big]
+file131c788
+% [nap_get $mode $f i32]
+0 1 2 3
+% close $f
 \end{verbatim}

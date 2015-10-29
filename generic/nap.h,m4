@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.213 2006/09/26 12:36:06 dav480 Exp $
+ * $Id: nap.h,m4,v 1.219 2007/11/01 09:00:17 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -129,6 +129,13 @@ m4dnl	If you see this line, you can ignore the next one.
     #define IsNaN_F32 IsNaN32
 #endif /* IsNaN_F32 */
 
+#ifndef IsInf_F32
+    #define IsInf_F32(x)       ((x) == -napF32Inf  ||  (x) == napF32Inf)
+#endif /* IsInf_F32 */
+#ifndef IsInf_F64
+    #define IsInf_F64(x)       ((x) == -napF64Inf  ||  (x) == napF64Inf)
+#endif /* IsInf_F64 */
+
 /*
  *  Nap_GetNaoFromSlot gives pointer to nao corresponding to its slot
  */
@@ -165,14 +172,15 @@ m4ForAllIntegerDataType(`m4tmp(', `)')
  *  & if so whether it is arithmetic progression.
  */
 typedef enum {
-    NAP_UNKNOWN,
-    NAP_BOTH,		/* at least one positive step & one negative step */
-    NAP_NON_NEGATIVE,	/* all steps >= 0 */
-    NAP_NON_POSITIVE,	/* all steps <= 0 */
-    NAP_EQUAL		/* equal steps (except final one - may be shorter) */
+    NAP_STEP_UNKNOWN,
+    NAP_STEP_NULL,		/* contains missing values or rank not 1 or nels < 2 */
+    NAP_STEP_BOTH,		/* at least one positive step & one negative step */
+    NAP_STEP_NON_NEGATIVE,	/* all steps >= 0 */
+    NAP_STEP_NON_POSITIVE,	/* all steps <= 0 */
+    NAP_STEP_EQUAL		/* equal steps (except final one - may be shorter) */
 } Nap_step;
 
-#define Nap_Valid_step(x) ( (x) >= NAP_UNKNOWN && (x) <= NAP_EQUAL )
+#define Nap_Valid_step(x) ( (x) >= NAP_STEP_UNKNOWN && (x) <= NAP_STEP_EQUAL )
 
     /* nap data types */
 typedef unsigned char	Nap_c8;
@@ -358,7 +366,8 @@ typedef struct Nao {			/* numeric array object */
     char		*id;		/* e.g. "nao.42-9" */
     int			count;		/* reference count */
     struct NapClientData_struct	*nap_cd; /* structure containing data previously global */
-    Nap_dataType	dataType;
+    Nap_dataType	dataType;	/* current data-type */
+    Nap_dataType	dataType0;	/* original data-type */
     Nap_step		step;		/* efficiency hint for vectors */
     char		mortal;		/* FALSE = do not delete */
     char		*format;	/* C format for printing */
@@ -366,6 +375,7 @@ typedef struct Nao {			/* numeric array object */
     char		*unit;		/* unit of measure in string form */
     int			rank;		/* # dimensions */
     size_t		nels;		/* product(shape) */
+    size_t		nels0;		/* original value of nels */
     size_t		nbytes;		/* size of nao. Mainly for debugging */
     struct Nao		*boxedCV;	/* boxed NAO pointing to coord-vars (NULL if no Cvs) */
     int			linkSlot;	/* slot of link NAO (0 = none) */
@@ -490,6 +500,7 @@ EXTERN char		*Nap_BitOr(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_BitXor(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_cart_proj_fwd(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN char		*Nap_cart_proj_inv(NapClientData *nap_cd, Nap_NAO *box_nao);
+EXTERN char		*Nap_clip2d(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN Nap_NAO		*Nap_CastNAO(NapClientData *nap_cd, Nap_NAO *old, Nap_dataType dataType);
 EXTERN char		*Nap_Cat(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Ceil(NapClientData *nap_cd, char *str);
@@ -511,6 +522,7 @@ EXTERN void		Nap_DecrRefCount(NapClientData *nap_cd, Nap_NAO *naoPtr);
 EXTERN char		*Nap_dilate(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN char		*Nap_Div(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN Nap_NAO		*Nap_DupNAO(NapClientData *nap_cd, Nap_NAO *old);
+EXTERN Nap_NAO		*Nap_DupAllNAO(NapClientData *nap_cd, Nap_NAO *old);
 EXTERN char		*Nap_Eq(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_erode(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN char		*Nap_expression(NapClientData *nap_cd, Tcl_Obj *obj_expr,
@@ -606,7 +618,7 @@ EXTERN Nap_NAO		*Nap_ReshapeNAO(NapClientData *nap_cd, Nap_NAO *old,
 				Nap_dataType dataType, int rank, size_t *shape);
 EXTERN Nap_NAO		*Nap_ReshapeNAO2(NapClientData *nap_cd, Nap_NAO *old,
 				Nap_dataType dataType, int rank, size_t *shape,
-				int want_text, int want_dims);
+				int want_text, int want_dims, int want_mv);
 EXTERN Nap_NAO		*Nap_ReshapeNAO_trailing(NapClientData *nap_cd, Nap_NAO *old,
 				Nap_dataType dataType, int rank, size_t *shape);
 EXTERN char		*Nap_Round(NapClientData *nap_cd, char *str);

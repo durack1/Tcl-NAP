@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.33 2006/09/14 07:26:31 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.36 2007/11/09 04:18:14 dav480 Exp $
 
 puts "\n******* At end click on 'cancel' button in window .plot_nao12 *******\n"
 
@@ -22,6 +22,7 @@ if {![info exists nap_version]} {
 
 # Test plot_nao
 
+source $env(LIBRARY_DIR)/bin_io.tcl
 source $env(LIBRARY_DIR)/choose_file.tcl
 source $env(LIBRARY_DIR)/colour.tcl
 source $env(LIBRARY_DIR)/geog.tcl
@@ -34,6 +35,7 @@ source $env(LIBRARY_DIR)/plot_nao.tcl
 source $env(LIBRARY_DIR)/plot_nao_procs.tcl
 source $env(LIBRARY_DIR)/proc_lib.tcl
 source $env(LIBRARY_DIR)/print_gui.tcl
+source $env(LIBRARY_DIR)/proj4.tcl
 source $env(LIBRARY_DIR)/select_font.tcl
 source $env(LIBRARY_DIR)/stat.tcl
 
@@ -98,9 +100,9 @@ set window [plot_nao "is_coast(-90.0 .. 90.0, -180 .. 180, 1)" -overlay N]
 
 # get_gridascii
 
-nap "coast = get_gshhs(25, 1e3, 4, 112, 156.25, -44.5, -10)"
-set window [plot_nao "get_gridascii('$env(TEST_DATA_DIR)/mx1950-01.gridascii')" -overlay "E coast"]
-unset coast
+nap "ga = get_gridascii('$env(TEST_DATA_DIR)/mx1950-01.gridascii')"
+set window [plot_nao "proj4gshhs(ga, '', 0, _, 1e3, 25)"]
+unset ga
 
 # inPolygon
 

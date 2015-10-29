@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.196 2006/10/05 06:33:33 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.199 2006/10/20 01:17:15 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -132,13 +132,13 @@ OBJS = \
 
 PACKAGE = nap
 MAJOR_VERSION = 6
-MINOR_VERSION = 2
-PATCHLEVEL = .3
-VERSION = 6.2
-NODOT_VERSION = 6_2
-NODOT_PATCHLEVEL = 3
-USE_VERSION = 6_2
-USE_PATCHLEVEL = 3
+MINOR_VERSION = 4
+PATCHLEVEL = .0
+VERSION = 6.4
+NODOT_VERSION = 6_4
+NODOT_PATCHLEVEL = 0
+USE_VERSION = 6_4
+USE_PATCHLEVEL = 0
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -151,7 +151,7 @@ ROOT = /cygdrive/c/dav480/tcl
 DATA_DIR = $(TOP_DIR)/data
 GSHHS_DATA_DIR = $(DATA_DIR)/gshhs
 LAND_FLAG_DATA_DIR = $(DATA_DIR)/land_flag
-PROJ_DATA_DIR = /cygdrive/c/dav480/proj/use/share/proj
+PROJ_DATA_DIR = /cygdrive/c/dav480/proj/share/proj
 GENERIC_DIR = $(TOP_DIR)/generic
 HTML_DIR = $(TOP_DIR)/html
 INSTALLER_DIR = $(TOP_DIR)/installer
@@ -165,7 +165,7 @@ TEX_DIR = $(TOP_DIR)/tex
 
 HOST_OS = CYGWIN_NT-5.1
 PLATFORM = windows
-system = CYGWIN_NT-5.1-1.5.19(0.150/4/2)
+system = CYGWIN_NT-5.1-1.5.23(0.156/4/2)
 
 #------------------------------------------------------------------------------
 # miscellaneous platform-specific items
@@ -175,7 +175,7 @@ CP = cp -f
 DEBUGGER = dbx
 XDEBUGGER = xxgdb
 ECHO = printf '%s\n'
-M4 = /usr/bin/m4 -s -B999000
+M4 = /usr/bin/m4 -s
 MKDIR = mkdir -p
 NATIVE_PATH = cygpath -m
 RANLIB = ranlib
@@ -214,9 +214,9 @@ CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
 CPPFLAGS =  $(DEFS) $(INCLUDES)
 HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
 NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
-PROJ_HEADER_DIR = /cygdrive/c/dav480/proj/use/include
-TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include
-DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"6.2\" -DPATCHLEVEL=\".3\" -DBUILD_nap=1 -DWIN32=1 
+PROJ_HEADER_DIR = /cygdrive/c/dav480/proj/include
+TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include8.4
+DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DUSE_TK_STUBS=1 -DISNAN64=_isnan -DVERSION=\"6.4\" -DPATCHLEVEL=\".0\" -DBUILD_nap=1 -DWIN32=1
 INCLUDES = \
 	-I`$(NATIVE_PATH) $(GENERIC_DIR)` \
 	-I`$(NATIVE_PATH) $(NC_HEADER_DIR)` \
@@ -249,29 +249,28 @@ LDFLAGS_OUT = -out:
 LINK = link $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 SHLIB_LD = link -dll -nologo $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 
+LD_LIBRARY_PATH = c:/dav480/tcl/lib:/cygdrive/c/dav480/lib:/cygdrive/c/dav480/tcl_new/lib:/cygdrive/c/dav480/tcl/lib:/usr/local/lib:/usr/lib:/lib:/usr/X11R6/lib:
 TCL_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tcl84$(DBGX).lib
 TCL_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tclstub84$(DBGX).lib
-TK_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tk84$(DBGX).lib
 TK_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tkstub84$(DBGX).lib
 HDF_LIB_PATH = /cygdrive/c/dav480/hdf/use/dll/hd421m.lib /cygdrive/c/dav480/hdf/use/dll/hm421m.lib
 HDF_LIB_SPEC = 'c:/dav480/hdf/42r1-win/release/dll/hd421m.lib' 'c:/dav480/hdf/42r1-win/release/dll/hm421m.lib'
 NC_LIB_PATH = /cygdrive/c/dav480/nc/use/lib/netcdf.lib
-NC_LIB_SPEC = 'c:/dav480/nc/netcdf-3.6.1-win32/lib/netcdf.lib'
-PROJ_LIB_PATH = /cygdrive/c/dav480/proj/use/lib/proj.lib
-PROJ_LIB_SPEC = 'c:/dav480/proj/use/lib/proj.lib'
+NC_LIB_SPEC = 'c:/dav480/nc/netcdf-3.6.1win/lib/netcdf.lib'
+PROJ_LIB_PATH = /cygdrive/c/dav480/proj/lib/proj.lib
+PROJ_LIB_SPEC = 'c:/dav480/proj/lib/proj.lib'
 
-TK_LIB_SPEC = 'c:/dav480/tcl/lib/tk84$(DBGX).lib'
-TCL_LINK_SPEC = 'c:/dav480/tcl/lib/tcl84$(DBGX).lib' 'c:/dav480/tcl/lib/tclstub84$(DBGX).lib'
-TCL_SHLIB_SPEC = 'c:/dav480/tcl/lib/tclstub84$(DBGX).lib' 
+TCL_LINK_SPEC = 'c:/dav480/tcl/lib/tcl84$(DBGX).lib' 'c:/dav480/tcl/lib/tk84$(DBGX).lib'
+TCL_SHLIB_SPEC = 'c:/dav480/tcl/lib/tclstub84$(DBGX).lib' 'c:/dav480/tcl/lib/tkstub84$(DBGX).lib' 
 
 LIBS = 
 MATH_LIBS = 
 XLIBSW = 
-SYS_LIBS = -nodefaultlib 'c:/PROGRA~1/MICROS~3/VC98/lib/msvcrt.lib' 'c:/PROGRA~1/MICROS~3/VC98/lib/oldnames.lib' 'c:/PROGRA~1/MICROS~3/VC98/lib/kernel32.lib'
+SYS_LIBS = -nodefaultlib 'c:/Program Files/Microsoft Visual Studio/VC98/lib/msvcrt.lib' 'c:/Program Files/Microsoft Visual Studio/VC98/lib/oldnames.lib' 'c:/Program Files/Microsoft Visual Studio/VC98/lib/kernel32.lib'
 STD_LIBS = $(MATH_LIBS) $(XLIBSW) $(SYS_LIBS)
 MISC_LIB_SPECS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(PROJ_LIB_SPEC)
-LINK_LIBS     = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
-SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
+LINK_LIBS     = $(MISC_LIB_SPECS) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
+SHLIB_LD_LIBS = $(MISC_LIB_SPECS) $(TCL_SHLIB_SPEC) $(STD_LIBS)
 
 #------------------------------------------------------------------------------
 # Tcl directories and files
@@ -361,7 +360,7 @@ exec_prefix = /cygdrive/c/dav480/tcl
 bindir = ${exec_prefix}/bin
 datadir = ${prefix}/share
 libdir = ${exec_prefix}/lib
-mandir = ${prefix}/man
+mandir = ${prefix}/share/man
 includedir = $(TCL_HEADER_DIR)
 PACKAGE_LIBRARY_DIR = $(libdir)/$(PACKAGE)$(VERSION)
 SHLIB_DIR = ${bindir}
@@ -428,7 +427,7 @@ $(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB) $(SHLIB_DIR)
 	    $(CP) $(PACKAGE_IMPORT_LIB) $(libdir); fi
 
 HDF_DLL_DIR = /cygdrive/c/dav480/hdf/use/dll
-NC_DLL_DIR  = /cygdrive/c/dav480/nc/use/bin
+NC_DLL_DIR  = /cygdrive/c/dav480/nc/use/lib
 
 $(bindir):
 	$(MKDIR) $@
@@ -474,7 +473,6 @@ LIB_PATHS = \
 	$(PROJ_LIB_PATH) \
 	$(TCL_LIB_PATH) \
 	$(TCL_STUB_LIB_PATH) \
-	$(TK_LIB_PATH) \
 	$(TK_STUB_LIB_PATH)
 
 $(PACKAGE_SHLIB): $(OBJS) $(LIB_PATHS)
@@ -769,6 +767,7 @@ ENV = \
 	PROJ_LIB="`$(NATIVE_PATH) $(PROJ_DATA_DIR)`" \
 	TEST_DATA_DIR="`$(NATIVE_PATH) $(TEST_DIR)/data`" \
 	LIBRARY_DIR="`$(NATIVE_PATH) $(LIBRARY_DIR)`" \
+	LD_LIBRARY_PATH="$(LD_LIBRARY_PATH)" \
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR)
 
 test0.tcl:

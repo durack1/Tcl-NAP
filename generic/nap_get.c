@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.29 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.30 2006/11/09 06:21:13 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -370,6 +370,8 @@ Nap_GetHDF(
 	} else {
 	    new_nao = Nap_ReshapeNAO(nap_cd, naoPtr, internalDataType, new_rank, new_shape);
 	    CHECK2(new_nao, TEXT0 "Error calling Nap_ReshapeNAO");
+	    status = Nap_SetMissing(nap_cd, new_nao, naoPtr->missingValueSlot);
+	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
 	    for (i = j = 0; i < rank; i++) {
 		if (want_dim[i]) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, naoPtr, i);
@@ -644,6 +646,8 @@ Nap_GetNetcdf(
 	} else {
 	    new_nao = Nap_ReshapeNAO(nap_cd, naoPtr, internalDataType, new_rank, new_shape);
 	    CHECK2(new_nao, TEXT0 "Error calling Nap_ReshapeNAO");
+	    status = Nap_SetMissing(nap_cd, new_nao, naoPtr->missingValueSlot);
+	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
 	    for (i = j = 0; i < rank; i++) {
 		if (want_dim[i]) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, naoPtr, i);

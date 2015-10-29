@@ -1,4 +1,4 @@
-%  $Id: ooc_meta.tex,v 1.7 2006/09/28 04:12:37 dav480 Exp $ 
+%  $Id: ooc_meta.tex,v 1.8 2006/10/27 08:05:37 dav480 Exp $ 
     % OOC Methods: Metadata
 
 \section{OOC Methods which return Metadata}
@@ -21,8 +21,8 @@ The following code defines vectors `\texttt{x}' and `\texttt{y}' for use in the 
     \label{ooc-meta-coordinate}
 
 $ooc\_name$ \texttt{coordinate}
-?$dim\_name$\texttt{|}$dim\_number$?
-?$dim\_name$\texttt{|}$dim\_number$?
+[$dim\_name$\texttt{|}$dim\_number$]
+[$dim\_name$\texttt{|}$dim\_number$]
 $\ldots$
 
 This returns the OOC-names of the coordinate variables of selected
@@ -41,7 +41,7 @@ Example (continued from above):
 \subsection{Method \texttt{count}}
     \label{ooc-meta-count}
 
-$ooc\_name$ \texttt{count} ?\texttt{-keep}?
+$ooc\_name$ \texttt{count} [\texttt{-keep}]
 
 This returns the reference count.
   
@@ -77,7 +77,7 @@ f64
 \subsection{Method \texttt{dimension}}
     \label{ooc-meta-dimension}
 
-$ooc\_name$ \texttt{dimension} ?$dim\_number$? ?$dim\_number$? $\ldots$
+$ooc\_name$ \texttt{dimension} [$dim\_number$] [$dim\_number$] $\ldots$
 
 This returns the dimension names.
 
@@ -110,7 +110,7 @@ Example (continued from above):
 \subsection{Method \texttt{header}}
     \label{ooc-meta-header}
 
-$ooc\_name$ \texttt{header} ?\texttt{-keep}?
+$ooc\_name$ \texttt{header} [\texttt{-keep}]
 
 This returns similar information to the following (but using a
   different format):
@@ -193,7 +193,7 @@ NaN
 \subsection{Method \texttt{ooc}}
     \label{ooc-meta-ooc}
 
-$ooc\_name$ \texttt{ooc} ?\texttt{-keep}?
+$ooc\_name$ \texttt{ooc} [\texttt{-keep}]
 
 This returns the OOC-name of the NAO.
 
@@ -222,7 +222,7 @@ Example (continued from above):
 \subsection{Method \texttt{sequence}}
     \label{ooc-meta-sequence}
 
-$ooc\_name$ \texttt{sequence} ?\texttt{-keep}?
+$ooc\_name$ \texttt{sequence} [\texttt{-keep}]
 
 This returns the sequence number of the NAO. E.g. 42 for 
   \texttt{::NAP::42-9}
@@ -255,7 +255,7 @@ Example (continued from above):
 \subsection{Method \texttt{slot}}
     \label{ooc-meta-slot}
 
-$ooc\_name$ \texttt{slot} ?\texttt{-keep}?
+$ooc\_name$ \texttt{slot} [\texttt{-keep}]
 
 This returns the slot number of the NAO. E.g. 9 for 
   \texttt{::NAP::42-9}

@@ -1,0 +1,21 @@
+% nap "time = f32{}"
+::NAP::15-13
+% $time set dim time
+% $time hdf -unl u.hdf time
+u.hdf unix
+% nap "in = [nap_get hdf u.hdf time]"
+::NAP::18-15
+% $in a
+::NAP::18-15  f32  MissingValue: NaN  References: 1
+Dimension 0   Size: 0      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+
+% nap "time = f32{2}"
+::NAP::22-14
+% $time set dim time
+% $time hdf  u.hdf time
+Nap_HdfExtend: coord. var. for unlimited dim. not found
+Nap_HdfPut: Error calling Nap_HdfExtend
+Nap_OOC_hdf: Error writing file u.hdf
+
+% 

@@ -1,33 +1,10 @@
-tdelete${OBJEXT}: ${GENERIC_DIR}/udunits/tdelete.c \
-  ${GENERIC_DIR}/udunits/search-node.h
-tfind${OBJEXT}: ${GENERIC_DIR}/udunits/tfind.c \
-  ${GENERIC_DIR}/udunits/search-node.h
-tsearch${OBJEXT}: ${GENERIC_DIR}/udunits/tsearch.c \
-  ${GENERIC_DIR}/udunits/search-node.h
-utlib${OBJEXT}: ${GENERIC_DIR}/udunits/utlib.c \
-  ${GENERIC_DIR}/udunits/udposix.h \
-  ${GENERIC_DIR}/udunits/cfortran.h \
-  ${GENERIC_DIR}/udunits/udunits.h \
-  ${GENERIC_DIR}/udunits/utscan.h \
-  ${GENERIC_DIR}/udunits/utprivate.h
-utparse${OBJEXT}: ${GENERIC_DIR}/udunits/utparse.c \
-  ${GENERIC_DIR}/udunits/udunits.h \
-  ${GENERIC_DIR}/udunits/utscan.h \
-  ${GENERIC_DIR}/udunits/utprivate.h \
-  ${GENERIC_DIR}/udunits/udposix.h
-utscan${OBJEXT}: ${GENERIC_DIR}/udunits/utscan.c \
-  ${GENERIC_DIR}/udunits/udposix.h \
-  ${GENERIC_DIR}/udunits/udunits.h \
-  ${GENERIC_DIR}/udunits/utprivate.h \
-  ${GENERIC_DIR}/udunits/utparse.h \
-  ${GENERIC_DIR}/udunits/utscan.h
 napsh${OBJEXT}: ${GENERIC_DIR}/napsh.c \
   ${GENERIC_DIR}/napInt.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
   ${TCL_HEADER_DIR}/tclPlatDecls.h
 cart_proj${OBJEXT}: ${GENERIC_DIR}/cart_proj.c \
-  ${PROJ_HEADER_DIR}/proj_api.h ${GENERIC_DIR}/nap.h \
-  ${TCL_HEADER_DIR}/tcl.h \
+  ${PROJ_HEADER_DIR}/proj_api.h \
+  ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_check.h
@@ -38,10 +15,10 @@ eval_tree${OBJEXT}: ${GENERIC_DIR}/eval_tree.c \
   ${GENERIC_DIR}/nap_check.h \
   ${GENERIC_DIR}/napParse.tab.h
 land_flag${OBJEXT}: ${GENERIC_DIR}/land_flag.c \
-  ${GENERIC_DIR}/land_flag.h \
   ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
-  ${TCL_HEADER_DIR}/tclPlatDecls.h
+  ${TCL_HEADER_DIR}/tclPlatDecls.h \
+  ${GENERIC_DIR}/land_flag.h
 land_flag_i${OBJEXT}: ${GENERIC_DIR}/land_flag_i.c \
   ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
@@ -55,9 +32,11 @@ napImgNAO${OBJEXT}: ${GENERIC_DIR}/napImgNAO.c \
   ${GENERIC_DIR}/nap.h \
   ${GENERIC_DIR}/nap_check.h
 napInit${OBJEXT}: ${GENERIC_DIR}/napInit.c \
-  ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
+  ${TCL_HEADER_DIR}/tk.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
+  ${TCL_HEADER_DIR}/tkDecls.h \
+  ${GENERIC_DIR}/nap.h \
   ${GENERIC_DIR}/nap_check.h \
   ${GENERIC_DIR}/napInt.h
 napPolygon${OBJEXT}: ${GENERIC_DIR}/napPolygon.c \
@@ -123,13 +102,11 @@ napChoice${OBJEXT}: ${GENERIC_DIR}/napChoice.c \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_check.h
 napDyad${OBJEXT}: ${GENERIC_DIR}/napDyad.c \
-  ${GENERIC_DIR}/udunits/udunits.h \
   ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_check.h
 napDyadLib${OBJEXT}: ${GENERIC_DIR}/napDyadLib.c \
-  ${GENERIC_DIR}/udunits/udunits.h \
   ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
   ${TCL_HEADER_DIR}/tclDecls.h \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
@@ -178,6 +155,9 @@ nap_netcdf${OBJEXT}: ${GENERIC_DIR}/nap_netcdf.c \
   ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_check.h
 nap_ooc${OBJEXT}: ${GENERIC_DIR}/nap_ooc.c \
+  ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
+  ${TCL_HEADER_DIR}/tclDecls.h \
+  ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_hdf.h \
   ${HDF_HEADER_DIR}/mfhdf.h ${HDF_HEADER_DIR}/hdf.h \
   ${HDF_HEADER_DIR}/h4config.h \
@@ -192,9 +172,6 @@ nap_ooc${OBJEXT}: ${GENERIC_DIR}/nap_ooc.c \
   ${HDF_HEADER_DIR}/mfgr.h \
   ${HDF_HEADER_DIR}/netcdf.h \
   ${HDF_HEADER_DIR}/hdf2netcdf.h \
-  ${GENERIC_DIR}/nap.h ${TCL_HEADER_DIR}/tcl.h \
-  ${TCL_HEADER_DIR}/tclDecls.h \
-  ${TCL_HEADER_DIR}/tclPlatDecls.h \
   ${GENERIC_DIR}/nap_check.h \
   ${GENERIC_DIR}/nap_netcdf.h \
   ${NC_HEADER_DIR}/netcdf.h \

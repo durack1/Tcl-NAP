@@ -1,4 +1,4 @@
-%  $Id: function.tex,v 1.15 2006/09/28 15:07:23 dav480 Exp $ 
+%  $Id: function.tex,v 1.20 2007/11/08 08:47:02 dav480 Exp $ 
     % Nap Built-in Functions
 
 \section{Built-in Functions}
@@ -797,6 +797,66 @@ The algorithm is an extension of W. Randolph Franklin's
 -1 0 1 1 0 -1
 \end{verbatim}
 
+\subsubsection{Clip 2D line segments by Rectangular Window}
+    \label{function-clip2d}
+
+Function
+\texttt{clip2d}
+gives that part of a line segment visible through an upright rectangular window.
+It uses the Liang-Barsky parametric line-clipping algorithm.
+The code is based (after discovering and fixing several bugs) on that in
+\begin{quote}
+Foley, J.D., van Dam, A., Feiner, S.K. and Hughes, J.F.,
+\emph{Computer Graphics Principles and Practice, 2nd ed. in C},
+pp 122-3.
+\end{quote}
+
+The function is called by 
+\\
+\texttt{clip2d(}$\mathit{window, line}$\texttt{)} 
+
+The argument $\mathit{window}$ specifies opposite corners of the window.
+It is a $2 \times 2$ matrix (or a 4-element vector) containing these two points,
+with their $x$ coordinates in column 0
+and their $y$ coordinates in column 1.
+
+The argument $\mathit{line}$ specifies the end points of the full line segments.
+It can be a $2 \times 2$ matrix containing the two end points of a line segment,
+with their $x$ coordinates in column 0
+and their $y$ coordinates in column 1.
+It can also be an $n \times 2 \times 2$ array containing $n$ line segments.
+In fact any rank is legal but the number of elements must be a multiple of 4.
+
+The result gives the end points of the visible line segment
+and has the same shape as $\mathit{line}$.
+If no part of a line segment is visible through the window then the corresponding
+values of the result are missing (NaN).
+
+The following example clips three line segments:
+\begin{verbatim}
+% [nap "window = {{2 6}{4 8}}"]
+2 6
+4 8
+% [nap "lines = {{{3 7}{5 9}} {{0 0}{4 1}} {{4 5}{1 8}}}"]
+3 7
+5 9
+
+0 0
+4 1
+
+4 5
+1 8
+% [nap "clip2d(window, lines)"]
+3 7
+4 8
+
+_ _
+_ _
+
+3 6
+2 7
+\end{verbatim}
+
 \subsubsection{Triangulation}
     \label{function-Triangulation}
 
@@ -1132,13 +1192,17 @@ and inverse projections:
 \end{bullets}
 
 These are based on the 
-PROJ.4 Cartographic Projections library originally written by Gerald Evenden then of the USGS.
-This software supports over seventy projections and various parameters.
+PROJ.4 Cartographic Projections library originally written by Gerald Evenden, then of the 
+U.S. Geological Survey.
+This software is written in C.
+It supports over a hundred projections, which can be tailored using various parameters.
 The primary PROJ.4 home page is
 \href{http://www.remotesensing.org/proj}{http://www.remotesensing.org/proj}.
 There is a mirror at
 \href{http://proj.maptools.org}{http://proj.maptools.org}. 
 Note the links to documentation, which is essential to use these Nap functions.
+
+Note the PROJ.4 Tcl library functions in \ref{geog-Cartographic}.
 
 \subsubsection{Function \texttt{cart\_proj\_fwd(}$\mathit{proj\_spec, lat, lon}$\texttt{)}}
 \label{function-cart-proj-fwd}

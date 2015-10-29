@@ -5,7 +5,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: hdf_netcdf.tcl,v 1.27 2006/09/20 05:09:58 dav480 Exp $
+# $Id: hdf_netcdf.tcl,v 1.30 2006/11/14 05:34:46 dav480 Exp $
 
 switch $hdf_nc {
     hdf		{set ext hdf; set ishdf 1}
@@ -73,7 +73,7 @@ Test $hdf_nc-2.1 "write $hdf_nc variable with coordinate variables" {
     $i set unit degrees_north
     nap "j = f32({8 9 9.3})"
     $j set unit degrees_east
-    $m set d lat lon
+    $m set dim lat lon
     $m set coo i j
     $m $hdf_nc geog.$ext mat
     lsort [nap_get $hdf_nc -list geog.$ext]
@@ -715,6 +715,22 @@ Test $hdf_nc-18.21 "extend unlimited dimension using CV" {
 -6 -5 -4}
 
 Test $hdf_nc-18.22 {check cv 0} {[$in coo 0]} {2 4 5 5.1 6 8}
+
+Test $hdf_nc-18.23 {overwrite row} {
+    $vec set coo col
+    $vec $hdf_nc -index -2, unlimited.$ext mat
+    nap "in = [nap_get $hdf_nc unlimited.$ext mat]"
+    $in
+} { 0  1  2
+ 4 13 55
+-3 -2 -1
+ 9  7  7
+22 23 24
+-6 -5 -4}
+
+Test $hdf_nc-18.24 {check cv 0} {[$in coo 0]} {2 4 5 5.1 6 8}
+
+Test $hdf_nc-18.25 {check cv 1} {[$in coo 1]} {1 2 3}
 
 unset col i in time mat vec
 put_info "before $hdf_nc-19.1 12"

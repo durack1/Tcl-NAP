@@ -1,4 +1,4 @@
-%  $Id: ooc_data.tex,v 1.5 2006/09/22 06:28:17 dav480 Exp $ 
+%  $Id: ooc_data.tex,v 1.7 2006/10/27 08:04:56 dav480 Exp $ 
     % OOC Methods: Data
 
 \section{OOC Methods which return Data Values (with or without metadata)}
@@ -9,15 +9,12 @@
 
   $ooc\_name$ 
   \texttt{all} 
-  \texttt{-format} 
-  $format$ 
-  \texttt{-columns} 
-  $int$ 
-  \texttt{-lines} 
-  $int$ 
-  \texttt{-missing} 
-  $text$ 
-  \texttt{-keep}
+  [\texttt{-format} $format$]
+  [\texttt{-columns} $int$]
+  [\texttt{-lines} $int$]
+  [\texttt{-list}]
+  [\texttt{-missing} $text$]
+  [\texttt{-keep}]
 
 This provides both data and metadata from a NAO. However it does
   not provide 
@@ -42,23 +39,21 @@ The following switches are allowed:
   "\_")
   \\
   \texttt{-keep}: Do not delete NAO with reference count of 0
-  
 
-The 
-  \texttt{all} method provides the same information as the two
-  commands:
+The \texttt{-keep} switch is only useful in special situations where one wants to retain a
+NAO which would otherwise be deleted.
+An example is a debugging tool which displays NAOs but should not destroy them.
+
+The \texttt{all} method provides the same information as the two commands:
   \\
   $ooc\_name$ 
   \texttt{header}
   \\
   $ooc\_name$ 
   \texttt{value} 
-  \texttt{-format} 
-  $format$ 
-  \texttt{-columns} 
-  $int$ 
-  \texttt{-lines} 
-  $int$ 
+  \texttt{-format} $format$ 
+  \texttt{-columns} $int$ 
+  \texttt{-lines} $int$ 
   \texttt{-missing} 
   $text$
 
@@ -77,17 +72,12 @@ Value:
 
   $ooc\_name$ 
   \texttt{value} 
-  \texttt{-format} 
-  $format$ 
-  \texttt{-columns} 
-  $int$ 
-  \texttt{-lines} 
-  $int$ 
-  \texttt{-missing} 
-  $text$ 
-  \texttt{-keep}
-  \\
-  
+  [\texttt{-format} $format$]
+  [\texttt{-columns} $int$]
+  [\texttt{-lines} $int$]
+  [\texttt{-list}]
+  [\texttt{-missing} $text$]
+  [\texttt{-keep}]
 
 This returns data values. The default value is 
   \texttt{-1} for both the switches 
@@ -130,17 +120,12 @@ The following switches are allowed:
     \label{ooc-data-default-method}
 
   $ooc\_name$ 
-  \texttt{-format} 
-  $format$ 
-  \texttt{-columns} 
-  $int$ 
-  \texttt{-lines} 
-  $int$ 
-  \texttt{-missing} 
-  $text$ 
-  \texttt{-keep}
-  \\
-  
+  [\texttt{-format} $format$]
+  [\texttt{-columns} $int$]
+  [\texttt{-lines} $int$]
+  [\texttt{-list}]
+  [\texttt{-missing} $text$]
+  [\texttt{-keep}]
 
 This returns data values in a similar fashion to the 
   \texttt{value} method, except that default line and column limits

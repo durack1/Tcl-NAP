@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.78 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.79 2006/10/12 02:47:16 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -1675,7 +1675,7 @@ Nap_NetcdfPut(
     int			id;
     Nap_dataType	internalDataType;
     nc_type		number_type;
-    int			rank;			/* external rank */
+    int			rank;			/* internal rank */
     int			rank32;			/* external rank */
     Nap_NAO		*scale_factor_NAO2;	/* type = internalDataType */
     Nap_NAO		*scaled_NAO;
@@ -1694,7 +1694,7 @@ Nap_NetcdfPut(
 	status = Nap_NetcdfPutAttribute(nap_cd, ncid, var_name, main_NAO);
 	CHECK(status == TCL_OK);
     } else {
-	rank = main_NAO->rank;
+	rank32 = rank = main_NAO->rank;
 	status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, &varid);
 	CHECK(status == TCL_OK);
 	if (exists) {
@@ -1712,9 +1712,10 @@ Nap_NetcdfPut(
 		CHECK2(boxed_cv_nc->rank == 1,
 			"m4NAME: Illegal Coordinate variable boxed NAO");
 		Nap_IncrRefCount(nap_cd, boxed_cv_nc);
-		rank = boxed_cv_nc->nels;
+		rank32 = boxed_cv_nc->nels;
 	    }
-	    for (i = 0; i < rank; i++) {
+	    for (i = 0; i < rank32; i++) {
+		tmp_NAO = NULL;
 		if (boxed_cv_nc	 &&  (id = boxed_cv_nc->data.Boxed[i])) {
 		    tmp_NAO = Nap_GetNaoFromSlot(id);
 		    assert(tmp_NAO);
@@ -1724,17 +1725,17 @@ Nap_NetcdfPut(
 		    shape_t[i] = tmp_NAO->nels;
 		    if (tmp_NAO->dimName[0]) {
 			dimName[i] = tmp_NAO->dimName[0];
-		    } else if (main_NAO->rank == rank) {
+		    } else if (rank == rank32) {
 			dimName[i] = main_NAO->dimName[i];
 		    } else {
 			dimName[i] = NULL;
 		    }
-		} else {
+		} else if (rank == rank32) {
 		    shape_t[i] = main_NAO->shape[i];
 		    dimName[i] = main_NAO->dimName[i];
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
 		}
-		cv_nc_local[i] = Nap_Promote(nap_cd, tmp_NAO, NAP_I32, 1,altShape);
+		cv_nc_local[i] = Nap_Promote(nap_cd, tmp_NAO, NAP_I32, 1, altShape);
 		Nap_IncrRefCount(nap_cd, cv_nc_local[i]);
 	    }
 	    tmp_NAO = Nap_UnboxedElement1(nap_cd, main_NAO);
@@ -1754,7 +1755,7 @@ Nap_NetcdfPut(
 		    ncid,
 		    var_name,
 		    externalDataType,
-		    rank,
+		    rank32,
 		    shape_t,
 		    cv_nc_local,
 		    dimName,
@@ -1770,7 +1771,7 @@ Nap_NetcdfPut(
 	    CHECK(status == TCL_OK);
 	    Nap_DecrRefCount(nap_cd, scale_factor_NAO2);
 	    Nap_DecrRefCount(nap_cd, add_offset_NAO2);
-	    for (i = 0; i < rank; i++) {
+	    for (i = 0; i < rank32; i++) {
 		Nap_DecrRefCount(nap_cd, cv_nc_local[i]);
 	    }
 	}
@@ -1778,7 +1779,7 @@ Nap_NetcdfPut(
 	    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t,
 		    &number_type, &is_record);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
-	    if (is_record) {
+	    if (is_record  &&  rank == rank32) {
 		status = extend_unlimited(nap_cd, ncid, varid, main_NAO);
 		CHECK(status == TCL_OK);
 	    }

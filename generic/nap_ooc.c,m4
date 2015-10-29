@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.61 2006/09/29 12:38:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.65 2006/11/30 03:09:05 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -473,7 +473,7 @@ Nap_Poly(
     float		value;		/* fill value for polyline/polyfill */
     Nap_NAO		*valueNAO;	/* NAO defining value */
 
-    naoPtr->step = NAP_UNKNOWN;
+    naoPtr->step = NAP_STEP_UNKNOWN;
     dataType = naoPtr->dataType;
     CHECK2(objc >= 3  &&  objc <= 4, "m4NAME: wrong # arguments");
     CHECK2(naoPtr->rank == 2, "m4NAME: Array has rank other than 2");
@@ -662,7 +662,7 @@ Nap_SetValue(
 
     dataType = naoPtr->dataType;
     CHECK2(objc >= 3  &&  objc <= 5, "m4NAME: wrong # arguments");
-    naoPtr->step = NAP_UNKNOWN;
+    naoPtr->step = NAP_STEP_UNKNOWN;
     if (objc > 4) {
 	if (Tcl_GetCharLength(objv[4]) > 0) {
 	    str = Nap_expression(nap_cd, objv[4], naoPtr->boxedCV);
@@ -803,7 +803,12 @@ Nap_OOC_set(
     int			index;
     int			j;
     Nap_NAO		*mv_NAO;		/* missing value NAO */
+    int			n;
+    int			nbytes0;		/* original no. data bytes in NAO */
     Tcl_Obj             *objArgs;
+    int			rank;			/* new rank */
+    size_t              shape[NAP_MAX_RANK];	/* new shape */
+    Nap_NAO		*shape_NAO;		/* new shape */
     int			status;
     char		*str;
     Nap_NAO		*tmpNao;
@@ -811,11 +816,13 @@ Nap_OOC_set(
     CONST char		*switches[] = {
 				    "coordinate",
 				    "count",
+				    "datatype",
 				    "dimension",
 				    "format",
 				    "label",
 				    "link",
 				    "missing",
+				    "shape",
 				    "unit",
 				    "value",
 				    (char *) NULL};
@@ -857,7 +864,32 @@ Nap_OOC_set(
 	    }
 	}
 	break;
-    case 2:	/* dimension names */
+    case 2:	/* datatype */
+	CHECK2(objc <= 4, "m4NAME: Too many arguments");
+	if (objc == 3) {
+	    dataType = naoPtr->dataType0;
+	} else {
+	    str = Tcl_GetStringFromObj(objv[3], NULL);
+	    dataType = Nap_TextToDataType(str);
+	}
+	if (Nap_SizeOf(dataType) != Nap_SizeOf(naoPtr->dataType)) {
+	    naoPtr->rank = 1;
+	    naoPtr->nels = naoPtr->nels0 * Nap_SizeOf(naoPtr->dataType0) / Nap_SizeOf(dataType);
+		/* Define new dim. block containing shape & pointers to dim. names */
+	    NAP_FREE(nap_cd, naoPtr->shape);
+	    naoPtr->shape = (size_t *) NAP_ALLOC(nap_cd, sizeof(size_t) + sizeof(char *));
+	    assert(naoPtr->shape);
+	    naoPtr->dimName = (char **) (naoPtr->shape + 1);
+	    naoPtr->shape[0] = naoPtr->nels;
+	    naoPtr->dimName[0] = NULL;
+	    Nap_DecrRefCount(nap_cd, naoPtr->boxedCV);
+	    naoPtr->boxedCV = NULL;
+	}
+	naoPtr->dataType = dataType;
+	status = Nap_SetMissing(nap_cd, naoPtr, 0);
+	CHECK(status == TCL_OK);
+	break;
+    case 3:	/* dimension names */
 	for (j = 0; j < naoPtr->rank; j++) {
 	    dimName = j+3 < objc ? Tcl_GetStringFromObj(objv[j+3], NULL) : "";
 	    if (*dimName  &&  strcmp(dimName, "(NULL)") != 0) {
@@ -869,7 +901,7 @@ Nap_OOC_set(
 	    }
 	}
 	break;
-    case 3:  		/* format */
+    case 4:  		/* format */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
 	NAP_FREE(nap_cd, naoPtr->format);
 	if (objc == 3) {
@@ -880,7 +912,7 @@ Nap_OOC_set(
 	    CHECK2(naoPtr->format, "m4NAME: Error calling Nap_StrDup");
 	}
 	break;
-    case 4:  		/* label */
+    case 5:  		/* label */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
 	NAP_FREE(nap_cd, naoPtr->label);
 	if (objc == 3) {
@@ -891,7 +923,7 @@ Nap_OOC_set(
 	    CHECK2(naoPtr->label, "m4NAME: Error calling Nap_StrDup");
 	}
 	break;
-    case 5:  		/* link */
+    case 6:  		/* link */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
 	tmpNao = NULL;
 	if (objc > 3) {
@@ -907,7 +939,7 @@ Nap_OOC_set(
 	status = Nap_AttachLink(nap_cd, naoPtr, tmpNao);
 	CHECK(status == TCL_OK);
 	break;
-    case 6:	/* missing value */
+    case 7:	/* missing value */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
 	mv_NAO = NULL;
 	j = 0;
@@ -936,7 +968,61 @@ Nap_OOC_set(
 	CHECK(status == TCL_OK);
 	Nap_DecrRefCount(nap_cd, mv_NAO);
 	break;
-    case 7:	/* unit */
+    case 8:	/* shape */
+	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
+	nbytes0 = naoPtr->nels0 * Nap_SizeOf(naoPtr->dataType0);
+	if (objc == 3) {
+	    rank = 1;
+	    shape[0] = nbytes0 / Nap_SizeOf(naoPtr->dataType);
+	} else {
+	    objArgs = Tcl_ConcatObj(objc-3, objv+3);
+	    assert(objArgs);
+	    Tcl_IncrRefCount(objArgs);
+	    CHECK2(Tcl_GetCharLength(objArgs) > 0, "m4NAME: No specified shape");
+	    tmpNao = Nap_GetNaoFromObj(nap_cd, objArgs);
+	    CHECK(tmpNao);
+	    Nap_IncrRefCount(nap_cd, tmpNao);
+	    rank = tmpNao->nels;
+	    CHECK2(tmpNao->rank < 2  &&  rank <= NAP_MAX_RANK, "m4NAME: Invalid specified shape");
+	    shape_NAO = Nap_CastNAO(nap_cd, tmpNao, NAP_I32);
+	    CHECK2(shape_NAO, "m4NAME: Error calling Nap_CastNAO");
+	    Nap_IncrRefCount(nap_cd, shape_NAO);
+	    Nap_DecrRefCount(nap_cd, tmpNao);
+	    Tcl_DecrRefCount(objArgs);
+	    for (j = 0; j < rank; j++) {
+		shape[j] = shape_NAO->data.I32[j];
+	    }
+	    Nap_DecrRefCount(nap_cd, shape_NAO);
+	}
+	for (j = 0; j < naoPtr->rank; j++) {
+	    NAP_FREE(nap_cd, naoPtr->dimName[j]);
+	}
+	Nap_DecrRefCount(nap_cd, naoPtr->boxedCV);
+	naoPtr->boxedCV = NULL;
+	n = 1;
+	for (j = 0; j < rank; j++) {
+	    n *= shape[j];
+	}
+	CHECK2(n  <=  nbytes0 / Nap_SizeOf(naoPtr->dataType), "m4NAME: Invalid specified shape");
+	NAP_FREE(nap_cd, naoPtr->shape);
+	naoPtr->nels = n;
+	    /* Define new dim. block containing shape & pointers to dim. names */
+	if (rank > 0) {
+	    naoPtr->shape = (size_t *) NAP_ALLOC(nap_cd, rank * (sizeof(size_t) + sizeof(char *)));
+	    assert(naoPtr->shape);
+	    naoPtr->dimName = (char **) (naoPtr->shape + rank);
+	} else {
+	    naoPtr->shape = NULL;
+	    naoPtr->dimName = NULL;
+	}
+	naoPtr->rank = rank;
+	for (j = 0; j < rank; j++) {
+            naoPtr->shape[j] = shape[j];
+            naoPtr->dimName[j] = NULL;
+	}
+	naoPtr->step = NAP_STEP_UNKNOWN;
+	break;
+    case 9:	/* unit */
 	CHECK2(objc >= 3, "m4NAME: wrong # arguments");
 	NAP_FREE(nap_cd, naoPtr->unit);
 	naoPtr->unit = NULL;
@@ -949,7 +1035,7 @@ Nap_OOC_set(
 	    }
 	}
 	break;
-    case 8:  		/* value */
+    case 10:  		/* value */
 	status = Nap_SetValue(nap_cd, naoPtr, objc, objv); 
 	CHECK(status == TCL_OK);
 	break;
@@ -1433,10 +1519,11 @@ Nap_ObjectCommand(
 	    status = Nap_OilNao(naoPtr);
 	    CHECK(status == TCL_OK);
 	    switch (naoPtr->step) {
-	        case NAP_BOTH: 		status = Nap_AppendLines(nap_cd, "+-"); break;
-	        case NAP_NON_NEGATIVE: 	status = Nap_AppendLines(nap_cd, ">= 0"); break;
-	        case NAP_NON_POSITIVE: 	status = Nap_AppendLines(nap_cd, "<= 0"); break;
-	        case NAP_EQUAL: 	status = Nap_AppendLines(nap_cd, "AP"); break;
+	        case NAP_STEP_NULL: 		status = Nap_AppendLines(nap_cd, "NULL"); break;
+	        case NAP_STEP_BOTH: 		status = Nap_AppendLines(nap_cd, "+-"); break;
+	        case NAP_STEP_NON_NEGATIVE: 	status = Nap_AppendLines(nap_cd, ">= 0"); break;
+	        case NAP_STEP_NON_POSITIVE: 	status = Nap_AppendLines(nap_cd, "<= 0"); break;
+	        case NAP_STEP_EQUAL: 	status = Nap_AppendLines(nap_cd, "AP"); break;
 	        default:		assert(0);
 	    }
 	    break;
