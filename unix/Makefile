@@ -10,7 +10,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.114 2002/08/13 06:25:38 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.115 2002/08/14 03:41:13 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -118,12 +118,12 @@ OBJS = \
 PACKAGE = nap
 MAJOR_VERSION = 3
 MINOR_VERSION = 0
-PATCHLEVEL = .3
+PATCHLEVEL = .4
 VERSION = 3.0
 NODOT_VERSION = 30
-NODOT_PATCHLEVEL = 3
+NODOT_PATCHLEVEL = 4
 USE_VERSION = 3.0
-USE_PATCHLEVEL = .3
+USE_PATCHLEVEL = .4
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -185,7 +185,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =   -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.0\" -DPATCHLEVEL=\".3\"  $(INCLUDES)
+CPPFLAGS =   -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.0\" -DPATCHLEVEL=\".4\"  $(INCLUDES)
 HDF_HEADER_DIR = /home/dav480/hdf/use/include
 NC_HEADER_DIR = /home/dav480/nc/use/include
 TCL_HEADER_DIR = /home/dav480/tcl/include
@@ -373,6 +373,7 @@ install-libraries: libraries
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(ECHO) "pkg_mkIndex \
 		`$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` \
+		*.tcl \
 		../../$(SHLIB_DIR_BASE)/$(PACKAGE_SHLIB)" \
 		> tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl

@@ -1,0 +1,151 @@
+<!-- $Id: install.html,v 1.1 2002/08/14 03:50:54 dav480 Exp $ -->
+<html>
+
+<head> <title>
+Installing NAP
+</title> </head>
+
+<body>
+
+<h2> <center>
+Installing NAP
+</center> </h2>
+
+<h3>Introduction</h3>
+
+The <b>nap</b> extension requires the <b>BLT</b> extension.
+The graphics procedure <code>plot_nao</code> uses the
+<b>printer</b> extension.
+The following instructions explain how to install these three extensions with <b>Tcl/Tk</b>.
+
+<h3>Installing Tcl/Tk</h3>
+
+Download <b>Tcl/Tk</b> from
+<a href="http://aspn.activestate.com/ASPN/Tcl/Downloads/">ActiveState Tcl Downloads</a>.
+Installation instructions are available from this site.
+
+<h3>Installing BLT</h3>
+
+Download <b>BLT</b> from
+<a href="http://sourceforge.net/projects/blt/">SourceForge: The BLT Toolkit Project Summary</a>.
+For windows, select and execute the <code>.exe</code> file matching your version of Tcl.
+For unix, select the most recent source file (with suffix <code>.tar.gz</code>),
+unpack it into a new directory using a command such as
+<pre>
+    zcat BLT*.tar.gz | tar -xvf - 
+</pre>
+then compile using the instructions in the file <code>INSTALL</code>.
+
+<h3>Installing Printer</h3>
+
+Download <b>print(er)</b> from
+Michael Schwartz's
+<a href="http://www.du.edu/~mschwart/tcl-tk.htm">Tcl/Tk Extensions & Information Page</a>.
+Select <b>Print</b>, then press the <b>i</b> information button.
+For windows, select the <code>.zip</code> file matching your version of Tcl and
+unzip it into directory <code>lib</code>.
+(There are instructions in file <code>printer/install.txt</code>.)
+For unix, select the link labelled <b>Unix</b>, giving file 
+<code>printUnix.tar.gz</code> and
+unpack it into directory <code>lib</code> using a command such as
+<pre>
+    zcat printUnix.tar.gz | tar -xvf - 
+</pre>
+
+<h3>Installing nap</h3>
+
+Download <b>nap</b> from
+<a href="http://sourceforge.net/projects/tcl-nap/">SourceForge: Tcl-nap Project Summary</a>.
+Binary installation files are available for:
+
+<p>
+<table border>
+
+<tr>
+    <th>
+	Operating System
+    <th>
+	Processor
+
+<tr>
+    <td>
+	Irix 64
+    <td>
+	SGI MIPS
+
+<tr>
+    <td>
+	Linux
+    <td>
+	Intel 386 
+
+<tr>
+    <td>
+	SunOS 5.8
+    <td>
+	Sun sparc
+
+<tr>
+    <td>
+	Windows
+    <td>
+	Intel 386 
+
+</table>
+
+<P>
+(There is also a source file for those who want to access the source without using CVS.)
+All these files have the extension <code>.tgz</code>, which means they were created using
+<code>tar</code>, then compressed using <code>gzip</code>.
+They can be directly unpacked using many recent versions of <b>tar</b>
+and Windows programs such as <b>WinZip</b>.
+Unix users can also use:
+<pre>
+    zcat printUnix.tar.gz | tar -xvf - 
+</pre>
+You should unpack into the Tcl root directory (parent of 
+<code>bin</code>
+and
+<code>lib</code>).
+
+<P>
+It is convenient to include the following in your
+<code>tclsh</code> startup file
+(<code>tclshrc.tcl</code> for windows,
+<code>.tclshrc</code> for unix):
+
+<pre>
+    package require nap
+    namespace import ::NAP::*
+</pre>
+
+If you have problems accessing the nap Tcl library procedures then you
+may also need to explicitly source 
+<code>lib/tclIndex</code>
+as follows:
+
+<pre>
+    set dir $tcl_library/../nap3.0
+    source $dir/tclIndex
+</pre>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: install.html,v 1.1 2002/08/14 03:50:54 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>
+

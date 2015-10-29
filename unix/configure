@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.49 
+# From configure.in Revision: 1.50 
 
 # tcl.m4 --
 #
@@ -1106,7 +1106,7 @@ PACKAGE=nap
 
 MAJOR_VERSION=3
 MINOR_VERSION=0
-PATCHLEVEL=.3
+PATCHLEVEL=.4
 
 #------------------------------------------------------------------------------
 # HDF version numbers
