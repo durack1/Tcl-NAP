@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: aa_nap.test,v 1.4 2004/12/16 01:43:28 dav480 Exp $
+# $Id: aa_nap.test,v 1.7 2005/03/08 06:04:38 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
@@ -792,7 +792,7 @@ Test nap-17.4 {prod with units} {[nap "prod vu"] unit} "(NULL)"
 Test nap-17.5 {min with units} {[nap "min vu"] unit} mm
 Test nap-17.6 {max with units} {[nap "max vu"] unit} mm
 
-unset c vu
+unset vu
 # keep in(+2), a, i, j, m
 put_info "nap-17.6  19"
 
@@ -1092,7 +1092,7 @@ Test nap-24.4 {indexOf: vector@matrix} {[nap "{5 0 -5}@{{5 6}{-1 -10}}"]
 } { 0.0 -0.2
  1.2  3.0}
 
-Test nap-24.5 {indexOf: duplicates} {[nap "{8 8 9 9} @ {8 8.5 9}"]} {0 1.5 2}
+Test nap-24.5 {indexOf: duplicates} {[nap "{8 8 9 9 9} @ {8 8.5 9}"]} {0.5 1.5 3}
 
 Test nap-24.6 {indexOf: beyond limits} {[nap "{2 4} @ (0 .. 9)"] v
 } {-1 -0.5 0 0.5 1 1.5 2 2.5 3 3.5}
@@ -2659,8 +2659,51 @@ Test nap-56.2 {triangulate_edges} {
 3 4}
 
 Test nap-57.1 {inPolygon} {
-    [nap "inPolygon({0 1 1.1 1.5 2 3 3.1 3.5 4}, 6, {{4 7} {1 1} {1 7} {2 5}})"] value
-} {-1 0 1 0 -1 0 1 0 -1}
+    [nap "inPolygon({0 1 1.1 1.5 2 3 3.1 3.5 4},
+	transpose(reshape({5 6}, {9 2})),
+	{{4 7} {1 1} {1 7} {2 5}})"] value
+} {-1  0  1  1  0  0 -1 -1 -1
+-1  0  1  0 -1  0  1  0 -1}
 
-unset x y z
+Test nap-58.1 {psum1 scalar with NaN} {[nap "psum1(1nf64)"]} {0}
+Test nap-58.2 {psum1 vector with NaN} {[nap "psum1({2 1n -0.5})"]} {2 2 1.5}
+
+Test nap-58.3 {psum1 matrix} {
+    [nap "psum1({
+	{2 _ 1}
+	{0 -1 5}
+	{7 3 2}
+    })"]
+} { 2  0  1
+ 2 -1  6
+ 9  2  8}
+
+Test nap-58.4 {psum1 matrix} {
+    [nap "psum1({
+	{2 _ 1}
+	{0 -1 5}
+	{7 3 2}
+    }, 1)"]
+} { 2  2  3
+ 0 -1  4
+ 7 10 12}
+
+Test nap-58.5 {psum1 3D} {
+    [nap "psum1(c)"]
+} { 1.0  3.2 -5.0 -5.0 -5.0
+-1.0  0.0  0.8  9.0  0.0
+-1.0  0.0  0.8  9.0  0.0
+-1.0  0.0  0.8  9.0  0.0
+
+ 9.0 11.2  3.0  3.0  3.0
+ 7.0  8.0  8.8 17.0  8.0
+ 7.0  8.0  8.8 17.0  8.0
+ 7.0  8.0  8.8 17.0  8.0
+
+17.0 19.2 11.0 11.0 11.0
+15.0 16.0 16.8 25.0 16.0
+15.0 16.0 16.8 25.0 16.0
+15.0 16.0 16.8 25.0 16.0}
+
+unset c x y z
 put_info "nap-52.10 12"

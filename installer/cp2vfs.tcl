@@ -46,7 +46,7 @@ if {$tcl_platform(machine) eq "ia64" } {
 	    file copy ../installer/tclshrc.tcl $vfs/home
 	    file copy ../installer/wishrc.tcl  $vfs/home
 	    file copy ../installer/tkcon.cfg   $vfs/home
-	    foreach f "$package$version_no_dot hd???m hm???m netcdf" { 
+	    foreach f "$package$version_no_dot hd???m hm???m netcdf zlib1 szlibdll" { 
 		file copy [glob1 $root/bin/$f$sle] $vfs/tcl/bin
 	    }
 	    set f [file tail [glob1 $root/lib/ezprint*]]

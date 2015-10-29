@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.139 2004/12/17 08:49:39 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.140 2005/02/22 01:47:14 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK_PRE Nap_HdfCheck(nap_cd);   /* CHECK_PRE is macro used in nap_check.h */
@@ -1939,7 +1939,6 @@ Nap_HdfList(
     cre = Tcl_GetRegExpFromObj(nap_cd->interp, reObj, TCL_REG_ADVANCED | TCL_REG_NOSUB);
     CHECK(cre);
     name[0] = ':';
-    Tcl_ResetResult(nap_cd->interp);
     for (i_att = 0; i_att < natts; i_att++) {
 	status= SDattrinfo(sd_id, i_att, name+1, &data_type, &count);
 	CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
@@ -2105,7 +2104,6 @@ Nap_HdfCoordVar(
     CHECK(status == TCL_OK);
     status = Nap_HdfCloseFile(nap_cd, sd_id);
     CHECK(status == TCL_OK);
-    Tcl_ResetResult(nap_cd->interp);
     if (cv_nao) {
 	status = Nap_AppendLines(nap_cd, cv_nao->id);
     } else {
@@ -2209,13 +2207,10 @@ Nap_OOC_hdf(
 	    }
 	} else if (!file_name) {
 	    file_name = Tcl_GetStringFromObj(objv[i], NULL);
-	    Tcl_ResetResult(nap_cd->interp);
 	} else if (!sds_name) {
 	    sds_name  = Tcl_GetStringFromObj(objv[i], NULL);
-	    Tcl_ResetResult(nap_cd->interp);
 	} else {
-		str = (char *) Tcl_GetStringResult(nap_cd->interp);
-		CHECK3(FALSE, "m4NAME: %s", str);
+		CHECK(FALSE);
 	}
     }
     CHECK2(file_name, "m4NAME: Filename not specified");
@@ -2232,7 +2227,6 @@ Nap_OOC_hdf(
     Nap_DecrRefCount(nap_cd, valid_range_NAO);
     Nap_DecrRefCount(nap_cd, boxed_cv_hdf);
     Nap_DecrRefCount(nap_cd, subscript_NAO);
-    Tcl_ResetResult(nap_cd->interp);
     CHECK3(status_open  == TCL_OK, "m4NAME: Unable to open file %s", file_name);
     CHECK3(status_close == TCL_OK, "m4NAME: Unable to close file %s", file_name);
     CHECK3(status       == TCL_OK, "m4NAME: Error writing file %s", file_name);

@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.43 2004/11/23 05:43:53 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.44 2005/02/22 01:50:10 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap_hdf.h"
@@ -235,8 +235,7 @@ Nap_AppendNAOValue(
 	for (i = 0; i < objc; ++i) {
 	    status = Tcl_GetIndexFromObj(nap_cd->interp, objv[i], switches, "switch", 0, &index);
 	    if (status != TCL_OK) {
-		str = (char *) Tcl_GetStringResult(nap_cd->interp);
-		CHECK3(FALSE, "m4NAME: %s", str);
+		CHECK(FALSE);
 	    }
 	    switch (index) {
 		case 0:			/* list */
@@ -553,7 +552,6 @@ Nap_Poly(
     }
     Nap_FreeNAO(nap_cd, pxNAO);
     Nap_FreeNAO(nap_cd, pxyNAO);
-    Tcl_ResetResult(nap_cd->interp);
     return TCL_OK;
 }
 
@@ -764,7 +762,6 @@ Nap_SetValue(
     Nap_DecrRefCount(nap_cd, newSubscriptNAO);
     Nap_DecrRefCount(nap_cd, valueNAO);
     Nap_DecrRefCount(nap_cd, subscriptNAO);
-    Tcl_ResetResult(nap_cd->interp);
     return TCL_OK;
 }
 
@@ -864,8 +861,7 @@ Nap_OOC_set(
 
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], switches, "option", 0, &index);
     if (status != TCL_OK) {
-	str = (char *) Tcl_GetStringResult(nap_cd->interp);
-	CHECK3(FALSE, "m4NAME: %s", str);
+	CHECK(FALSE);
     }
     switch (index) {
     case 0:		/* coord. vars */
@@ -995,7 +991,6 @@ Nap_OOC_set(
     default:
 	CHECK2(FALSE, "m4NAME: Illegal set option");
     }
-    Tcl_ResetResult(nap_cd->interp);
     return TCL_OK;
 }
 
@@ -1295,6 +1290,7 @@ Nap_ObjectCommand(
     assert(naoPtr);
     nap_cd = naoPtr->nap_cd;
     Nap_IncrRefCount(nap_cd, naoPtr);
+    Nap_InitTclResult(nap_cd);
     maxLines = 20;
     maxColumns = naoPtr->dataType == NAP_C8 ? 80 : 6;
     if (objc > 1) {
@@ -1308,8 +1304,7 @@ Nap_ObjectCommand(
 	status = Tcl_GetIndexFromObj(interp, objv[1], switches, "method", 0,
 		&index);
 	if (status != TCL_OK) {
-	    str = (char *) Tcl_GetStringResult(interp);
-	    CHECK3(FALSE, "m4NAME: %s", str);
+	    CHECK(FALSE);
 	}
 	switch (index) {
 	case 0:	/* all info */
@@ -1330,7 +1325,6 @@ Nap_ObjectCommand(
 	case 1:		/* binary (same as write) */
 	    str = Tcl_GetStringFromObj(objv[2], NULL);
 	    status = Nap_PutRaw(nap_cd, FALSE, naoPtr, str);
-	    Tcl_ResetResult(nap_cd->interp);
 	    break;
 	case 2:	/* blt_vector */
 	    CHECK2(FALSE, "m4NAME: Method 'blt_vector' is no longer available");
@@ -1481,7 +1475,6 @@ Nap_ObjectCommand(
 	case 25:		/* swap */
 	    str = Tcl_GetStringFromObj(objv[2], NULL);
 	    status = Nap_PutRaw(nap_cd, TRUE, naoPtr, str);
-	    Tcl_ResetResult(nap_cd->interp);
 	    break;
 	case 26:		/* unit */
 	    CHECK2(objc == 2, "m4NAME: wrong # arguments");
@@ -1495,7 +1488,6 @@ Nap_ObjectCommand(
 	case 28:		/* write */
 	    str = Tcl_GetStringFromObj(objv[2], NULL);
 	    status = Nap_PutRaw(nap_cd, FALSE, naoPtr, str);
-	    Tcl_ResetResult(nap_cd->interp);
 	    break;
 	default:
 	    CHECK2(FALSE, "m4NAME: Illegal nap method");
@@ -1507,5 +1499,6 @@ Nap_ObjectCommand(
 	Nap_DecrRefCount(nap_cd, naoPtr);
     }
     CHECK(status == 0);
+    Nap_SetTclResult(nap_cd);
     return TCL_OK;
 }

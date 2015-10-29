@@ -1,4 +1,4 @@
-<!-- $Id: install.html,v 1.18 2005/01/20 06:12:27 dav480 Exp $ -->
+<!-- $Id: install.html,v 1.22 2005/03/10 05:58:54 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -186,6 +186,15 @@ ln -s ActiveTcl8.4.9.0.121397-html html
     <li> SunOS
     <li> Windows
 </ul>
+
+<P>
+The <em>Mac OS X</em> and <em>Darwin</em> platforms are supported via the
+<a href="http://fink.sourceforge.net">Fink</a>
+project, which has a
+<a href="http://fink.sourceforge.net/pdb/package.php/nap">nap</a>
+page.
+
+<P>
 It is hoped to support HP-UX in the near future.
 The SGI Irix platform is no longer supported.
 
@@ -229,6 +238,8 @@ package require nap
 <br>
 namespace import ::NAP::*
 </code>
+<br>
+If there will be other users then copy the three startup files to their home directories.
 
 <p>
 The script files 
@@ -242,6 +253,9 @@ to tailor the tkcon console to your personal requirements.
 You can create 
 <code>~/my.tcl</code>
 to tailor other aspects of the Tcl system to your personal requirements.
+See
+<a href="scripts.html">Sample Startup Scripts</a>
+for examples.
 
 <p>
 These scripts and the standard nap startup scripts are interrelated.
@@ -347,7 +361,7 @@ NAP no longer provides an interface to BLT or uses it in any way.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: install.html,v 1.18 2005/01/20 06:12:27 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: install.html,v 1.22 2005/03/10 05:58:54 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

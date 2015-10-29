@@ -648,6 +648,11 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    LDFLAGS="-export-dynamic"
 	    LD_SEARCH_FLAGS=""
 	    ;;
+	Darwin*)
+	    SHLIB_SUFFIX=".dylib"
+	    LDFLAGS_OPTIMIZE='cc -dynamiclib -single_module -flat_namespace -undefined suppress'
+	    CFLAGS_OPTIMIZE="-fno-common"
+	    ;;
 	*win32*|*WIN32*|CYGWIN_NT*|cygwin_nt*)
 	    CFLAGS_DEBUG="-nologo -MD -Z7 -Od -W1"
 	    CFLAGS_OPTIMIZE="-nologo -MD -Ox -W1"
@@ -686,9 +691,10 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    LDFLAGS=""
 	    LD_SEARCH_FLAGS=""
 	    ;;
-	HP-UX-*.08.*|HP-UX-*.09.*|HP-UX-*.10.*|HP-UX-*.11.*)
-	    CFLAGS_DEBUG="-Aa -D_HPUX_SOURCE -g"
-	    CFLAGS_OPTIMIZE="-Aa -D_HPUX_SOURCE"
+	HP-UX-*)
+	    CFLAGS_DEBUG="-Ae -g"
+	    CFLAGS_OPTIMIZE="-Ae"
+	    SYS_LIBS="-lnsl"
 	    SHLIB_SUFFIX=".sl"
 	    AC_CHECK_LIB(dld, shl_load, tcl_ok=yes, tcl_ok=no)
 	    if test "$tcl_ok" = yes; then
@@ -753,9 +759,9 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SYS_LIBS="-lpthread -lssl -lstdc++"
 
 	    if test "`uname -m`" = "ia64" ; then
-		AC_PATH_PROGS(ECC_PROG, ecc, :, ${PATH})
-		if test "${ECC_PROG}" != ":" ; then
-		    CC='ecc -quiet'
+		AC_PATH_PROGS(ICC_PROG, icc, :, ${PATH})
+		if test "${ICC_PROG}" != ":" ; then
+		    CC='icc -w'
 		fi
 	    fi
 

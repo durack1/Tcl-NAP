@@ -7,7 +7,7 @@
 #
 # Copyright (c) 1999-2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: tclshrc.tcl,v 1.2 2005/01/13 00:53:06 dav480 Exp $
+# $Id: tclshrc.tcl,v 1.3 2005/02/09 04:23:11 dav480 Exp $
 #
 # Increase size of history list to 999 (instead of default of 20).
 # Load package 'nap'.
@@ -22,7 +22,7 @@ if {![info exists ::tclshrc_done]} {
     set ::tclshrc_done 1
     history keep 999
     namespace eval TMP {
-	if {[info exists ::env(TCLSHRC_MUTE)]  &&  $::env(TCLSHRC_MUTE)} {
+	if {[info exists ::env(TCLSHRC_MUTE)] && $::env(TCLSHRC_MUTE) || !$tcl_interactive} {
 	    proc puts args {}
 	}
 	puts "home directory = [file nativename ~]"

@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.20 2005/01/20 07:50:55 dav480 Exp $
+dnl	$Id: configure.m4,v 1.22 2005/03/16 06:35:51 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -238,14 +238,12 @@ TAR_SUFFIX=.tgz
 
 case "$HOST_OS" in
     *win32* | *WIN32* | *CYGWIN_NT*)
-	NAP_USE_VERSION=`echo ${NAP_VERSION} | tr -d .`
 	TCL_USE_VERSION=${TCL_MAJOR_VERSION}${TCL_MINOR_VERSION}
 	TK_USE_VERSION=${TK_MAJOR_VERSION}${TK_MINOR_VERSION}
 	USE_PATCHLEVEL=$NODOT_PATCHLEVEL
 	USE_VERSION=$NODOT_VERSION
     ;;
     *)
-	NAP_USE_VERSION=$NAP_VERSION
 	TCL_USE_VERSION=$TCL_VERSION
 	TK_USE_VERSION=$TK_VERSION
 	USE_PATCHLEVEL=$PATCHLEVEL
@@ -253,7 +251,6 @@ case "$HOST_OS" in
     ;;
 esac
 AC_SUBST(LAND_FLAG_VERSION)
-AC_SUBST(NAP_USE_VERSION)
 AC_SUBST(TAR_SUFFIX)
 AC_SUBST(TCL_VERSION)
 AC_SUBST(TK_VERSION)
@@ -302,7 +299,7 @@ do
 	    $ROOT_DIR/hdf \
 	    $ROOT_DIR/nc
     do
-	for DIR in $DIR1 $DIR1/include $DIR1/lib $DIR1/dlllib $DIR1/bin
+	for DIR in $DIR1 $DIR1/include $DIR1/lib $DIR1/dll $DIR1/dlllib $DIR1/bin
 	do
 	    if test -r $DIR/hd${HDF_999_VERSION}m.dll; then
 		HDF_DLL_DIR=$DIR
@@ -367,7 +364,7 @@ case "$HOST_OS" in
 	NC_LIB_SPEC="'$NC_LIB_DIR\\netcdf.lib'"
 	SHLIB_DIR="\${bindir}"
 	SHLIB_DIR_BASE=bin
-	TMP="$TCL_LIB_DIR/nap$NAP_USE_VERSION\${DBGX}.lib"
+	TMP="$TCL_LIB_DIR/nap$USE_VERSION\${DBGX}.lib"
 	NAP_LIB_SPEC="'`cygpath -w $TMP`'"
 	PLATFORM_MANIFEST="bin/h*m.dll bin/netcdf.dll lib/\$(PACKAGE_IMPORT_LIB)"
 	PLATFORM_MANIFEST="$PLATFORM_MANIFEST lib/ezprint$EZPRINT_VERSION/*"
@@ -381,7 +378,7 @@ case "$HOST_OS" in
 	TCL_LINK_SPEC="$TCL_LIB_FLAG"
 	TCL_SHLIB_SPEC="$TCL_STUB_LIB_FLAG $SHLIB_LD_LIBS"
 	HDF_LIB_SPEC="-L$HDF_LIB_DIR -lmfhdf -ldf -ljpeg -lz"
-	NAP_LIB_SPEC="-L$TCL_LIB_DIR -lnap$NAP_USE_VERSION\${DBGX}"
+	NAP_LIB_SPEC="-L$TCL_LIB_DIR -lnap$USE_VERSION\${DBGX}"
 	TCL_LIBRARY_DIR=$TCL_LIB_DIR/tcl$TCL_VERSION
 	TCL_LIB_PATH="$TCL_LIB_DIR/libtcl$TCL_VERSION\$(DBGX)$SHLIB_SUFFIX"
 	TMP="libtclstub$TCL_VERSION\$(DBGX)$STLIB_SUFFIX"
@@ -406,7 +403,7 @@ case "$HOST_OS" in
     ;;
 esac
 
-TMP="${LIB_PREFIX}nap$NAP_USE_VERSION\${DBGX}$SHLIB_SUFFIX"
+TMP="${LIB_PREFIX}nap$USE_VERSION\${DBGX}$SHLIB_SUFFIX"
 
 AC_SUBST(HDF_DLL_DIR)
 AC_SUBST(HDF_HEADER_DIR)

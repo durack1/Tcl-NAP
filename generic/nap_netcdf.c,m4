@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.59 2004/12/08 05:34:36 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.60 2005/02/22 01:47:14 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -2173,7 +2173,6 @@ Nap_NetcdfCoordVar(
     CHECK(status == TCL_OK);
     status = Nap_NetcdfCloseFile(nap_cd, nc_id);
     CHECK(status == TCL_OK);
-    Tcl_ResetResult(nap_cd->interp);
     if (cv_nao) {
 	status = Nap_AppendLines(nap_cd, cv_nao->id);
     } else {
@@ -2289,13 +2288,11 @@ Nap_OOC_netcdf(
 	} else if (!var_name) {
 	    var_name  = Tcl_GetStringFromObj(objv[i], NULL);
 	} else {
-		str = (char *) Tcl_GetStringResult(nap_cd->interp);
-		CHECK3(FALSE, "m4NAME: %s", str);
+		CHECK(FALSE);
 	}
     }
     CHECK2(file_name, "m4NAME: Filename not specified");
     CHECK2(var_name, "m4NAME: var_name not specified");
-    Tcl_ResetResult(nap_cd->interp);
     status_open = Nap_NetcdfOpenFile(nap_cd, file_name, 'w', &ncid);
     if (status_open == TCL_OK) {
 	status = Nap_NetcdfPut(nap_cd, ncid, var_name, dataType, scale_factor_NAO,

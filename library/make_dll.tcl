@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: make_dll.tcl,v 1.32 2004/09/06 04:54:49 dav480 Exp $
+# $Id: make_dll.tcl,v 1.34 2005/03/17 23:06:09 dav480 Exp $
 
 
 # make_dll --
@@ -114,7 +114,7 @@ proc make_dll args {
 	    set lib_prefix ""
 	    set vclib {c:\Program Files\Microsoft Visual Studio\VC98\lib}
 	    set std_libs "\
-		    {$tcl_lib\\nap[string     map {. {}} $::nap_version].lib}\
+		    {$tcl_lib\\nap[string     map {.  _} $::nap_version].lib}\
 		    {$tcl_lib\\tclstub[string map {. {}} $::tcl_version].lib}\
 		    {$vclib\\msvcrt.lib}\
 		    {$vclib\\oldnames.lib}\
@@ -124,6 +124,10 @@ proc make_dll args {
 	}
     }
     switch -glob $::tcl_platform(os) {
+	Darwin   {
+	    set compile "cc -no-cpp-precomp -fno-common -I$tcl_include -c"
+	    set link "cc -dynamiclib -single_module -flat_namespace -undefined suppress -o "
+	}
 	HP-UX	 {
 	    set compile "cc +z -I$tcl_include -c"
 	    set link "ld -b -o "

@@ -1,4 +1,4 @@
-<!-- $Id: stat.html,v 1.5 2004/09/03 06:28:16 dav480 Exp $ -->
+<!-- $Id: stat.html,v 1.6 2005/03/09 23:04:30 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -21,6 +21,7 @@ Statistical Functions
 	<li><a href="#gm">Geometric mean: <code>gm</code></a>
 	<li><a href="#median">Median: <code>median</code></a>
 	<li><a href="#mode">Mode: <code>mode</code></a>
+	<li><a href="#percentile">Percentiles: <code>percentile</code></a>
 	<li><a href="#rms">Root mean square: <code>rms</code></a>
 	<li><a href="#sd">Standard-deviation (with division by n): <code>sd</code></a>
 	<li><a href="#sd1">Standard-deviation (with division by n-1): <code>sd1</code></a>
@@ -37,6 +38,9 @@ Note that there are also built-in statistical functions called
 <a href="function.html#Correlation"><code>correlation</code></a>
 and
 <a href="function.html#Correlation"><code>moving_correlation</code></a>.
+The
+<a href="op.html#Tally">Tally Unary Operator &quot;<code>#</code>&quot;</a>
+also has statistical applications.
 
 <h3><a name=Simple_Statistics>Simple Statistics</h3>
 
@@ -116,6 +120,40 @@ Mode:
 3.85 3.5 1.5 0.2
 % [nap "mode(m,1)"]
 1.50625 3.7625
+</pre>
+
+<h4>
+<a name=percentile>
+Percentiles:
+<code>percentile(</code><var>x</var><code>,</code><var>pc</var>
+[<code>,</code><var>verb_rank</var>
+[<code>,</code><var>nc</var>]]<code>)</code>
+</h4>
+
+<p>
+<var>pc</var> = vector of required percentiles
+<br>
+<var>nc</var> = number of class intervals (default: 256)
+
+<p>
+The following examples calculate the following percentiles:
+<ul>
+    <li> 0 (minimum)
+    <li> 50 (median)
+    <li> 100 (maximum)
+</ul>
+
+<pre>
+% [nap "percentile(v, {0 50 100})"]
+3 8.50781 18
+% [nap "percentile(m, {0 50 100})"]
+1.50000 2.10000 1.50000 0.20000
+3.85918 3.50547 1.50000 0.20000
+6.20000 4.90000 1.50000 0.20000
+% [nap "percentile(m, {0 50 100}, 1)"]
+0.20000 0.20000
+1.50254 4.92266
+2.10000 6.20000
 </pre>
 
 <h4>
@@ -271,7 +309,7 @@ to a matrix.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: stat.html,v 1.5 2004/09/03 06:28:16 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: stat.html,v 1.6 2005/03/09 23:04:30 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

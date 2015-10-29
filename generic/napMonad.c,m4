@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.201 2004/11/08 22:54:23 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.202 2005/03/08 06:06:40 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -924,8 +924,107 @@ Nap_prune(
 }
 
 /*
+ * Nap_psum1 --
+ *	Partial-sum function psum1(v)
+ *	Each element of result is partial sum in direction defined by verb rank
+ */
+
+m4begin
+
+m4define(`m4NAME', `Nap_psum1')
+
+#	m4psum_mv(type) -- change missing values to 0
+m4define(`m4psum_mv', `
+	case m4DataTypeEnum($1):
+	    for (j = 0; j < result->nels; j++) {
+		if (IsMissing(result, j)) {
+		    result->data.$1[j] = 0;
+		}
+	    }
+	    break;')
+
+#	m4psum1(DataType)  e.g. m4psum1(U8)
+m4define(`m4psum1', `
+	    case m4DataTypeEnum($1):
+		for (m = 0; m < frameNels; m++) {
+		    j0 = m * cellNels;
+		    jlimit = j0 + cellNels;
+		    for (j = j0 + n; j < jlimit; j++) {
+			result->data.$1[j] += result->data.$1[j-n];
+		    }
+		}
+		break;')
+
+m4end
+
+static char *
+Nap_psum1(
+    NapClientData	*nap_cd, 
+    Nap_NAO		*x,			/* data argument */
+    Nap_NAO		*verbRankNaoPtr)	/* pointer to verb rank nao */
+{
+    size_t		cellNels;		/* # elements in cell */
+    size_t		*cellShape;		/* shape of each cell */
+    long		d;			/* dimension subscript */
+    size_t		frameNels;		/* # elements in frame */
+    size_t		j;			/* output subscript */
+    size_t		j0;
+    size_t		jlimit;
+    size_t		m;			/* verb application count */
+    size_t		n;			/* # elements in each item of cell */
+    Nap_NAO		*result;
+    Nap_NAO		*tmpNao;		/* pointer to temp. nao */
+    int			verbRank;
+
+    assert(x);
+    assert(x->id);
+    assert(Nap_IsNAO(nap_cd, x));
+    CHECK2NULL(Nap_TypeIsNumeric(x->dataType), "m4NAME: Non-numeric argument");
+    if (verbRankNaoPtr) {
+	assert(verbRankNaoPtr->id);
+	assert(Nap_IsNAO(nap_cd, verbRankNaoPtr));
+	Nap_IncrRefCount(nap_cd, verbRankNaoPtr);
+	CHECK2NULL(verbRankNaoPtr->nels == 1, "m4NAME: Illegal verb-rank");
+	tmpNao = Nap_CastNAO(nap_cd, verbRankNaoPtr, NAP_F64);
+	CHECK2NULL(tmpNao, "m4NAME: Error calling Nap_CastNAO");
+	Nap_IncrRefCount(nap_cd, tmpNao);
+	verbRank = Min(x->rank, tmpNao->data.F64[0]);
+	Nap_DecrRefCount(nap_cd, tmpNao);
+	Nap_DecrRefCount(nap_cd, verbRankNaoPtr);
+	if (verbRank < 0) {
+	    verbRank = Max(0, verbRank + x->rank);
+	}
+    } else {
+	verbRank = x->rank;
+    }
+    result = Nap_DupNAO(nap_cd, x);
+    CHECK2NULL(result, "m4NAME: error calling Nap_DupNAO");
+    switch (x->dataType) {
+	m4ForAllNumericDataType(`m4psum_mv(', `)')
+	default:                /* error */
+	    return NULL;
+    }
+    if (x->rank > 0) {
+	cellShape = x->shape + x->rank - verbRank;
+	cellNels = 1;
+	for (d = 0; d < verbRank; d++) {
+	    cellNels *= cellShape[d];
+	}
+	frameNels = cellNels == 0 ? 0 : x->nels / cellNels;
+	n = cellNels / cellShape[0];
+	switch (x->dataType) {
+	    m4ForAllNumericDataType(`m4psum1(', `)')
+	    default:            /* error */
+		assert(FALSE);
+	}
+    }
+    return result->id;
+}
+
+/*
  * Nap_psum --
  *	Partial-sum function psum(v)
+ *	Each element of result is sum of entire argument between it and origin 
  */
 
 m4begin
@@ -2362,6 +2461,23 @@ Nap_StdFuncs(
 	result = Nap_pad(nap_cd, boxed);
     } else if (strcmp(funcName, "prune") == 0) {
 	result = Nap_prune(nap_cd, boxed);
+    } else if (strcmp(funcName, "psum1") == 0) {
+	switch (boxed->shape[0]) {
+	    case 1:
+		if (boxed->data.Boxed[0]) {
+		    result = Nap_psum1(nap_cd,
+			    Nap_GetNaoFromSlot(boxed->data.Boxed[0]),
+			    NULL);
+		}
+		break;
+	    case 2:
+		if (boxed->data.Boxed[0]  &&  boxed->data.Boxed[1]) {
+		    result = Nap_psum1(nap_cd,
+			    Nap_GetNaoFromSlot(boxed->data.Boxed[0]),
+			    Nap_GetNaoFromSlot(boxed->data.Boxed[1]));
+		}
+		break;
+	}
     } else if (strcmp(funcName, "rank") == 0) {
 	result = Nap_rank(nap_cd, Nap_GetNaoFromSlot(boxed->data.Boxed[0]));
     } else if (strcmp(funcName, "shape") == 0) {

@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.151 2005/01/21 03:06:18 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.157 2005/04/05 00:11:04 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -126,21 +126,22 @@ OBJS = \
 
 PACKAGE = nap
 MAJOR_VERSION = 4
-MINOR_VERSION = 0
-PATCHLEVEL = .3
-VERSION = 4.0
-NODOT_VERSION = 4_0
-NODOT_PATCHLEVEL = 3
-USE_VERSION = 4.0
-USE_PATCHLEVEL = .3
+MINOR_VERSION = 1
+PATCHLEVEL = .0
+VERSION = 4.1
+NODOT_VERSION = 4_1
+NODOT_PATCHLEVEL = 0
+USE_VERSION = 4_1
+USE_PATCHLEVEL = 0
 
 #------------------------------------------------------------------------------
 # Package directories
 #------------------------------------------------------------------------------
 
-PWD = /home/dav480/tcl/nap/unix
-TOP_DIR = /home/dav480/tcl/nap
-ROOT = /home/dav480/tcl
+PWD = /cygdrive/c/dav480/tcl/nap/unix
+TOP_DIR = /cygdrive/c/dav480/tcl/nap
+TOP_DIR_TAIL = `basename $(TOP_DIR)`
+ROOT = /cygdrive/c/dav480/tcl
 DATA_DIR = $(TOP_DIR)/data
 LAND_FLAG_DATA_DIR = $(DATA_DIR)/land_flag
 GENERIC_DIR = $(TOP_DIR)/generic
@@ -153,20 +154,20 @@ TEST_DIR = $(TOP_DIR)/tests
 # Operating system name and version
 #------------------------------------------------------------------------------
 
-HOST_OS = Linux
-PLATFORM = Linux_i386
-system = Linux-2.4.20-30.9
+HOST_OS = CYGWIN_NT-5.1
+PLATFORM = windows
+system = CYGWIN_NT-5.1-1.5.13(0.122/4/2)
 
 #------------------------------------------------------------------------------
 # miscellaneous platform-specific items
 #------------------------------------------------------------------------------
 
 CP = cp -f
-DEBUGGER = xxgdb
+DEBUGGER = dbx
 ECHO = printf '%s\n'
 M4 = /usr/bin/m4 -s -B999000
 MKDIR = mkdir -p
-NATIVE_PATH = echo
+NATIVE_PATH = /cygdrive/c/dav480/tcl/bin/windows_path
 RANLIB = ranlib
 RM = rm -f
 TOUCH = touch
@@ -179,10 +180,10 @@ TOUCH = touch
 #   SHLIB_SUFFIX: Suffix for shared library (e.g. '.so', '.dll')
 #------------------------------------------------------------------------------
 
-EXEEXT = 
-LIB_PREFIX = lib
-OBJEXT = .o
-SHLIB_SUFFIX = .so
+EXEEXT = .exe
+LIB_PREFIX = 
+OBJEXT = .obj
+SHLIB_SUFFIX = .dll
 
 #------------------------------------------------------------------------------
 # DBGX: Used in filenames to indicate whether for debugging.
@@ -200,10 +201,10 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"4.0\" -DPATCHLEVEL=\".3\"  $(INCLUDES)
-HDF_HEADER_DIR = /home/dav480/hdf/use/include
-NC_HEADER_DIR = /home/dav480/nc/use/include
-TCL_HEADER_DIR = /home/dav480/tcl/include
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"4.1\" -DPATCHLEVEL=\".0\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
+HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
+NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
+TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include
 INCLUDES = \
 	-I`$(NATIVE_PATH) $(GENERIC_DIR)` \
 	-I`$(NATIVE_PATH) $(NC_HEADER_DIR)` \
@@ -214,10 +215,10 @@ INCLUDES = \
 # Compiling
 #------------------------------------------------------------------------------
 
-CC = cc
-CFLAGS = ${CFLAGS_OPTIMIZE}  -fPIC 
-CFLAGS_OPTIMIZE = -O -D__NO_STRING_INLINES -D__NO_MATH_INLINES
-CFLAGS_DEBUG = -g
+CC = cl
+CFLAGS = ${CFLAGS_OPTIMIZE}   
+CFLAGS_OPTIMIZE = -nologo -MD -Ox -W1
+CFLAGS_DEBUG = -nologo -MD -Z7 -Od -W1
 COMPILE = $(CC) -c $(CPPFLAGS) $(CFLAGS)
 
 #------------------------------------------------------------------------------
@@ -227,31 +228,31 @@ COMPILE = $(CC) -c $(CPPFLAGS) $(CFLAGS)
 #   LDFLAGS_OUT: "-o " for unix, "-out:" for windows
 #------------------------------------------------------------------------------
 
-LDFLAGS_DEBUG = 
-LDFLAGS_OPTIMIZE = 
+LDFLAGS_DEBUG = -debug:full -debugtype:cv
+LDFLAGS_OPTIMIZE = -nodefaultlib -release
 LDFLAGS_VAR = ${LDFLAGS_OPTIMIZE}
-LDFLAGS_OUT = -o 
+LDFLAGS_OUT = -out:
 
-LINK = $(CC) $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
-SHLIB_LD = cc -shared $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
+LINK = link $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
+SHLIB_LD = link -dll -nologo $(LDFLAGS_VAR) $(LDFLAGS_OUT)$@
 
-TCL_LIB_PATH = /home/dav480/tcl/lib/libtcl8.4$(DBGX).so
-TCL_STUB_LIB_PATH = /home/dav480/tcl/lib/libtclstub8.4$(DBGX).a
-TK_LIB_PATH = /home/dav480/tcl/lib/libtk8.4$(DBGX).so
-TK_STUB_LIB_PATH = /home/dav480/tcl/lib/libtkstub8.4$(DBGX).a
-HDF_LIB_PATH = /home/dav480/hdf/use/lib/libdf.a /home/dav480/hdf/use/lib/libmfhdf.a
-HDF_LIB_SPEC = -L/home/dav480/hdf/use/lib -lmfhdf -ldf -ljpeg -lz
-NC_LIB_PATH = /home/dav480/nc/use/lib/libnc-dods.a
-NC_LIB_SPEC = -L/home/dav480/nc/use/lib -lnc-dods -ldap++ -lnc-dods -ldap++ -lcurl -lxml2
+TCL_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tcl84$(DBGX).lib
+TCL_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tclstub84$(DBGX).lib
+TK_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tk84$(DBGX).lib
+TK_STUB_LIB_PATH = /cygdrive/c/dav480/tcl/lib/tkstub84$(DBGX).lib
+HDF_LIB_PATH = /cygdrive/c/dav480/hdf/use/dll/hd421m.lib /cygdrive/c/dav480/hdf/use/dll/hm421m.lib
+HDF_LIB_SPEC = 'c:\dav480\hdf\42r1-win\release\dll\hd421m.lib' 'c:\dav480\hdf\42r1-win\release\dll\hm421m.lib'
+NC_LIB_PATH = /cygdrive/c/dav480/nc/use/lib/netcdf.lib
+NC_LIB_SPEC = 'c:\dav480\nc\netcdf-3.6.1-beta1-win32dll\lib\netcdf.lib'
 
-TK_LIB_SPEC = -L/home/dav480/tcl/lib -ltk8.4$(DBGX)
-TCL_LINK_SPEC = -ltcl8.4$(DBGX)
-TCL_SHLIB_SPEC = -ltclstub8.4$(DBGX) ${LIBS}
+TK_LIB_SPEC = 'c:\dav480\tcl\lib\tk84$(DBGX).lib'
+TCL_LINK_SPEC = 'c:\dav480\tcl\lib\tcl84$(DBGX).lib' 'c:\dav480\tcl\lib\tclstub84$(DBGX).lib'
+TCL_SHLIB_SPEC = 'c:\dav480\tcl\lib\tclstub84$(DBGX).lib' 
 
 LIBS = 
-MATH_LIBS = -lieee -lm
-XLIBSW = -L/usr/X11R6/lib -lX11
-SYS_LIBS = -lpthread -lssl -lstdc++
+MATH_LIBS = 
+XLIBSW = 
+SYS_LIBS = -nodefaultlib 'c:\PROGRA~1\MICROS~3\VC98\lib\msvcrt.lib' 'c:\PROGRA~1\MICROS~3\VC98\lib\oldnames.lib' 'c:\PROGRA~1\MICROS~3\VC98\lib\kernel32.lib'
 STD_LIBS = $(MATH_LIBS) $(XLIBSW) $(SYS_LIBS)
 LINK_LIBS     = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(STD_LIBS)
 SHLIB_LD_LIBS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(STD_LIBS)
@@ -263,9 +264,9 @@ SHLIB_LD_LIBS = $(NC_LIB_SPEC) $(HDF_LIB_SPEC) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) 
 #   WISH_PROG: Path of shell wish
 #------------------------------------------------------------------------------
 
-TCLSH_PROG = /home/dav480/tcl/bin/tclsh8.4
-TCL_LIBRARY_DIR = /home/dav480/tcl/lib/tcl8.4
-WISH_PROG = /home/dav480/tcl/bin/wish8.4
+TCLSH_PROG = /cygdrive/c/dav480/tcl/bin/tclsh84.exe
+TCL_LIBRARY_DIR = 'c:\dav480\tcl\lib\tcl8.4'
+WISH_PROG = /cygdrive/c/dav480/tcl/bin/wish84.exe
 
 #------------------------------------------------------------------------------
 # Binaries
@@ -288,7 +289,7 @@ COMPRESS = gzip
 TAR = tar -cf -
 TAR_SUFFIX = .tgz
 
-SRC_TAR     = $(TOP_DIR)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
+SRC_TAR     = $(TOP_DIR)/$(PACKAGE)$(NODOT_VERSION)_$(NODOT_PATCHLEVEL)src$(TAR_SUFFIX)
 INSTALL_TAR = $(TOP_DIR)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
 
 #------------------------------------------------------------------------------
@@ -343,8 +344,8 @@ shell: $(PACKAGE_SHELL)
 # install secondary targets
 #------------------------------------------------------------------------------
 
-prefix = /home/dav480/tcl
-exec_prefix = /home/dav480/tcl
+prefix = /cygdrive/c/dav480/tcl
+exec_prefix = /cygdrive/c/dav480/tcl
 bindir = ${exec_prefix}/bin
 datadir = ${prefix}/share
 libdir = ${exec_prefix}/lib
@@ -352,8 +353,8 @@ mandir = ${prefix}/man
 includedir = ${prefix}/include
 PACKAGE_LIBRARY_DIR = $(libdir)/$(PACKAGE)$(VERSION)
 PACKAGE_HTML_DIR = $(PACKAGE_LIBRARY_DIR)/html
-SHLIB_DIR = ${libdir}
-SHLIB_DIR_BASE = lib
+SHLIB_DIR = ${bindir}
+SHLIB_DIR_BASE = bin
 DATA_INSTALL_DIR = $(PACKAGE_LIBRARY_DIR)/data
 LAND_FLAG_DATA_INSTALL_DIR = $(DATA_INSTALL_DIR)/land_flag
 
@@ -363,7 +364,8 @@ $(PACKAGE_HTML_DIR):
 	$(MKDIR) $@
 
 install-doc: $(PACKAGE_HTML_DIR)
-	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap.pdf $(HTML_DIR)/*.html $(PACKAGE_HTML_DIR)
+	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap_paper2002.pdf $(HTML_DIR)/*.html \
+		$(PACKAGE_HTML_DIR)
 
 # C header files
 install-headers: \
@@ -410,17 +412,17 @@ $(SHLIB_DIR)/$(PACKAGE_SHLIB): $(PACKAGE_SHLIB)
 	if test -f $(PACKAGE_IMPORT_LIB) ; then \
 	    $(CP) $(PACKAGE_IMPORT_LIB) $(libdir); fi
 
-HDF_DLL_DIR = 
-NC_DLL_DIR  = 
+HDF_DLL_DIR = /cygdrive/c/dav480/hdf/use/dll
+NC_DLL_DIR  = /cygdrive/c/dav480/nc/use/bin
 
 $(bindir):
 	$(MKDIR) $@
 
 install-bin-binaries: $(bindir)
 	if test -n "$(HDF_DLL_DIR)" -a "$(HDF_DLL_DIR)" != "$(bindir)"; then \
-	    $(CP) $(HDF_DLL_DIR)/*.dll $(bindir); fi
+	    $(CP) $(HDF_DLL_DIR)/*.dll $(bindir); chmod +x $(bindir)/*.dll; fi
 	if test -n "$(NC_DLL_DIR)" -a "$(NC_DLL_DIR)" != "$(bindir)"; then \
-	    $(CP) $(NC_DLL_DIR)/*.dll $(bindir); fi
+	    $(CP) $(NC_DLL_DIR)/*.dll $(bindir); chmod +x $(bindir)/*.dll; fi
 
 LAND_FLAG_DATA_FILES = \
 	$(LAND_FLAG_DATA_DIR)/sfa_degrees.landsea \
@@ -456,14 +458,15 @@ $(PACKAGE_SHELL): $(OBJS) $(PACKAGE)sh$(OBJEXT) $(LIB_PATHS)
 #------------------------------------------------------------------------------
 
 SRC_MANIFEST = \
-generic \
-html \
-installer \
-library \
-tests \
-unix
+$(TOP_DIR_TAIL)/data \
+$(TOP_DIR_TAIL)/generic \
+$(TOP_DIR_TAIL)/html \
+$(TOP_DIR_TAIL)/installer \
+$(TOP_DIR_TAIL)/library \
+$(TOP_DIR_TAIL)/tests \
+$(TOP_DIR_TAIL)/unix
 
-PLATFORM_MANIFEST = 
+PLATFORM_MANIFEST = bin/h*m.dll bin/netcdf.dll lib/$(PACKAGE_IMPORT_LIB) lib/ezprint1.0/*
 
 INSTALL_MANIFEST = \
 $(PLATFORM_MANIFEST) \
@@ -472,7 +475,7 @@ lib/nap$(VERSION) \
 $(SHLIB_DIR_BASE)/$(PACKAGE_SHLIB)
 
 $(SRC_TAR): clean
-	cd $(TOP_DIR); \
+	cd $(ROOT); \
 	$(TAR) $(SRC_MANIFEST) | $(COMPRESS) > $@
 
 $(INSTALL_TAR): install
@@ -493,6 +496,7 @@ clean:
 		$(PACKAGE_SHELL_PROD) $(PACKAGE_SHELL_DEBUG) \
 		*.kit *.vfs $(LOCAL_INSTALLER_TCL) $(STARPACK) \
 		*.bat \
+		*.exe \
 		*.exp \
 		*.ilk \
 		*.lib \

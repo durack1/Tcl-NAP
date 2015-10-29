@@ -1,4 +1,4 @@
-<!-- $Id: plot_nao.html,v 1.13 2004/10/21 05:37:54 dav480 Exp $ -->
+<!-- $Id: plot_nao.html,v 1.14 2005/03/23 03:48:26 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -309,6 +309,9 @@ Type z: Image width (can be "min max") (Default: NAO dim if within limits)
 -xlabel </CODE> <I>string</I>: x-axis label (Default: name of last dimension)
 
 <BR><CODE>
+-xproc </CODE> <I>string</I>: name of procedure to format x-axis tick values (Default: none)
+
+<BR><CODE>
 -xticks </CODE> <I>expression</I>: Major tick marks of x-axis (Default: automatic)
 
 <BR><CODE>
@@ -339,6 +342,9 @@ geog
 -ylabel </CODE> <I>string</I>: y-axis label (Default: name of 2nd-last dimension)
 
 <BR><CODE>
+-yproc </CODE> <I>string</I>: name of procedure to format y-axis tick values (Default: none)
+
+<BR><CODE>
 -yticks </CODE> <I>expression</I>: Major tick marks of y-axis (Default: automatic)
 
 <BR><CODE>
@@ -362,7 +368,8 @@ nap "month = 1 .. 12"
 $sales set coord "" month
 $sales set label "Car sales"
 plot_nao sales -labels "Joe Mary" -xtick "1..12" -dash {{} .} -symbols "plus cross"
-plot_nao sales -labels "Joe Mary" -xtick "1..12" -type bar
+proc format_x x {lindex {{} Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec} $x}
+plot_nao sales -labels "Joe Mary" -xtick "1..12" -type bar -xproc format_x
 </pre>
 
 <h4><a name=z2>Color-coded z-images</h4>
@@ -421,7 +428,7 @@ plot_nao y -print 1 -filename sin.jpeg; # write JPEG image file sin.jpeg
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.13 2004/10/21 05:37:54 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.14 2005/03/23 03:48:26 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

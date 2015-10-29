@@ -8,7 +8,7 @@
 # Harvey Davies, CSIRO Atmospheric Research
 # P.J. Turner, CSIRO Atmospheric Research
 #
-# $Id: hdf.tcl,v 1.119 2005/01/06 03:56:28 dav480 Exp $
+# $Id: hdf.tcl,v 1.120 2005/03/15 05:32:35 dav480 Exp $
 
 
 # hdf --
@@ -672,7 +672,14 @@ namespace eval ::Hdf {
     proc handle_button_release {
 	top_ns
     } {
+	global ${top_ns}::hdf_netcdf
 	global ${top_ns}::sds_rank
+	if {$sds_rank < 2} {
+	    switch $hdf_netcdf {
+		hdf	{error "Selected SDS has rank < 2"}
+		netcdf	{error "Selected variable has rank < 2"}
+	    }
+	}
 	nap "range_1 = ${top_ns}::x0 // ::Plot_nao::x"
 	nap "range_2 = ${top_ns}::y0 // ::Plot_nao::y"
 	foreach d {1 2} {

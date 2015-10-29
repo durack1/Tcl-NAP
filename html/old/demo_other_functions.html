@@ -1,0 +1,93 @@
+<!-- $Id: tcl_log.html,v 1.2 2005/03/11 01:21:54 dav480 Exp $ -->
+<html>
+
+<head> <title>
+Non-elemental functions
+</title> </head>
+
+<body>
+
+<h2> <center>
+Non-elemental functions
+</center> </h2>
+
+<pre>
+% # Meta-data functions
+% nap "matrix = {
+{2 4 0}
+{9 1 7}
+}"
+::NAP::253-253
+% $matrix all
+::NAP::253-253  i32  MissingValue: -2147483648  References: 1  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+2 4 0
+9 1 7
+% [nap "shape(matrix)"]
+2 3
+% [nap "rank(matrix)"]
+2
+% [nap "shape(shape(matrix))"]; # same as this
+2
+% [nap "nels(matrix)"]; # number of elements
+6
+% [nap "prod(shape(matrix))"]; # same as this
+6
+%
+% Reduction functions applied to vector
+% nap "x = f32{3 7 _ 1}"
+::NAP::278-278
+% $x a; # can abbreviate 'all' to 'a'
+::NAP::278-278  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+3 7 _ 1
+% [nap "sum(x)"]
+11
+% [nap "prod(x)"]; # product
+21
+% [nap "min(x)"]
+1
+% [nap "max(x)"]
+7
+% [nap "count(x)"]; # number not missing
+3
+% [nap "sum(x) / count(x)"]
+3.66667
+% 
+% Reduction functions applied to matrix (called 'matrix') defined above
+% [nap "sum(matrix)"]; # sum of each column
+11 5 7
+% [nap "sum(matrix) / count(matrix)"]; # mean of each column
+5.5 2.5 3.5
+% [nap "sum(matrix, 1)"]; # sum of each row
+6 17
+% [nap "sum(matrix,1) / count(matrix,1)"]; # mean of each row
+2 5.66667
+% 
+% # Partial sum function 'psum'
+% [nap "psum(x)"]
+3 10 10 11
+</pre>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2005, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: tcl_log.html,v 1.2 2005/03/11 01:21:54 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

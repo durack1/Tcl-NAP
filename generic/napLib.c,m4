@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.196 2004/11/23 05:37:45 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.198 2005/03/07 05:48:26 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -27,6 +27,8 @@ static char *rcsid="@(#) $Id: napLib.c,m4,v 1.196 2004/11/23 05:37:45 dav480 Exp
 
 #define CKALLOC(N) ckalloc(N)
 #define CKFREE(P) if (P) ckfree(P)
+
+#define RESULT_BS0 4096		/* Initial size of result-buffer for Tcl result */
 
 
 /*
@@ -756,10 +758,43 @@ Nap_StrCat(
 }
 
 /*
- *  Nap_AppendStr --
- *  Append string to tcl result.
- *  If str is NULL or empty do nothing.
+ *  Nap_InitTclResult --
+ *  Initialise tcl result buffer.
+ */
+
+EXTERN void
+Nap_InitTclResult(
+    NapClientData	*nap_cd)
+{
+    nap_cd->result_bs = RESULT_BS0;
+    nap_cd->result = (char *) MALLOC(nap_cd->result_bs);
+    nap_cd->result_n = 0;
+}
+
+/*
+ *  Nap_SetTclResult --
+ *  Set tcl result to contents of tcl result buffer.
  *  Use system encoding (default iso8859-1 code).
+ */
+
+EXTERN void
+Nap_SetTclResult(
+    NapClientData	*nap_cd)
+{
+    Tcl_DString		ds;			/* dynamic string */
+
+    Tcl_ExternalToUtfDString(NULL, nap_cd->result, nap_cd->result_n, &ds);
+    Tcl_DStringResult(nap_cd->interp, &ds);
+    FREE(nap_cd->result);
+    nap_cd->result = NULL;
+    nap_cd->result_bs = 0;
+    nap_cd->result_n = 0;
+}
+
+/*
+ *  Nap_AppendStr --
+ *  Append string to tcl result buffer.
+ *  If str is NULL or empty do nothing.
  */
 
 EXTERN void
@@ -767,26 +802,20 @@ Nap_AppendStr(
     NapClientData	*nap_cd,
     char		*str)
 {
-    Tcl_DString		ds;			/* dynamic string */
-    int			n = Tcl_GetCharLength(Tcl_GetObjResult(nap_cd->interp));
-    Tcl_Obj		*objPtr;
-
-    if (str && *str) {
-	Tcl_ExternalToUtfDString(NULL, str, -1, &ds);
-	if (n > 0) {
-	    objPtr = Tcl_GetObjResult(nap_cd->interp);
-	    Tcl_AppendToObj(objPtr, Tcl_DStringValue(&ds), -1);
-	} else {
-	    objPtr = Tcl_NewStringObj(Tcl_DStringValue(&ds), -1);
-	    Tcl_SetObjResult(nap_cd->interp, objPtr);
+    if (str) {
+	while (*str) {
+	    if (nap_cd->result_n == nap_cd->result_bs) {
+		nap_cd->result_bs *= 2;
+		nap_cd->result = (char *) REALLOC(nap_cd->result, nap_cd->result_bs);
+	    }
+	    nap_cd->result[(nap_cd->result_n)++] = *(str++);
 	}
-	Tcl_DStringFree(&ds);
     }
 }
 
 /*
  *  Nap_AppendWords --
- *  Append string to tcl result (with prefixed space if not start of line).
+ *  Append string to tcl result buffer (with prefixed space if not start of line).
  *  If str is NULL do nothing.
  */
 
@@ -795,13 +824,9 @@ Nap_AppendWords(
     NapClientData	*nap_cd,
     char		*str)
 {
-    int			n = Tcl_GetCharLength(Tcl_GetObjResult(nap_cd->interp));
-    CONST char		*str_result;
-
     if (str) {
-	if (n > 0) {
-	    str_result = Tcl_GetStringResult(nap_cd->interp);
-	    if (str_result[n-1] != '\n') {
+	if (nap_cd->result_n > 0) {
+	    if (nap_cd->result[nap_cd->result_n - 1] != '\n') {
 		Nap_AppendStr(nap_cd, " ");
 	    }
 	}
@@ -811,8 +836,28 @@ Nap_AppendWords(
 }
 
 /*
+ *  Nap_AppendLines --
+ *  Append string to tcl result buffer (with prefixed newline if old result not empty).
+ *  If str is NULL do nothing.
+ */
+
+EXTERN int
+Nap_AppendLines(
+    NapClientData	*nap_cd,
+    char		*str)
+{
+    if (str) {
+	if (nap_cd->result_n > 0) {
+	    Nap_AppendStr(nap_cd, "\n");
+	}
+	Nap_AppendStr(nap_cd, str);
+    }
+    return TCL_OK;
+}
+
+/*
  *  Nap_AppendListElement --
- *  Append string (treated as list element) to tcl result
+ *  Append string (treated as list element) to tcl result buffer
  *  If str is NULL do nothing.
  */
 
@@ -823,37 +868,20 @@ Nap_AppendListElement(
 {
     Tcl_Obj		*objResult;		/* Tcl result as object */
     Tcl_Obj		*objStr;		/* str as object */
-    int                 status = TCL_OK;
+    int                 status;
+    char		*strResult;
 
     if (str) {
 	objStr = Tcl_NewStringObj(str, -1);
-	objResult = Tcl_GetObjResult(nap_cd->interp);
+	Tcl_IncrRefCount(objStr);
+	objResult = Tcl_NewStringObj(nap_cd->result, nap_cd->result_n);
+	Tcl_IncrRefCount(objResult);
 	status = Tcl_ListObjAppendElement(nap_cd->interp, objResult, objStr);
-	if (status == TCL_OK) {
-	    Tcl_SetObjResult(nap_cd->interp, objResult);
-	}
-    }
-    return status;
-}
-
-/*
- *  Nap_AppendLines --
- *  Append string to tcl result (with prefixed newline if old result not empty).
- *  If str is NULL do nothing.
- */
-
-EXTERN int
-Nap_AppendLines(
-    NapClientData	*nap_cd,
-    char		*str)
-{
-    int			n = Tcl_GetCharLength(Tcl_GetObjResult(nap_cd->interp));
-
-    if (str) {
-	if (n > 0) {
-	    Nap_AppendStr(nap_cd, "\n");
-	}
-	Nap_AppendStr(nap_cd, str);
+	strResult = Tcl_GetString(objResult); 
+	nap_cd->result_n = 0;
+	Nap_AppendStr(nap_cd, strResult);
+	Tcl_DecrRefCount(objStr);
+	Tcl_DecrRefCount(objResult);
     }
     return TCL_OK;
 }
@@ -2562,6 +2590,7 @@ Nap_IndexOf`$1'(
     double	step;
     size_t	G;
     size_t	i;
+    size_t	j;
     float	index;
 
     if (n < 2) {
@@ -2569,15 +2598,20 @@ Nap_IndexOf`$1'(
     }
     G = 0 <= g && g <= n-1 ? g + 0.5 : n;
     i = Nap_Find`$1'(nap_cd, v, n, x, G);
-    i -= i > 0;
-    i -= i > n-2;
-    index = i;
-    if (v[i] != v[i+1]) {
+    i = i < 2 ? 0 : i > n-2 ? n-2 : i-(x != v[i]);
+    while (i > 0  &&  v[i-1] == x) {
+	--i;
+    }
+    if (v[i] == v[i+1]) {
+	for (j = i+1; j+1 < n  &&  x == v[j+1]; j++) {
+	}
+	index = 0.5f * (i + j);
+    } else {
 	step =  (double) v[i+1] - (double) v[i];
 	if (i == 0) {
 	    index = 1.0 - ((double) v[1] - (double) x) / step;
 	} else {
-	    index += ((double) x - (double) v[i]) / step;
+	    index = i + ((double) x - (double) v[i]) / step;
 	}
     }
     return index;
@@ -3145,6 +3179,9 @@ Nap_CreateClientData(
     nap_cd->parseLevel = -1;
     nap_cd->totalBytesNAO = 0;
     nap_cd->maxTotalBytesNAO = 0;
+    nap_cd->result = NULL;
+    nap_cd->result_bs = 0;
+    nap_cd->result_n = 0;
     nap_cd->seqNum = 0;
     nap_cd->slotList = 0;
     nap_cd->lookup = NULL;

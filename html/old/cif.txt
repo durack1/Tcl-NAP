@@ -1,0 +1,43 @@
+; # Input/output
+;
+; # Create some data to write out (same as in ascii.txt)
+% nap "mat = {
+{1.3 -2.9 6.8}
+{0.9  5.2 8.1}
+}"
+::NAP::13-13
+% nap "latitude = {-40 -30}"
+::NAP::15-15
+% nap "longitude = 130 .. 150 ... 10"
+::NAP::23-23
+% $latitude set unit degrees_north
+% $longitude set unit degrees_east
+% $mat set unit degC
+% $mat set coo latitude longitude
+% plot_nao mat
+.win0
+% plot_nao mat -type z
+.win1
+% 
+; # Write to CIF
+% 
+% $mat a
+::NAP::13-13  f64  MissingValue: NaN  References: 1  Unit: degC
+Dimension 0   Size: 2      Name: latitude  Coordinate-variable: ::NAP::15-15
+Dimension 1   Size: 3      Name: longitude  Coordinate-variable: ::NAP::1925-1925
+Value:
+ 1.3 -2.9  6.8
+ 0.9  5.2  8.1
+% put_cif mat demo.cif; # Write CIF
+% # You can use GUI CIF browser to check this new file 'demo.cif'
+% 
+% # Read from CIF
+% nap "in = [get_cif demo.cif]"
+::NAP::17738-5075
+% $in a
+::NAP::17738-5075  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Dimension 0   Size: 2      Name: latitude  Coordinate-variable: ::NAP::17597-9999
+Dimension 1   Size: 3      Name: longitude  Coordinate-variable: ::NAP::17669-9608
+Value:
+ 1.3 -2.9  6.8
+ 0.9  5.2  8.1

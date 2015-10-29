@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.22 2004/05/14 08:01:07 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.23 2005/02/22 01:41:53 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -105,7 +105,7 @@ Nap_GetBinary(
     if (subCommand[0] == 's'  &&  size > 1) {		/* swap bytes */
 	status = Nap_swap_bytes(nap_cd, naoPtr->data.c, naoPtr->nels, size);
     }
-    Tcl_SetResult(nap_cd->interp, naoPtr->id, TCL_VOLATILE);
+    Nap_AppendStr(nap_cd, naoPtr->id);
     return TCL_OK;
 }
 
@@ -222,8 +222,7 @@ Nap_GetHDF_meta(
     CHECK_NUM_ARGS(objc > 3, 2, "-<OPTION> <FILENAME> ...");
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], option, "option", 0, &index);
     if (status != TCL_OK) {
-	str = Tcl_GetStringResult(nap_cd->interp);
-	CHECK3(FALSE, TEXT0 "%s", str);
+	CHECK(FALSE);
     }
     switch (index) {
     case 0: /* -coordinate */
@@ -356,7 +355,7 @@ Nap_GetHDF(
 	    }
 	}
 	if (new_rank == rank) {
-	    Tcl_SetResult(nap_cd->interp, naoPtr->id, TCL_VOLATILE);
+	    Nap_AppendStr(nap_cd, naoPtr->id);
 	} else {
 	    new_nao = Nap_ReshapeNAO(nap_cd, naoPtr, internalDataType, new_rank, new_shape);
 	    CHECK2(new_nao, TEXT0 "Error calling Nap_ReshapeNAO");
@@ -368,7 +367,7 @@ Nap_GetHDF(
 		}
 	    }
 	    Nap_FreeNAO(nap_cd, naoPtr);
-	    Tcl_SetResult(nap_cd->interp, new_nao->id, TCL_VOLATILE);
+	    Nap_AppendStr(nap_cd, new_nao->id);
 	}
 	Nap_DecrRefCount(nap_cd, subscript_NAO);
     }
@@ -488,8 +487,7 @@ Nap_GetNetcdf_meta(
     CHECK_NUM_ARGS(objc > 3, 2, "-<OPTION> <FILENAME> ...");
     status = Tcl_GetIndexFromObj(nap_cd->interp, objv[2], option, "option", 0, &index);
     if (status != TCL_OK) {
-	str = Tcl_GetStringResult(nap_cd->interp);
-	CHECK3(FALSE, TEXT0 "%s", str);
+	CHECK(FALSE);
     }
     switch (index) {
     case 0: /* -coordinate */
@@ -622,7 +620,7 @@ Nap_GetNetcdf(
 	    }
 	}
 	if (new_rank == rank) {
-	    Tcl_SetResult(nap_cd->interp, naoPtr->id, TCL_VOLATILE);
+	    Nap_AppendStr(nap_cd, naoPtr->id);
 	} else {
 	    new_nao = Nap_ReshapeNAO(nap_cd, naoPtr, internalDataType, new_rank, new_shape);
 	    CHECK2(new_nao, TEXT0 "Error calling Nap_ReshapeNAO");
@@ -634,7 +632,7 @@ Nap_GetNetcdf(
 		}
 	    }
 	    Nap_FreeNAO(nap_cd, naoPtr);
-	    Tcl_SetResult(nap_cd->interp, new_nao->id, TCL_VOLATILE);
+	    Nap_AppendStr(nap_cd, new_nao->id);
 	}
 	Nap_DecrRefCount(nap_cd, subscript_NAO);
     }
@@ -726,10 +724,10 @@ Nap_GetCmd(
 
     nap_cd->message[0] = '\0';
     CHECK_NUM_ARGS(objc > 1, 1, "binary|hdf|netcdf ...");
+    Nap_InitTclResult(nap_cd);
     status = Tcl_GetIndexFromObj(interp, objv[1], subCommands, "sub-command", 0, &index);
     if (status != TCL_OK) {
-	str = Tcl_GetStringResult(interp);
-	CHECK3(FALSE, TEXT0 "%s", str);
+	CHECK(FALSE);
     }
     switch (index) {
     case 0: /* binary */
@@ -748,5 +746,6 @@ Nap_GetCmd(
     default:
 	assert(0);
     }
+    Nap_SetTclResult(nap_cd);
     return TCL_OK;
 }

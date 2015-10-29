@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: stat.test,v 1.8 2004/09/03 04:59:48 dav480 Exp $
+# $Id: stat.test,v 1.10 2005/03/09 22:54:12 dav480 Exp $
 
 source $env(LIBRARY_DIR)/stat.tcl
 
@@ -30,6 +30,16 @@ Test stat-1.13 {am vector -- check unit} {[nap "am(v)"] unit} kg
 Test stat-1.14 {mode vector} {[nap "mode(v)"]} 9.5
 Test stat-1.15 {mode vector} {[nap "mode{5 7 5 9 11 12 18 15}"]} 5
 Test stat-1.16 {mode vector} {[nap "mode({5.01 7 4.99 0 9 11 12 16 12 5})"]} 5
+Test stat-1.17 {percentile vector} {
+    [nap "abs(percentile({4 4 3 5 6 3#8 10},{0 50 100}) - {3 6 10}) < 0.1"]
+} {1 1 1}
+Test stat-1.18 {percentile vector} {
+    [nap "abs(percentile({5 7 5 9 11 12 18 15},50) - 10) < 0.1"]
+} {1}
+Test stat-1.19 {percentile vector} {
+    nap "p = percentile(random(100000 # 10), 0 .. 100 ... 25, 1, 1000)"
+    [nap "abs(p - (0 .. 10 ... 2.5)) < 0.1"]
+} {1 1 1 1 1}
 
 nap "m = {
     {1.5 2.1 -5}
@@ -44,6 +54,14 @@ Test stat-2.5 {sd matrix columns} {[nap "sd(m)"]} {2 3.65 2.5}
 Test stat-2.6 {sd matrix rows} {[nap "sd(m,1)"]} {3.2149 3.85602}
 Test stat-2.7 {mode matrix columns} {[nap "mode(m)"]} {3.5 5.75 -2.5}
 Test stat-2.8 {mode matrix rows} {[nap "mode({{-3 9 -3}{_ 0 _}},1)"]} {-3 0}
+Test stat-2.9 {percentile matrix columns} {
+    nap "p = percentile(m, {0 50 100})"
+    [nap "max(max(abs(p - {{1.5 2.1 -5}{3.5 5.75 -2.5}{5.5 9.4 0}}))) < 0.1"]
+} {1}
+Test stat-2.10 {percentile matrix rows} {
+    nap "p = percentile(m, {0 50 100}, 1)"
+    [nap "max(max(abs(p - {{-5 0}{1.5 5.5}{2.1 9.4}}))) < 0.1"]
+} {1}
 
 nap "a = reshape(0 .. 99, {2 3 4})"
 
@@ -73,4 +91,19 @@ Test stat-4.6 {median 3D} {[nap "median(a,2)"]} \
 { 4  5  6  7
 16 17 18 19}
 
-unset a m v
+Test stat-4.7 {percentile 3D} {
+    nap "p = percentile(a, {0 50 100})"
+    [nap "max(max(max(abs(p - (min(a) /// median(a) // max(a)))))) < 0.1"]
+} {1}
+
+Test stat-4.8 {percentile 3D} {
+    nap "p = percentile(a, {0 50 100}, 1)"
+    [nap "max(max(max(abs(p - (min(a, 1) /// median(a, 1) // max(a, 1)))))) < 0.1"]
+} {1}
+
+Test stat-4.9 {percentile 3D} {
+    nap "p = percentile(a, {0 50 100}, 2)"
+    [nap "max(max(max(abs(p - (min(a, 2) /// median(a, 2) // max(a, 2)))))) < 0.1"]
+} {1}
+
+unset a m p v

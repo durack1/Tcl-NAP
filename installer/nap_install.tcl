@@ -61,13 +61,15 @@ set dst [tk_chooseDirectory \
     -initialdir $dir1 \
     -title "directory in which to install nap"]
 if {$dst ne ""} {
-    foreach dir {bin include lib} {
-	if {![file isdirectory $dst/$dir]} {
-	    set reply [tk_messageBox \
-		-message "Expected directory '$dst/$dir' not found! Continue?" \
-		-type yesno]
-	    if {$reply ne "yes"} {
-		exit
+    if {$tcl_platform(machine) ne "ia64" } {
+	foreach dir {bin include lib} {
+	    if {![file isdirectory $dst/$dir]} {
+		set reply [tk_messageBox \
+		    -message "Expected directory '$dst/$dir' not found! Continue?" \
+		    -type yesno]
+		if {$reply ne "yes"} {
+		    exit
+		}
 	    }
 	}
     }

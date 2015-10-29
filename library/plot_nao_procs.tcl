@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: plot_nao_procs.tcl,v 1.108 2004/11/24 01:58:23 dav480 Exp $
+# $Id: plot_nao_procs.tcl,v 1.114 2005/03/23 03:14:06 dav480 Exp $
 #
 # Produce xy-graph, barchart (histogram), z-plot (image) or tiled-plot (multiple images).
 
@@ -35,6 +35,11 @@ namespace eval Plot_nao {
 	nap "nao = pad(nao)"
 	if {[$nao rank] == 0} {
 	    handle_error "Value is scalar"
+	    return
+	}
+	nap "r = range(nao)"
+	if {[[nap "r(1) - r(0) == 1i"]]} {
+	    handle_error "data includes infinity!"
 	    return
 	}
 	set ::Plot_nao::image_format_list "ppm gif"
@@ -121,8 +126,10 @@ namespace eval Plot_nao {
 	    variable want_scaling_widget 1; # Display scaling widget?
 	    variable xflip 0;		# 1 = flip image left-right
 	    variable xlabel "";		# label of x-axis
+	    variable xproc "";		# name of procedure to format x-axis tick values
 	    variable yflip 0;		# 1 = flip image upside down
 	    variable ylabel "";		# label of y-axis
+	    variable yproc "";		# name of procedure to format y-axis tick values
 	    variable zlabels "";	# labels of categories for z-axis
 		# set default overlay_palette  to {black white red green blue}
 	    nap "overlay_palette = f32{{3#0}{3#1}{1 0 0}{0 1 0}{0 0 1}}";
@@ -164,7 +171,7 @@ namespace eval Plot_nao {
 	    handle_error "Data array is empty!"
 	    return
 	}
-	set call_level "#[expr [info level]-3]"; # stack level from which plot_nao called
+	set call_level "#[expr [info level]-2]"; # stack level from which plot_nao called
 	proc palette_option {name expr} "Plot_nao::set_palette \$name $window_id \$expr $call_level"
 	set str [lindex $dim_names end]
 	if {$str ne "(NULL)"} {
@@ -226,9 +233,11 @@ namespace eval Plot_nao {
 		{-width {set width $option_value}}
 		{-xflip {set xflip $option_value}}
 		{-xlabel {set xlabel $option_value}}
+		{-xproc {set xproc $option_value}}
 		{-xticks {nap "major_ticks_x = [uplevel 3 "nap \"$option_value\""]"}}
 		{-yflip {set want_yflip $option_value}}
 		{-ylabel {set ylabel $option_value}}
+		{-yproc {set yproc $option_value}}
 		{-yticks {nap "major_ticks_y = [uplevel 3 "nap \"$option_value\""]"}}
 		{-zlabels {set zlabels $option_value}}
 		{-zticks {nap "major_ticks_z = [uplevel 3 "nap \"$option_value\""]"}}
@@ -1162,7 +1171,7 @@ namespace eval Plot_nao {
 	if {$expr == ""} {
 	    set $n ""
 	} else {
-	    if [catch "uplevel $call_level nap \"$n = u8($expr)\"" result] {
+	    if [catch "uplevel $call_level nap \"$n = $expr\"" result] {
 		handle_error $result
 		return
 	    }
@@ -1694,6 +1703,7 @@ namespace eval Plot_nao {
 	global Plot_nao::${window_id}::symbols
 	global Plot_nao::${window_id}::title
 	global Plot_nao::${window_id}::xlabel
+	global Plot_nao::${window_id}::xproc
 	global Plot_nao::${window_id}::ylabel
 	$graph delete all
 	if {$magnification ne ""} {
@@ -1737,12 +1747,12 @@ namespace eval Plot_nao {
 	if {$major_ticks_x eq ""} {
 	    nap "major_ticks_x = axis_major_ticks_span(cvx, 32)"
 	    set max_width [font measure $font_standard \
-		    "[longest_element [geog_format $major_ticks_x]] "]
+		    "[longest_element [axis_tick_text $major_ticks_x $xproc]] "]
 	    nap "major_ticks_x = axis_major_ticks_span(cvx, i32(new_width / max_width - 1))"
 	} else {
 	    nap "tick_step = major_ticks_x(1) - major_ticks_x(0)"
-	    nap "cv_step = cvx(1) - cvx(0)"
-	    nap "major_ticks_x = tick_step * cv_step > 0 ?  major_ticks_x : major_ticks_x(-)"
+	    nap "cv_range = cvx(-1) - cvx(0)"
+	    nap "major_ticks_x = tick_step * cv_range > 0 ?  major_ticks_x : major_ticks_x(-)"
 	}
 	set x0   [[nap "major_ticks_x(0)"]]
 	set xend [[nap "major_ticks_x(-1)"]]
@@ -2013,6 +2023,7 @@ namespace eval Plot_nao {
 	    # This graph widget points to nao, so increment ref. count
 	    # Decrement when widget destroyed (in procedure "close_window")
 	Plot_nao::incrRefCount $window_id $nao
+	Plot_nao::incrRefCount $window_id $range_nao
 	set redraw_command [list Plot_nao::redraw_z $all $window_id $graph $nao $range_nao]
 	create_main_menu $all $window_id $graph $redraw_command $nao
 	frame $all.scaling_range
@@ -2066,36 +2077,49 @@ namespace eval Plot_nao {
     }
 
 
-    # geog_format --
+    # axis_tick_text --
     #
-    # Format a scalar or vector nao with special treatment of latitudes & longitudes
-    # (defined by unit of nao)
+    # Format a scalar or vector nao for axis tick text.
+    #
+    # Use formatting procedure format_proc (defined by options -xproc and -yproc) if defined.
+    # Otherwise:
+    #	if latitude  (defined by unit) then append degree symbol & N
+    #	if longitude (defined by unit) then append degree symbol & E
+    #	else normal
 
-    proc geog_format {
+    proc axis_tick_text {
 	nao
+	format_proc
     } {
-	set degree "\xb0"; # ISO-8859 code for degree symbol
 	set n [$nao nels]
-	switch [fix_unit [$nao unit]] {
-	    degrees_north {
-		set a [[nap "reshape(abs(nao), n // 1)"] value]
-		set j [[nap "1 + sign(nao)"] value]
-		set suffix {S { } N}
-		for {set i 0} {$i < $n} {incr i} {
-		    lappend result "[lindex $a $i]$degree[lindex $suffix [lindex $j $i]]"
+	nap "s = n // 1"
+	if {$format_proc eq ""} {
+	    set degree "\xb0"; # ISO-8859 code for degree symbol
+	    switch [fix_unit [$nao unit]] {
+		degrees_north {
+		    set a [[nap "reshape(abs(nao), s)"] value]
+		    set j [[nap "1 + sign(nao)"] value]
+		    set suffix {S { } N}
+		    for {set i 0} {$i < $n} {incr i} {
+			lappend result "[lindex $a $i]$degree[lindex $suffix [lindex $j $i]]"
+		    }
+		}
+		degrees_east {
+		    nap "lon = (nao + 180f32) % 360f32 - 180f32"
+		    set a [[nap "reshape(abs(lon), s)"] value]
+		    set j [[nap "abs(lon) == 180 ? 1 : 1 + sign(lon)"] value]
+		    set suffix {W {} E}
+		    for {set i 0} {$i < $n} {incr i} {
+			lappend result "[lindex $a $i]$degree[lindex $suffix [lindex $j $i]]"
+		    }
+		}
+		default {
+		    set result [[nap "reshape(nao, s)"] value]
 		}
 	    }
-	    degrees_east {
-		nap "lon = (nao + 180f32) % 360f32 - 180f32"
-		set a [[nap "reshape(abs(lon), n // 1)"] value]
-		set j [[nap "abs(lon) == 180 ? 1 : 1 + sign(lon)"] value]
-		set suffix {W {} E}
-		for {set i 0} {$i < $n} {incr i} {
-		    lappend result "[lindex $a $i]$degree[lindex $suffix [lindex $j $i]]"
-		}
-	    }
-	    default {
-		set result [[nap "reshape(nao, n // 1)"] value]
+	} else {
+	    foreach word [[nap "reshape(nao, s)"] value] {
+		lappend result [$format_proc $word]
 	    }
 	}
 	return $result
@@ -2316,6 +2340,9 @@ namespace eval Plot_nao {
 	} else {
 	    set ymax [string map {Inf 1nf32} $scalingToZ(0)]
 	}
+	if {$ymin == $ymax} {
+	    incr ymax
+	}
 	nap "cvz = nrows ... ymax .. ymin"
 	Plot_nao::incrRefCount $window_id $cvz
 	if {$zlabels ne ""} {
@@ -2326,8 +2353,8 @@ namespace eval Plot_nao {
 	    nap "major_ticks_z = axis_major_ticks(cvz, nmax)"
 	} else {
 	    nap "tick_step = major_ticks_z(1) - major_ticks_z(0)"
-	    nap "cv_step = cvz(1) - cvz(0)"
-	    nap "major_ticks_z = tick_step * cv_step > 0 ?  major_ticks_z : major_ticks_z(-)"
+	    nap "cv_range = cvz(-1) - cvz(0)"
+	    nap "major_ticks_z = tick_step * cv_range > 0 ?  major_ticks_z : major_ticks_z(-)"
 	}
 	set unit [$cvz unit]
 	if {$unit ne "(NULL)"} {
@@ -2371,7 +2398,7 @@ namespace eval Plot_nao {
 	$graph create image $x $y -image $imageName -anchor nw
 	if {$zlabels eq ""} {
 	    set x2 [expr $x + $key_width + 2]
-	    draw_y_axis $window_id $graph "" $x2 $y $nrows $cvz 1 $major_ticks_z 0.5
+	    draw_y_axis $window_id $graph "" $x2 $y $nrows $cvz 1 $major_ticks_z "" 0.5
 	} else {
 	    set n [llength $zlabels]
 	    if {$n != [$major_ticks_z nels] - 1} {
@@ -2602,7 +2629,9 @@ namespace eval Plot_nao {
 	major_ticks
 	{min_interval 6}
     } {
-	nap "step_major = f32(major_ticks(1) - major_ticks(0))"
+	nap "step_major = major_ticks(1) == major_ticks(0)
+		? 1f32
+		: f32(major_ticks(1) - major_ticks(0))"
 	set abs_step_major [[nap "abs(step_major)"]]
 	set unit [fix_unit [$cv unit]]
 	# Define possible values for n = no. minor intervals per major interval
@@ -2652,13 +2681,14 @@ namespace eval Plot_nao {
     } {
 	global Plot_nao::${window_id}::font_standard
 	global Plot_nao::${window_id}::major_tick_length
+	global Plot_nao::${window_id}::xproc
 	set unit [fix_unit [$cv unit]]
 	set is_geog [regexp {degrees_(east|north)} $unit]
 	set linespace [font metrics $font_standard -linespace]
 	$graph create line $x0 $y0 [expr $x0 + $length] $y0
 	nap "tick_step = major_ticks(1) - major_ticks(0)"
-	nap "cv_step = cv(1) - cv(0)"
-	nap "major_ticks = tick_step * cv_step > 0 ?  major_ticks : major_ticks(-)"
+	nap "cv_range = cv(-1) - cv(0)"
+	nap "major_ticks = tick_step * cv_range > 0 ?  major_ticks : major_ticks(-)"
 	nap "minor_ticks = axis_minor_ticks(cv, major_ticks)"
 	set n [$major_ticks nels]
 	nap "step_major = f64(major_ticks(1) - major_ticks(0))"
@@ -2673,7 +2703,7 @@ namespace eval Plot_nao {
 	nap "i = cv @ major_ticks"
 	nap "tmp = want_text * major_ticks"
 	$tmp set unit $unit
-	set labels [geog_format $tmp]
+	set labels [axis_tick_text $tmp $xproc]
 	for {set j 0} {$j < $n} {incr j} {
 	    set x [[nap "x1 + i(j)"]]
 	    $graph create line $x $y1 $x $y0
@@ -2736,17 +2766,18 @@ namespace eval Plot_nao {
     } {
 	global Plot_nao::${window_id}::font_standard
 	global Plot_nao::${window_id}::major_ticks_x
+	global Plot_nao::${window_id}::xproc
 	set unit [fix_unit [$cv unit]]
 	if {$major_ticks_x eq ""} {
 	    nap "major_ticks_x = axis_major_ticks(cv, 32)"; # Just to define max_width
 	    $major_ticks_x set unit $unit
 	    set max_width [font measure $font_standard \
-		    "[longest_element [geog_format $major_ticks_x]] "]
+		    "[longest_element [axis_tick_text $major_ticks_x $xproc]] "]
 	    nap "major_ticks_x = axis_major_ticks(cv, length / max_width - 1)"
 	} else {
 	    nap "tick_step = major_ticks_x(1) - major_ticks_x(0)"
-	    nap "cv_step = cv(1) - cv(0)"
-	    nap "major_ticks_x = tick_step * cv_step > 0 ?  major_ticks_x : major_ticks_x(-)"
+	    nap "cv_range = cv(-1) - cv(0)"
+	    nap "major_ticks_x = tick_step * cv_range > 0 ?  major_ticks_x : major_ticks_x(-)"
 	}
 	$major_ticks_x set unit $unit
 	draw_x_axis $window_id $graph $label $x0 $y0 $length $cv $sign $major_ticks_x 0.5
@@ -2769,6 +2800,7 @@ namespace eval Plot_nao {
 	cv
 	sign
 	major_ticks
+	format_proc
 	{tick_offset 0}
     } {
 	global Plot_nao::${window_id}::font_standard
@@ -2780,7 +2812,7 @@ namespace eval Plot_nao {
 	set unit [fix_unit [$cv unit]]
 	set is_geog [regexp {degrees_(east|north)} $unit]
 	$major_ticks set unit $unit
-	set labels [geog_format $major_ticks]
+	set labels [axis_tick_text $major_ticks $format_proc]
 	set max_width [font measure $font_standard [longest_element $labels]]
 	set x1 [expr $x0 + $sign * $major_tick_length]
 	nap "y1 = y0 + tick_offset"
@@ -2803,7 +2835,7 @@ namespace eval Plot_nao {
 	}
 	nap "tmp = want_text * major_ticks"
 	$tmp set unit $unit
-	set labels [geog_format $tmp]
+	set labels [axis_tick_text $tmp $format_proc]
 	for {set j 0} {$j < $n} {incr j} {
 	    set y [[nap "y1 + i(j)"]]
 	    $graph create line $x1 $y $x0 $y
@@ -2843,6 +2875,7 @@ namespace eval Plot_nao {
     } {
 	global Plot_nao::${window_id}::font_standard
 	global Plot_nao::${window_id}::major_ticks_y
+	global Plot_nao::${window_id}::yproc
 	if {$major_ticks_y eq ""} {
 	    nap "range_y = range(range_y)"
 	    if {[[nap "range_y(0) == range_y(1)"]]} {
@@ -2857,7 +2890,7 @@ namespace eval Plot_nao {
 	$major_ticks_y set unit $unit
 	nap "cv = (length + 1) ... major_ticks_y(0) .. major_ticks_y(-1)"
 	$cv set unit $unit
-	draw_y_axis $window_id $graph $label $x0 $y0 $length $cv $sign $major_ticks_y
+	draw_y_axis $window_id $graph $label $x0 $y0 $length $cv $sign $major_ticks_y $yproc
 	return [[nap "major_ticks_y{-1 0}"]]
     }
 
@@ -2881,20 +2914,21 @@ namespace eval Plot_nao {
     } {
 	global Plot_nao::${window_id}::font_standard
 	global Plot_nao::${window_id}::major_ticks_y
+	global Plot_nao::${window_id}::yproc
 	if {$major_ticks_y eq ""} {
 	    nap "nmax = i32(length / [font metrics $font_standard -linespace] - 1)"
 	    nap "nmax = nmax > 4 ? nmax/2 + 2 : nmax"
 	    nap "major_ticks_y = axis_major_ticks(cv, nmax)"
 	} else {
 	    nap "tick_step = major_ticks_y(1) - major_ticks_y(0)"
-	    nap "cv_step = cv(1) - cv(0)"
-	    nap "major_ticks_y = tick_step * cv_step > 0 ?  major_ticks_y : major_ticks_y(-)"
+	    nap "cv_range = cv(-1) - cv(0)"
+	    nap "major_ticks_y = tick_step * cv_range > 0 ?  major_ticks_y : major_ticks_y(-)"
 	}
 	set unit [$cv unit]
 	if {$unit ne "(NULL)"} {
 	    $major_ticks_y set unit $unit
 	}
-	draw_y_axis $window_id $graph $label $x0 $y0 $length $cv $sign $major_ticks_y 0.5
+	draw_y_axis $window_id $graph $label $x0 $y0 $length $cv $sign $major_ticks_y $yproc 0.5
     }
 
 
@@ -3101,6 +3135,7 @@ namespace eval Plot_nao {
 	    nap "minValue = reshape(minValue, 3)"
 	    nap "maxValue = reshape(maxValue, 3)"
 	}
+	nap "maxValue = maxValue > minValue ? maxValue : maxValue + 1"
 	nap "span = maxValue - minValue"
 	nap "scalingSlope = span == 0f32 ? 1f32 : (scalingToU - scalingFromU) / span"
 	nap "scalingSlope = min(scalingSlope) < max(scalingSlope)
@@ -3124,8 +3159,10 @@ namespace eval Plot_nao {
 	nao
     } {
 	global Plot_nao::${window_id}::save_nao_ids
-	$nao set count +1
-	lappend save_nao_ids $nao
+	if {$nao ne ""} {
+	    $nao set count +1
+	    lappend save_nao_ids $nao
+	}
     }
 
 
@@ -3440,7 +3477,7 @@ namespace eval Plot_nao {
 	}
 	if {$allow_overlay} {
 	    set_overlay $window_id $nao
-	    if {$overlay_nao != ""} {
+	    if {$overlay_nao ne ""  &&  $overlay_palette ne ""} {
 		nap "ov_rgb_mat = palette3(overlay_palette)"
 		nap "ip = isPresent(overlay_nao)"
 		if {[$u rank] == 2} {

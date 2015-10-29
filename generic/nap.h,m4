@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.195 2004/11/17 23:12:46 dav480 Exp $
+ * $Id: nap.h,m4,v 1.196 2005/02/22 01:22:50 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -415,6 +415,9 @@ typedef struct NapClientData_struct {
     char  			message[NAP_MAX_MESSAGE_LENGTH+1]; /* Nap_Check buffer */
     size_t			totalBytesNAO;	/* total # bytes in NAOs */
     size_t			maxTotalBytesNAO; /* max. so far */
+    char  			*result;	/* result-buffer for Tcl-result */
+    size_t			result_bs;	/* result-buffer size */
+    size_t			result_n;	/* # chars in current result */
     size_t			seqNum;		/* sequence # of most recently created NAO */
     int				slotList;	/* slot of head of internal "death list" of NAOs */
     Nap_NAO			**lookup;	/* NAO lookup table */
@@ -513,6 +516,7 @@ EXTERN void		Nap_IncrRefCount(NapClientData *nap_cd, Nap_NAO *naoPtr);
 EXTERN float		Nap_IndexOfNao(NapClientData *nap_cd, Nap_NAO *nao_ptr,
 				void *x_ptr, float g);
 EXTERN char		*Nap_IndexOf2(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN void		Nap_InitTclResult(NapClientData *nap_cd);
 EXTERN char		*Nap_InnerProd(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_inPolygon(NapClientData *nap_cd, Nap_NAO *box_nao);
 EXTERN void		Nap_InterpDeleteProc(ClientData clientData, Tcl_Interp *interp);
@@ -570,6 +574,7 @@ EXTERN int		Nap_SetDimName(NapClientData *nap_cd, Nap_NAO *mainNaoPtr, char *dim
 				int dimNum);
 EXTERN int		Nap_SetMissing(NapClientData *nap_cd, Nap_NAO *np, int missingValueSlot);
 EXTERN char		*Nap_SetParseResult(NapClientData *nap_cd, char *str);
+EXTERN void		Nap_SetTclResult(NapClientData *nap_cd);
 EXTERN char		*Nap_ShiftLeft(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_ShiftRight(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN int		Nap_SizeOf(Nap_dataType dataType);

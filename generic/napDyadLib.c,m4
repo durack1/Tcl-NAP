@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.78 2004/12/16 01:42:27 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.79 2005/03/16 01:30:44 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -590,6 +590,7 @@ Nap_ReverseVector(
 	assert(naoArray->rank == 1);
 	n = naoArray->nels;
 	naoResult = Nap_DupNAO(nap_cd, naoArray);
+	naoResult->step = NAP_UNKNOWN;
 	oldCV = Nap_GetCoordVar(nap_cd, naoArray, 0);
 	if (oldCV) {
 	    status = Nap_ReverseVector(nap_cd, oldCV, &newCV);

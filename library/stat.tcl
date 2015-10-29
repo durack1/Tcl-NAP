@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: stat.tcl,v 1.20 2004/09/03 05:02:04 dav480 Exp $
+# $Id: stat.tcl,v 1.26 2005/03/09 22:52:53 dav480 Exp $
 #
 # Statistics functions
 
@@ -23,7 +23,6 @@ namespace eval ::NAP {
 	    scalar_defn
 	    vector_defn
 	} {
-	    nap "X = f64([uplevel 2 nap "\"$X\""])"
 	    set r [$X rank]
 	    set vr [[nap "(verb_rank) % (r + 1)"]]
 	    if {$vr == 0} {
@@ -94,7 +93,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
@@ -117,7 +115,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
@@ -138,7 +135,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
@@ -167,7 +163,6 @@ namespace eval ::NAP {
 	{verb_rank "rank(X)"}
 	{n 64}
     } {
-	nap "X = [uplevel nap "\"$X\""]"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
@@ -281,6 +276,45 @@ namespace eval ::NAP {
     }
 
 
+    # percentile --
+    #
+    # X = data array of any rank
+    # pc = vector of required percentiles
+    # nc = number of class intervals (default: 256)
+
+    proc percentile {
+	X
+	pc
+	{verb_rank "rank(X)"}
+	{nc 256f32}
+    } {
+	set r [$X rank]
+	set vr [[nap "(verb_rank) <<< r"]]
+	nap "nc = f32 nc"
+	if {$vr == $r} {
+	    nap "xmin = f32(min X)"
+	    nap "xmax = f32(max X)"
+	    nap "c = (xmax - xmin) / nc"; # class width
+	    nap "c1 = c == 0 ? 1f32 : c"; # Use c1 to prevent division by 0
+	    nap "f = 0 // (# (i32(round((X - xmin) / c1))))"; # frequencies
+	    nap "cf = psum1(f)"; # cumulative frequencies
+	    nap "s = shape cf"
+	    $s set value "nels(pc)" 0
+	    # cf_pc = cumulative frequencies corresponding to pc
+	    nap "cf_pc = count(X) * transpose(reshape(f32(pc) / 100f32, s(-)))"
+	    nap "result = xmin + c * (cf @ cf_pc) >>> xmin <<< xmax"
+	    eval $result set dim [lreplace [$X dim] 0 0 percentile]
+	    eval $result set coo [lreplace [$X coo] 0 0 "reshape(pc)"]
+	} else {
+	    nap "d = r - vr"
+	    nap "perm = 0 .. (r-1)"
+	    nap "perm = d // (perm != d) # perm"
+	    nap "result = percentile(transpose(X, perm), pc, r, nc)"
+	}
+	nap "result"
+    }
+
+
     # rms --
     #
     # root mean square 
@@ -289,7 +323,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	set r [$X rank]
 	set vr [[nap "(verb_rank) % (r + 1)"]]
 	if {$vr == 0} {
@@ -312,7 +345,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	nap "vr = (verb_rank) % (rank(X) + 1)"
 	nap "v = STAT::var01(X, vr, 0)"
 	nap "result = sqrt(v)"
@@ -329,7 +361,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	nap "vr = (verb_rank) % (rank(X) + 1)"
 	nap "v = STAT::var01(X, vr, 1)"
 	nap "result = sqrt(v)"
@@ -346,7 +377,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	nap "vr = (verb_rank) % (rank(X) + 1)"
 	nap "STAT::var01(X, vr, 0)"
     }
@@ -360,7 +390,6 @@ namespace eval ::NAP {
 	X
 	{verb_rank "rank(X)"}
     } {
-	nap "X = f64([uplevel nap "\"$X\""])"
 	nap "vr = (verb_rank) % (rank(X) + 1)"
 	nap "STAT::var01(X, vr, 1)"
     }

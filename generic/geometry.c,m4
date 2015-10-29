@@ -11,7 +11,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: geometry.c,m4,v 1.1 2004/07/15 02:57:45 dav480 Exp $";
+static char *rcsid="@(#) $Id: geometry.c,m4,v 1.2 2005/03/04 05:35:06 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -206,10 +206,12 @@ Nap_inPolygon(
 	z = Nap_NewNAO(nap_cd, NAP_I8, y->rank, y->shape);
     }
     for (i = 0; i < x->rank; i++) {
-	CHECK2NULL(x->shape[i] == z->shape[i], "m4NAME: Shapes of x & y are incompatible");
+	CHECK2NULL(x->shape[i] == z->shape[i + z->rank - x->rank],
+		"m4NAME: Shapes of x & y are incompatible");
     }
     for (i = 0; i < y->rank; i++) {
-	CHECK2NULL(y->shape[i] == z->shape[i], "m4NAME: Shapes of x & y are incompatible");
+	CHECK2NULL(y->shape[i] == z->shape[i + z->rank - y->rank],
+		"m4NAME: Shapes of x & y are incompatible");
     }
     status = Nap_CopyTrailingDims(nap_cd, x, z);
     CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_CopyTrailingDims");
