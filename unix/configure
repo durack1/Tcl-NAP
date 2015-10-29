@@ -1324,7 +1324,7 @@ PACKAGE=nap
 
 MAJOR_VERSION=5
 MINOR_VERSION=0
-PATCHLEVEL=.1
+PATCHLEVEL=.2
 
 #------------------------------------------------------------------------------
 # HDF version numbers

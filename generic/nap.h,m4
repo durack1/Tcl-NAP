@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  *
  * Author: Harvey Davies, CSIRO Atmospheric Research
  *
- * $Id: nap.h,m4,v 1.203 2005/06/23 08:39:49 dav480 Exp $
+ * $Id: nap.h,m4,v 1.204 2005/07/13 07:51:26 dav480 Exp $
  */
 
 #ifndef _NAP
@@ -557,6 +557,7 @@ EXTERN size_t		Nap_lexID(char *str);
 EXTERN size_t		Nap_lexName(char *str);
 EXTERN size_t		Nap_lexSimpleName(char *str);
 EXTERN char		*Nap_Link(NapClientData *nap_cd, char *str1, char *str2);
+EXTERN char		*Nap_Link2(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN long		Nap_lmod(long x, long y);
 EXTERN char		*Nap_Log(NapClientData *nap_cd, char *str1, char *str2);
 EXTERN char		*Nap_Lt(NapClientData *nap_cd, char *str1, char *str2);

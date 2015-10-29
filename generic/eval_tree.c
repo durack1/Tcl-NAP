@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: eval_tree.c,v 1.5 2005/06/23 08:21:29 dav480 Exp $";
+static char *rcsid="@(#) $Id: eval_tree.c,v 1.7 2005/07/13 07:48:54 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -82,7 +82,7 @@ expr2(
     assert(left);
     switch (op) {
 	case ':':
-	    id = Nap_Link(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
+	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
 	case ',':
 	    id = Nap_Link(nap_cd, left, right); CHECK3NULL(id, fmt_c, op); break;
 	case CAT:
@@ -102,7 +102,7 @@ expr2(
 	case TO:
 	    id = Nap_AP(nap_cd, left, right); CHECK3NULL(id, fmt_s, ".."); break;
 	case AP3:
-	    id = Nap_Link(nap_cd, left, right); CHECK3NULL(id, fmt_s, "..."); break;
+	    id = Nap_Link2(nap_cd, left, right); CHECK3NULL(id, fmt_s, "..."); break;
 	case OR:
 	    id = Nap_Or(nap_cd, left, right); CHECK3NULL(id, fmt_s, "||"); break;
 	case AND:
@@ -241,7 +241,7 @@ eval_expr(
 		    switch (status) {
 			case 1:
 			    naoPtr = Nap_GetNaoFromId(nap_cd, left);
-			    nap_cd->indexBaseCV[level] = naoPtr->boxedCV;
+			    if (naoPtr) nap_cd->indexBaseCV[level] = naoPtr->boxedCV;
 			    nap_cd->indexDimNum[level] = 0;
 			    right = eval_index(nap_cd, expr->right);
 			    nap_cd->indexBaseCV[level] = NULL;

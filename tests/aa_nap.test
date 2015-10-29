@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: aa_nap.test,v 1.21 2005/06/28 08:50:37 dav480 Exp $
+# $Id: aa_nap.test,v 1.22 2005/07/13 07:06:54 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
@@ -2775,6 +2775,8 @@ Test nap-60.13 {precedence ?: /// ..} {[nap "9 /// 0 ? 1 .. 2 : 6 .. 4"]} {9 9 9
 Test nap-60.14 {precedence function , - } {[nap "atan(1-1,1)"]} 0
 Test nap-60.15 {precedence = +} {nap "a = 3 + b = 2"; $a} 5
 Test nap-60.16 {precedence = +} {$b} 2
+Test nap-60.17 {precedence , ?:} {[nap "open_box((0 ? (,2,3) : (4,5))1)"]} 5
+Test nap-60.18 {precedence , ?:} {[nap "open_box((1 ? (,2,3) : (4,5))1)"]} 2
 
 unset a b
 

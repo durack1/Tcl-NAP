@@ -17,19 +17,19 @@
 /nap_netcdf.h/1.10/Fri May 27 04:29:34 2005//
 /land_flag.c/1.2/Wed Jun 15 23:20:54 2005//
 /land_flag_i.c/1.5/Wed Jun 15 23:12:44 2005//
-/eval_tree.c/1.5/Thu Jun 23 08:21:29 2005//
 /function.c,m4/1.4/Thu Jun 23 08:23:31 2005//
 /napChoice.c,m4/1.37/Thu Jun 23 08:24:52 2005//
 /napDyad.c,m4/1.142/Thu Jun 23 08:25:53 2005//
 /napMonad.c,m4/1.209/Thu Jun 23 08:28:26 2005//
 /napParseLib.c,m4/1.58/Thu Jun 23 08:29:56 2005//
 /nap_check.h/1.19/Thu Jun 23 08:33:59 2005//
-/nap.h,m4/1.203/Thu Jun 23 08:39:49 2005//
 /nap.c,m4/1.218/Thu Jun 23 08:45:55 2005//
-/napDyadLib.c,m4/1.82/Thu Jun 23 09:19:54 2005//
 /napLib.c,m4/1.205/Thu Jun 23 09:29:14 2005//
 /nap_ooc.c,m4/1.50/Mon Jun 27 06:48:10 2005//
 /nap_netcdf.c,m4/1.69/Fri Jul  8 01:27:52 2005//
 /nap_hdf.c,m4/1.149/Fri Jul  8 01:57:08 2005//
 /nap_get.c/1.26/Wed Jul 13 01:52:11 2005//
+/eval_tree.c/1.7/Wed Jul 13 07:48:54 2005//
+/napDyadLib.c,m4/1.83/Wed Jul 13 07:50:45 2005//
+/nap.h,m4/1.204/Wed Jul 13 07:51:26 2005//
 D

@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.82 2005/06/23 09:19:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.83 2005/07/13 07:50:45 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -1176,14 +1176,16 @@ Nap_SubscriptOfVector(
  *	    M{5 1} defines a scalar (same as M(5,1))
  *	    M{{5 1}{0 0}} defines a 2-element vector (same as M(5,1) // M(0,0))
  *
- *	Indirect subscripting is indicated by link-nao attached to subscript (or subscript
- *	element in case of cross-product).  This link-nao can contain following integer values:
+ *	Indirect subscripting was previously indicated by link-nao attached to subscript
+ *	(or subscript element in case of cross-product).
+ *	This link-nao contained following integer values:
  *	0 = direct
  *	1 = @
  *	2 = @@
  *	3 = @@@
  *
- *	Note that the monadic (unary) operators "@", "@@" & "@@@" generate such a link-nao.
+ *	Note that the monadic (unary) operators "@", "@@" & "@@@" previousply generated such
+ *	link-naos.
  *	Examples
  *	    vector(@3.5) which is equivalent to vector(coordinate_variable(vector,0)@3.5)
  *	    matrix(1,@@3.5) which is equivalent to matrix(1,coordinate_variable(matrix,1)@3.5)
@@ -1196,8 +1198,8 @@ Nap_SubscriptOfVector(
  *	Only support single value for each dimension -- could allow each element of vector/full
  *	subscript to have separate value (with spreading to required rank)
  *
- *	Note that these three @ operators can only be used at the start of an index.
- *	Expressions such as "vector(1+(@3.5))" are illegal
+ *	Note that these three @ operators could previously only be used at the start of an
+ *	index. Expressions such as "vector(1+(@3.5))" were illegal but are now allowed.
  */
 
 m4define(`m4NAME', `Nap_Subscript')
@@ -1463,6 +1465,35 @@ Nap_Copy(
     Nap_DecrRefCount(nap_cd, nao2);
     Nap_DecrRefCount(nap_cd, nao2old);
     return id;
+}
+
+/*
+ *  Nap_Link2 --
+ *	Result is boxed 2-element vector pointing to arg1 & arg2.
+ */
+
+m4define(`m4NAME', `Nap_Link2')
+
+EXTERN char *
+Nap_Link2(
+    NapClientData	*nap_cd,
+    char		*str1,
+    char		*str2)
+{
+    size_t              shape[1];
+    Nap_NAO		*result;
+    Nap_NAO		*naoPtr1;
+    Nap_NAO		*naoPtr2;
+
+    shape[0] = 2;
+    result = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+    naoPtr1 = Nap_GetNaoFromId(nap_cd, str1);
+    naoPtr2 = Nap_GetNaoFromId(nap_cd, str2);
+    result->data.Boxed[0] = naoPtr1 ? naoPtr1->slot : 0;
+    result->data.Boxed[1] = naoPtr2 ? naoPtr2->slot : 0;
+    Nap_IncrRefCount(nap_cd, naoPtr1);
+    Nap_IncrRefCount(nap_cd, naoPtr2);
+    return result->id;
 }
 
 /*
