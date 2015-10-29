@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.149 2005/07/08 01:57:08 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_hdf.c,m4,v 1.152 2005/08/01 05:06:26 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK_PRE Nap_HdfCheck(nap_cd);   /* CHECK_PRE is macro used in nap_check.h */
@@ -518,7 +518,8 @@ Nap_HdfCreateSDS(
     }
     if (nels > 0) {
 	if (missingValue_NAO) { /* Force writing of fill values */
-	    status = SDwritedata(*sds_id, start32, NULL, edge32, (void *) missingValue_NAO->data.c);
+	    status = SDwritedata(*sds_id, start32, NULL, edge32,
+		    (void *) missingValue_NAO->data.c);
 	    CHECK2(status == SUCCEED, "m4NAME: error calling SDwritedata");
 	} else if (isRecord) { /* Force expansion of unlimited dim. */
 	    tmp_NAO = Nap_NewScalarNAO(nap_cd, dataType, 0.0);
@@ -807,7 +808,7 @@ Nap_HdfGetAttribute(
     CHECK2(attr_index >= 0, "m4NAME: Error calling SDfindattr");
     status= SDattrinfo(sds_id, attr_index, name_tmp, &number_type, shape32);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
-    CHECK2(1 == main_NAO->rank, "m4NAME: HDF rank != NAO rank");
+    CHECK2(main_NAO->rank < 2, "m4NAME: NAO rank > 1");
     dataType = Nap_Hdf2NapDataType(number_type);
     CHECK2(dataType == main_NAO->dataType,
 	    "m4NAME: HDF dataType != NAO dataType");
@@ -910,7 +911,7 @@ Nap_HdfGetDim(
     status = SDdiminfo(dim_id, name, &count, &number_type, &natts);
     CHECK2(status == SUCCEED, "m4NAME: Error calling SDdiminfo");
     if (cv_hdf_NAO) {
-	if (number_type > 0) {
+	if (number_type > 0  &&  ! SDiscoordvar(sds_id)) {
 	    dataType = Nap_Hdf2NapDataType(number_type);
 	    CHECK2(Nap_ValidDataType(dataType), "m4NAME: Illegal datatype");
 	    shape[0] = dim_index == 0  &&  SDisrecord(sds_id) ? shape32[0] : count;
@@ -1918,23 +1919,39 @@ Nap_HdfInfo(
     CHECK(status == TCL_OK);
     if (strlen(name_sds) > 0) {
 	status = Nap_HdfOpenSDS(nap_cd, sd_id, name_sds, &exists, &sds_id);
-	CHECK3(exists, "m4NAME: SDS %s not found", name_sds);
+	if (!exists) {
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK3(0, "m4NAME: SDS %s not found", name_sds);
+	}
     } else {
 	sds_id = sd_id;
     }
     if (strlen(name_att) > 0) {
 	attr_index = SDfindattr(sds_id, name_att);
-	CHECK2(attr_index >= 0, "m4NAME: Error calling SDfindattr");
+	if (attr_index < 0) {
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK2(0, "m4NAME: Error calling SDfindattr");
+	}
 	status= SDattrinfo(sds_id, attr_index, name, &number_type, shape32);
-	CHECK2(status == SUCCEED, "m4NAME: Error calling SDattrinfo");
+	if (status != SUCCEED) {
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK2(0, "m4NAME: Error calling SDattrinfo");
+	}
 	*internalDataType = *externalDataType = Nap_Hdf2NapDataType(number_type);
-	rank32 = 1;
+	rank32 = shape32[0] != 1;
     } else {
 	status = Nap_HdfSdsGetInfo(nap_cd, sds_id, &rank32, shape32, NULL, &number_type);
-	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+	if (status != TCL_OK) {
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK2(0, "m4NAME: Error calling Nap_HdfSdsGetInfo");
+	}
 	*externalDataType = Nap_Hdf2NapDataType(number_type);
-	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, raw, &number_type, &cal, &off, valid_range);
-	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_HdfGetScalingInfo");
+	status = Nap_HdfGetScalingInfo(nap_cd, sds_id, raw, &number_type, &cal,
+		&off, valid_range);
+	if (status != TCL_OK) {
+	    status = Nap_HdfCloseSDS(nap_cd, sds_id);
+	    CHECK2(0, "m4NAME: Error calling Nap_HdfGetScalingInfo");
+	}
 	*internalDataType = Nap_Hdf2NapDataType(number_type);
 	status = Nap_HdfCloseSDS(nap_cd, sds_id);
 	CHECK(status == TCL_OK);

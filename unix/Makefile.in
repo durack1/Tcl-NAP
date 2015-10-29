@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.167 2005/07/15 00:00:49 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.169 2005/08/05 05:30:40 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -286,6 +286,14 @@ PACKAGE_SHELL_DEBUG = $(PACKAGE)sh$(USE_VERSION)g$(EXEEXT)
 BINARIES = $(PACKAGE_SHLIB)
 
 #------------------------------------------------------------------------------
+# documentation
+#------------------------------------------------------------------------------
+
+LOG = $(TOP_DIR)/change.log
+NOTES = $(TOP_DIR)/release_notes.txt
+PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
+
+#------------------------------------------------------------------------------
 # distribution tar files
 #------------------------------------------------------------------------------
 
@@ -310,7 +318,10 @@ binaries: $(BINARIES)
 
 libraries:
 
-doc:
+doc: \
+    $(LOG) \
+    $(PDF) \
+    $(NOTES)
 
 install: install-binaries install-headers install-libraries install-doc install-data
 
@@ -324,8 +335,6 @@ upload_src: $(SRC_TAR)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(SRC_TAR)`" > tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
-
-PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
 
 upload_pdf: $(PDF)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl

@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napLib.c,m4,v 1.205 2005/06/23 09:29:14 dav480 Exp $";
+static char *rcsid="@(#) $Id: napLib.c,m4,v 1.206 2005/07/29 05:31:16 dav480 Exp $";
 #endif /* not lint */
 
 #include <float.h>
@@ -81,11 +81,7 @@ Nap_CheckAppendLine(
  * Nap_Check --
  *
  * Error handler
- *
- * Before command is executed, message should be initialised to "".
- * Each time Nap_Check is called it appends message to message (if room).
- * If outside parser (parseLevel < 0) then Nap_Check sets Tcl result to
- * message.
+ * Append message to Tcl result
  */
 
 m4define(`m4NAME', `Nap_Check')

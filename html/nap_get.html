@@ -1,4 +1,4 @@
-<!-- $Id: nap_get.html,v 1.10 2005/06/28 06:56:45 dav480 Exp $ -->
+<!-- $Id: nap_get.html,v 1.13 2005/08/01 04:48:59 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -72,7 +72,7 @@ where <var>datatype</var> defaults to <code>u8</code> and
 <var>shape</var> defaults to a vector corresponding to the file size.
 
 <p>
-The commmand<br>
+The command<br>
 <code>nap_get swap</code> <var>channel</var> [<var>datatype</var> [<var>shape</var>]]<br>
 is similar, except that bytes are swapped.
 This enables reading of data written on a machine with opposite byte-order within words.
@@ -145,10 +145,13 @@ NetCDF data is read using the command<br>
 </ul>
 
 <p>
-If <var>index</var> is omitted then the entire variable is read in.
-Otherwise <var>index</var> selects using 
-<a href="indexing.html#Shape_Preserving">shape-preserving</a>
-or
+A single-element attribute gives a scalar.
+Other attributes give vectors.
+Neither <var>index</var> nor <var>raw</var> can be specified for attributes.
+
+<p>
+A variable with no <var>index</var> gives the entire variable.
+If <var>index</var> is specified then it selects using 
 <a href="indexing.html#Cross_product_index">cross-product</a>
 indexing.
 
@@ -157,6 +160,7 @@ If <var>raw</var> is 1 then the result contains raw data read from the file.
 If <var>raw</var> is 0 (default) then this data is transformed using the attributes
 <code>scale_factor</code>,
 <code>add_offset</code>,
+<code>_FillValue</code>,
 <code>valid_min</code>,
 <code>valid_max</code>
 and
@@ -246,10 +250,13 @@ HDF data is read using the command<br>
 </ul>
 
 <p>
-If <var>index</var> is omitted then the entire SDS is read in.
-Otherwise <var>index</var> selects using 
-<a href="indexing.html#Shape_Preserving">shape-preserving</a>
-or
+A single-element attribute gives a scalar.
+Other attributes give vectors.
+Neither <var>index</var> nor <var>raw</var> can be specified for attributes.
+
+<p>
+An SDS with no <var>index</var> gives the entire SDS.
+If <var>index</var> is specified then it selects using 
 <a href="indexing.html#Cross_product_index">cross-product</a>
 indexing.
 
@@ -258,6 +265,7 @@ If <var>raw</var> is 1 then the result contains raw data read from the file.
 If <var>raw</var> is 0 (default) then this data is transformed using the attributes
 <code>scale_factor</code>,
 <code>add_offset</code>,
+<code>_FillValue</code>,
 <code>valid_min</code>,
 <code>valid_max</code>
 and
@@ -385,12 +393,13 @@ returns the dimension names of a specified variable/SDS in the specified file.
 
 <p>
 The command<br>
-<code>nap_get hdf -coordinate</code> <var>filename sdsname</var><br>
+<code>nap_get hdf -coordinate</code>
+<var>filename sdsname dim_name</var>|<var>dim_number</var><br>
 or<br>
 <code>nap_get netcdf -coordinate</code>
 <var>filename varname dim_name</var>|<var>dim_number</var><br>
-returns the name of the coordinate variable corresponding to a specified
-dimension of a specified variable/SDS in the specified file.
+returns the coordinate variable NAO corresponding to the specified
+dimension of the specified variable/SDS in the specified file.
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -403,7 +412,7 @@ dimension of a specified variable/SDS in the specified file.
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.10 2005/06/28 06:56:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.13 2005/08/01 04:48:59 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

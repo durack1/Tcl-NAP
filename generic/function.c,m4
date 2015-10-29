@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: function.c,m4,v 1.4 2005/06/23 08:23:31 dav480 Exp $";
+static char *rcsid="@(#) $Id: function.c,m4,v 1.5 2005/07/21 05:58:07 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -2538,6 +2538,7 @@ Nap_Func1(
     m4func(sinh)
     m4func(sqrt)
     m4func(tan)
+    m4func(tanh)
     }
     m4ForAllUnboxedDataType(`m4cast(', `)')
     if (!new) {

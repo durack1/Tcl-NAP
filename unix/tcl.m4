@@ -672,13 +672,13 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    if test "${CC_PROG}" = ":" ; then
 		AC_MSG_WARN(No C compiler found.)
 	    fi
-	    SYS_LIB_DIR=`dirname $CC_PROG`
-	    SYS_LIB_DIR=`dirname $SYS_LIB_DIR`/lib
+	    SYS_LIB_DIR=`dirname "$CC_PROG"`
+	    SYS_LIB_DIR=`dirname "$SYS_LIB_DIR"`/lib
 	    SYS_LIBS="-nodefaultlib"
 	    # SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/msvcrt\$DBGX.lib`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/msvcrt.lib`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/oldnames.lib`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/kernel32.lib`'"
+	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/msvcrt.lib"`'"
+	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/oldnames.lib"`'"
+	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/kernel32.lib"`'"
 	    RC="rc"
 	    ;;
 	dgux*)

@@ -1,4 +1,4 @@
-<!-- $Id: nap_function_lib.html,v 1.8 2005/05/02 07:20:04 dav480 Exp $ -->
+<!-- $Id: nap_function_lib.html,v 1.12 2005/08/04 05:34:43 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -25,7 +25,8 @@ Miscellaneous Functions
 	<code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code></a>
     <li><a href="#fuzzy_ceil">
 	<code>fuzzy_ceil(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code></a>
-    <li><a href="#gets_matrix"><code>gets_matrix(</code><var>filename</var><code>)</code></a>
+    <li><a href="#gets_matrix"><code>gets_matrix(</code><var>filename</var>[<code>,</code>
+	    <var>n_header_lines</var>]<code>)</code></a>
     <li><a href="#head"><code>head(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code></a>
     <li><a href="#hsv2rgb"><code>hsv2rgb(</code><var>hsv</var><code>)</code></a>
     <li><a href="#isMissing"><code>isMissing(</code><var>x</var><code>)</code></a>
@@ -105,7 +106,7 @@ derivative(matrix, 1);		# result is derivative with respect to longitude
 <p>
 Based on quadratic through 3 points (provided size of dimension is > 2 -- if only 2 then
 based on straight line). These always include the point corresponding to the result.
-For interior points, the other 2 are the closest neighbour on each side.  For boundry
+For interior points, the other 2 are the closest neighbour on each side.  For boundary
 points, these are the 2 closest neighbours.
 
 <p>
@@ -159,17 +160,26 @@ Example:
 </code>
 
 <h3><a name=gets_matrix>
-<code>gets_matrix(</code><var>filename</var><code>)</code>
+<code>gets_matrix(</code><var>filename</var>[<code>,</code>
+<var>n_header_lines</var>]<code>)</code>
 </h3>
 
 Read text file and return NAO matrix whose rows correspond to the lines in the file.
-Ignore blank lines and lines whose first non-whitespace character is '#'.
+Ignore:
+<ul>
+    <li> first <var>n_header_lines</var> (default 0) lines 
+    <li> blank lines 
+    <li> lines whose first non-whitespace character is '<code>#</code>'
+</ul>
+
 <br>
 <p>
-Example:
+Examples:
 <br>
 <code>
-gets_matrix('my_matrix.txt')
+nap "m1 = gets_matrix('matrix1.txt')"
+<br>
+nap "m2 = gets_matrix('matrix2.txt', 3)"; # Skip 1st 3 lines
 </code>
 
 <h3><a name=head>
@@ -185,7 +195,7 @@ If <var>n</var> <  0 then result is 1st nels(<var>x</var>)+<var>n</var> elements
 i.e. drop &minus;<var>n</var> from end
 <br>
 <p>
-Example:
+Examples:
 <br>
 <pre>
 % [nap "head({3 1 9 2 7})"]
@@ -532,7 +542,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.8 2005/05/02 07:20:04 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.12 2005/08/04 05:34:43 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

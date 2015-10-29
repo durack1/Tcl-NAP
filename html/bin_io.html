@@ -1,4 +1,4 @@
-<!-- $Id: bin_io.html,v 1.4 2004/04/02 06:08:49 dav480 Exp $ -->
+<!-- $Id: bin_io.html,v 1.5 2005/07/28 06:45:32 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -19,14 +19,14 @@ Binary Input/Output Procedures
     <ol>
 	<li><a href="#get_nao">Procedure <code>get_nao</code> [<var>fileName</var>
 	    [<var>dataType</var> [<var>shape</var>]]]</a>
-	<li><a href="#put_nao">Procedure <code>put_nao</code> [<var>nap_expr</var>
+	<li><a href="#put_nao">Procedure <code>put_nao</code> [<var>napExpr</var>
 	    [<var>fileName</var>]]</a>
     </ol>
     <li><a href="#Fortran_Unformatted_Files">Reading and Writing Fortran Unformatted Files</a>
     <ol>
 	<li><a href="#get_bin">Procedure <code>get_bin</code> <var>dataType</var>
 	    [<var>fileId</var> [<var>mode</var>]]</a>
-	<li><a href="#put_bin">Procedure <code>put_bin</code> <var>nap_expr</var>
+	<li><a href="#put_bin">Procedure <code>put_bin</code> <var>napExpr</var>
 	    [<var>fileId</var> [<var>mode</var>]]</a>
 	<li><a href="#Example">Example</a>
     </ol>
@@ -34,12 +34,17 @@ Binary Input/Output Procedures
     <ol>
 	<li><a href="#get_cif">Procedure <code>get_cif</code> [<var>options</var>]
 	    <var>pattern</var> [<var>pattern</var> ...]</a>
-	<li><a href="#put_cif">Procedure <code>put_cif</code> <var>nap_expr</var>
+	<li><a href="#put_cif">Procedure <code>put_cif</code> <var>napExpr</var>
 	    [<var>fileName</var> [<var>mode</var>]]</a>
 	<li><a href="#get_cif1">Procedure <code>get_cif1</code> [<var>options</var>]
 	    <var>fileId</var></a>
-	<li><a href="#put_cif1">Procedure <code>put_cif1</code> <var>nap_expr</var>
+	<li><a href="#put_cif1">Procedure <code>put_cif1</code> <var>napExpr</var>
 	    [<var>fileId</var> [<var>mode</var>]]</a>
+    </ol>
+    <li><a href="#hdf_netcdf">Writing HDF and netCDF files</a>
+    <ol>
+	<li><a href="#put16">Procedure
+	    <code>put16</code> <var>napExpr fileName variableName</var></a>
     </ol>
     <li><a href="#Miscellaneous_Procedures">Miscellaneous Procedures</a>
     <ol>
@@ -75,11 +80,11 @@ Read NAO from binary file.
 <br>
 <var>shape</var>: shape of result (Default: number of elements until end)
 
-<h4><a name=put_nao>Procedure <code>put_nao</code> [<var>nap_expr</var> [<var>fileName</var>]]</h4>
+<h4><a name=put_nao>Procedure <code>put_nao</code> [<var>napExpr</var> [<var>fileName</var>]]</h4>
 
 Write NAO to binary file.
 <br>
-<var>nap_expr</var>: NAP expression to be evaluated in caller namespace
+<var>napExpr</var>: NAP expression to be evaluated in caller namespace
 <br>
 <var>fileName</var>: file name (default: <code>stdout</code>)
 
@@ -109,11 +114,11 @@ Read next Fortran binary (unformatted) record.
 <var>mode</var>: <code>binary</code> (default) or <code>swap</code>
 
 <h4><a name=put_bin>
-Procedure <code>put_bin</code> <var>nap_expr</var> [<var>fileId</var> [<var>mode</var>]]</h4>
+Procedure <code>put_bin</code> <var>napExpr</var> [<var>fileId</var> [<var>mode</var>]]</h4>
 
 Write Fortran binary (unformatted) record.
 <br>
-<var>nap_expr</var>: NAP expression to be evaluated in caller namespace
+<var>napExpr</var>: NAP expression to be evaluated in caller namespace
 <br>
 <var>fileId</var>: Tcl file handle (default: <code>stdout</code>)
 <br>
@@ -217,11 +222,11 @@ Value:
 </pre>
 
 <h4><a name=put_cif>
-Procedure <code>put_cif</code> <var>nap_expr</var> [<var>fileName</var> [<var>mode</var>]]</h4>
+Procedure <code>put_cif</code> <var>napExpr</var> [<var>fileName</var> [<var>mode</var>]]</h4>
 
 Write NAO as entire cif.
 <br>
-<var>nap_expr</var>: NAP expression to be evaluated in caller namespace
+<var>napExpr</var>: NAP expression to be evaluated in caller namespace
 <br>
 <var>fileName</var>: file name (default: <code>stdout</code>)
 <br>
@@ -271,15 +276,38 @@ Value:
 </pre>
 
 <h4><a name=put_cif1>
-Procedure <code>put_cif1</code> <var>nap_expr</var> [<var>fileId</var> [<var>mode</var>]]</h4>
+Procedure <code>put_cif1</code> <var>napExpr</var> [<var>fileId</var> [<var>mode</var>]]</h4>
 
 Write NAO as frame of cif.
 <br>
-<var>nap_expr</var>: NAP expression to be evaluated in caller namespace
+<var>napExpr</var>: NAP expression to be evaluated in caller namespace
 <br>
 <var>fileId</var>: Tcl file handle (default: <code>stdout</code>)
 <br>
 <var>mode</var>: <code>auto</code> (default), <code>binary</code> or <code>swap</code>
+
+<h3>
+<a name=hdf_netcdf>Writing HDF and netCDF files
+</h3>
+
+<h4>
+<a name=put16>
+Procedure <code>put16</code> <var>napExpr fileName variableName</var>
+</h4>
+
+Write automatically-scaled 16-bit variable to netCDF or HDF file.
+<br>
+<var>napExpr</var>: NAP expression to be evaluated in caller name-space
+<br>
+<var>fileName</var>: name of netCDF (<code>.nc</code>) or HDF (<code>.hdf</code>) file
+<br>
+<var>variableName</var>: name of 16-bit netCDF variable or HDF SDS
+
+<p>
+Example:
+<pre>
+% put16 "{{1.2e4 -99 _}{_ 101 0}}" m.nc matrix
+</pre>
 
 <h3><a name=Miscellaneous_Procedures>Miscellaneous Procedures</h3>
 
@@ -304,7 +332,7 @@ Example:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: bin_io.html,v 1.4 2004/04/02 06:08:49 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: bin_io.html,v 1.5 2005/07/28 06:45:32 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

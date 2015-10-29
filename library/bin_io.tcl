@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: bin_io.tcl,v 1.22 2004/06/29 01:20:49 dav480 Exp $
+# $Id: bin_io.tcl,v 1.23 2005/07/28 06:47:03 dav480 Exp $
 
 
 # check --
@@ -451,5 +451,50 @@ proc put_nao {
     nap "nao = [uplevel "nap \"$nap_expr\""]"
     $nao $mode $fileId
     close $fileId
+    return
+}
+
+
+# put16 --
+#
+# Write automatically-scaled 16-bit variable to netCDF or HDF file
+#
+# Usage
+#   put16 <nap_expr> <fileName> <variableName>
+#	<nap_expr> is NAP expression to be evaluated in caller name-space
+#	<fileName> is name of netCDF (.nc) or HDF (.hdf) file
+#	<variableName> is name of 16-bit variable/SDS
+
+proc put16 {
+    nap_expr
+    fileName
+    variableName
+} {
+    set ext [string tolower [file extension $fileName]]; # ".nc" or ".hdf"
+    nap "nao = f32([uplevel "nap \"$nap_expr\""])"
+    nap "r = range(nao)"
+    nap "data_min = r(0)"
+    nap "data_max = r(1)"
+    set valid_min -32500f32
+    set valid_max  32500f32
+    nap "valid_min1 = valid_min + 1f32"; # allow for rounding error
+    nap "valid_max1 = valid_max - 1f32"
+    if [[nap "data_min < data_max"]] {
+	nap "scale_factor = (data_max - data_min) / (valid_max1 - valid_min1)"
+	if {$ext eq ".nc"} {
+	    nap "add_offset = data_min - valid_min1 * scale_factor"
+	} else {
+	    nap "add_offset = valid_min1 - data_min / scale_factor"
+	}
+    } else {
+	# This happens if all data has same value or is missing
+	nap "scale_factor = 1f32"
+	nap "add_offset = 0f32"
+    }
+    set method(.nc) netcdf
+    set method(.hdf) hdf
+    $nao $method($ext) $fileName $variableName -datatype i16 \
+	    -range "valid_min // valid_max" \
+	    -scale scale_factor -offset add_offset 
     return
 }

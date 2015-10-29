@@ -8,7 +8,7 @@
  *
  * Author: Harvey Davies, CSIRO Mathematical and Information Sciences
  *
- * $Id: nap_check.h,v 1.19 2005/06/23 08:33:59 dav480 Exp $
+ * $Id: nap_check.h,v 1.20 2005/07/29 05:30:22 dav480 Exp $
  */
 
 #include <tcl.h>
@@ -205,7 +205,8 @@
 #define CHECK_NUM_ARGS(OK, N, MSG) \
     if (! (OK)) { \
 	Tcl_WrongNumArgs(nap_cd->interp, N, objv, MSG); \
-	CHECK3(0, "%s", Tcl_GetStringResult(nap_cd->interp)); \
+	Nap_Check(nap_cd, __FILE__, __LINE__, ""); \
+	return TCL_ERROR; \
     }
 
 EXTERN void	Nap_Check(NapClientData *nap_cd, const char *file, const int line,

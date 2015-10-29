@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.26 2005/07/13 01:52:11 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.27 2005/08/01 04:52:07 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -304,6 +304,7 @@ Nap_GetHDF(
     str = Tcl_GetStringFromObj(objv[2], NULL);
     if (str[0] == '-') {
 	status = Nap_GetHDF_meta(nap_cd, objc, objv);
+	CHECK(status == TCL_OK);
     } else {
 	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <SDS_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
@@ -320,7 +321,10 @@ Nap_GetHDF(
 	    status = Nap_HdfOpenFile(nap_cd, fileName, 'r', &sd_id);
 	    CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	    status = Nap_HdfOpenSDS(nap_cd, sd_id, sds_name, &exists, &sds_id);
-	    CHECK3(exists, "m4NAME: SDS %s not found", sds_name);
+	    if (!exists) {
+		status = Nap_HdfCloseFile(nap_cd, sd_id);
+		CHECK3(0, "TEXT0: SDS %s not found", sds_name);
+	    }
 	    status = nap_HdfGetIndex(nap_cd, sds_id, objv[4], &subscript_NAO);
 	    CHECK2(status == 0, TEXT0 "Error evaluating index");
 	    Nap_IncrRefCount(nap_cd, subscript_NAO);
@@ -576,6 +580,7 @@ Nap_GetNetcdf(
     str = Tcl_GetStringFromObj(objv[2], NULL);
     if (str[0] == '-') {
 	status = Nap_GetNetcdf_meta(nap_cd, objc, objv);
+	CHECK(status == TCL_OK);
     } else {
 	CHECK_NUM_ARGS(objc >= 4  &&  objc <= 6, 2, "<FILENAME> <VAR_NAME> ?<INDEX>? ?<RAW>?");
 	fileName = Tcl_GetStringFromObj(objv[2], NULL);
@@ -592,7 +597,10 @@ Nap_GetNetcdf(
 	    status = Nap_NetcdfOpenFile(nap_cd, fileName, 'r', &ncid);
 	    CHECK3(status == TCL_OK, TEXT0 "Error opening file %s", fileName);
 	    status = Nap_NetcdfOpenVar(nap_cd, ncid, var_name, &exists, &varid);
-	    CHECK3(exists, "m4NAME: Variable %s not found", var_name);
+	    if (!exists) {
+		status = Nap_NetcdfCloseFile(nap_cd, ncid);
+		CHECK3(0, "TEXT0: Variable %s not found", var_name);
+	    }
 	    status = nap_NetcdfGetIndex(nap_cd, ncid, varid, objv[4], &subscript_NAO);
 	    CHECK2(status == 0, TEXT0 "Error evaluating index");
 	    Nap_IncrRefCount(nap_cd, subscript_NAO);

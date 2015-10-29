@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.73 2005/08/02 08:48:45 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.72 2005/08/01 05:08:45 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -647,6 +647,7 @@ Nap_NetcdfCreateVar(
     return TCL_OK;
 }
 
+
 /*
  * Nap_NetcdfGetVar --
  */
@@ -1089,86 +1090,6 @@ Nap_NetcdfGetDim(
 	    }
 	}
     }
-    return TCL_OK;
-}
-
-/*
- * extend_unlimited --
- *
- * If necessary extend unlimited dimension by writing absent values of its coord. var.
- */
-
-EXTERN int
-extend_unlimited(
-    NapClientData       *nap_cd,		/* (in) */
-    int			ncid,			/* file handle (in) */
-    int			varid,			/* handle of main var (in) */
-    Nap_NAO		*main_NAO)		/* main nao (in) */
-{
-    double		cv_main_el;		/* element of cv from main nao */
-    Nap_NAO		*cv_main_el_nao;	/* element of cv from main nao */
-    Nap_NAO		*cv_main_f64;		/* cv from main nao as f64 */
-    Nap_NAO		*cv_main_NAO;		/* cv from main nao */
-    Nap_NAO		*cv_nc_f64;		/* cv from nc file as f64 */
-    Nap_NAO		*cv_nc_NAO;		/* cv from nc file */
-    int			cv_varid;		/* handle of coord. var. */
-    char		dim_name[NC_MAX_NAME];
-    size_t		edge[1];
-    int			extend;			/* Need to extend unlimited dim.? */
-    int			i;
-    int			n;			/* old size of unlimited dim. */
-    size_t		start[1];
-    int			status;
-    double		step;			/* size of final step of unlimited coord. var. */
-
-    cv_main_NAO = Nap_GetCoordVar(nap_cd, main_NAO, 0);
-    Nap_IncrRefCount(nap_cd, cv_main_NAO);
-    status = Nap_NetcdfGetDim(nap_cd, ncid, varid, 0, &cv_nc_NAO, dim_name);
-    CHECK(status == TCL_OK);
-    Nap_IncrRefCount(nap_cd, cv_nc_NAO);
-    if (cv_main_NAO && cv_nc_NAO) {
-	cv_main_f64 = Nap_CastNAO(nap_cd, cv_main_NAO, NAP_F64);
-	CHECK2(cv_main_f64, "m4NAME: Error calling Nap_CastNAO");
-	Nap_IncrRefCount(nap_cd, cv_main_f64);
-	status = nc_inq_varid(ncid, dim_name, &cv_varid);
-	CHECK2NC(status, "m4NAME: Error calling nc_inq_varid");
-	cv_nc_f64 = Nap_CastNAO(nap_cd, cv_nc_NAO, NAP_F64);
-	CHECK2(cv_nc_f64, "m4NAME: Error calling Nap_CastNAO");
-	Nap_IncrRefCount(nap_cd, cv_nc_f64);
-	n = cv_nc_f64->nels;
-	start[0] = n;
-	edge[0] = 1;
-	for (i = 0; i < cv_main_f64->nels; i++) {
-	    cv_main_el = cv_main_f64->data.F64[i];
-	    if (n == 0) {
-		extend = TRUE;
-	    } else if (n == 1) {
-		extend = cv_main_el != cv_nc_f64->data.F64[0];
-	    } else {
-		step = cv_nc_f64->data.F64[n-1] - cv_nc_f64->data.F64[n-2];
-		if (step == 0.0) {
-		    extend = (cv_main_el - cv_nc_f64->data.F64[n-1]) *
-			     (cv_main_el - cv_nc_f64->data.F64[0]) > 0.0;
-		} else {
-		    extend = (cv_main_el - cv_nc_f64->data.F64[n-1]) / step > 1e-4;
-		}
-	    }
-	    if (extend) {
-		cv_main_el_nao = Nap_NewScalarNAO(nap_cd, cv_nc_NAO->dataType, cv_main_el);
-		CHECK2(cv_main_el_nao, "m4NAME: Error calling Nap_NewScalarNAO");
-		Nap_IncrRefCount(nap_cd, cv_main_el_nao);
-		status = Nap_NetcdfPutVar(nap_cd, ncid, cv_varid, cv_main_el_nao->data.c,
-			start, edge);
-		CHECK(status == TCL_OK);
-		Nap_DecrRefCount(nap_cd, cv_main_el_nao);
-		++(start[0]);
-	    }
-	}
-	Nap_DecrRefCount(nap_cd, cv_nc_f64);
-	Nap_DecrRefCount(nap_cd, cv_main_f64);
-    }
-    Nap_DecrRefCount(nap_cd, cv_nc_NAO);
-    Nap_DecrRefCount(nap_cd, cv_main_NAO);
     return TCL_OK;
 }
 
@@ -1652,16 +1573,20 @@ Nap_NetcdfPut(
     Nap_NAO		*add_offset_NAO2;	/* type = internalDataType */
     size_t		altShape[] = {1};	/* in case scalar */
     char		*buffer;		/* For actual write */
+    double		cv_main_0;		/* element 0 of cv 0 of main_NAO */
+    Nap_NAO		*cv_main_NAO;		/* cv from main nao */
     Nap_NAO		*cv_nc_local[NAP_MAX_RANK];	/* local cv_nc */
+    Nap_NAO		*cv_nc_NAO;		/* cv from nc file */
     char		*data_ptr;		/* points to next NAO element */
     int			exists;			/* Var exists? */
     size_t		count_t[NAP_MAX_RANK];
     char		*dimName[NAP_MAX_RANK];	/* external dimension names */
     double		fill_value;
     int			i;
-    int			is_record;		/* have unlimited dim? */
     int			id;
     Nap_dataType	internalDataType;
+    int			is_record;		/* have unlimited dim? */
+    int			n;
     nc_type		number_type;
     int			rank;			/* external rank */
     int			rank32;			/* external rank */
@@ -1766,16 +1691,37 @@ Nap_NetcdfPut(
 	    status = Nap_NetcdfVarGetInfo(nap_cd, ncid, varid, &rank32, shape_t,
 		    &number_type, &is_record);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_NetcdfVarGetInfo");
-	    if (is_record) {
-		status = extend_unlimited(nap_cd, ncid, varid, main_NAO);
-		CHECK(status == TCL_OK);
-	    }
 	    if (!indexObj) {
 		indexObj = Tcl_NewStringObj("", 0);
 		for (i = 0; i < rank; i++) {
-		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
-		    if (tmp_NAO) {
-			Tcl_AppendStringsToObj(indexObj, "@@", tmp_NAO->id, (char *) NULL);
+		    cv_main_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
+		    if (cv_main_NAO) {
+			extend = FALSE;
+			if (i == 0  &&  is_record) {
+			    Nap_IncrRefCount(nap_cd, cv_main_NAO);
+			    tmp_NAO = Nap_CastNAO(nap_cd, cv_main_NAO, NAP_F64);
+			    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_CastNAO");
+			    Nap_IncrRefCount(nap_cd, tmp_NAO);
+			    Nap_DecrRefCount(nap_cd, cv_main_NAO);
+			    cv_main_0 = cv_main_NAO->data.F64[0];
+			    Nap_DecrRefCount(nap_cd, tmp_NAO);
+			    status = Nap_NetcdfGetDim(nap_cd, ncid, varid, i, &cv_nc_NAO, NULL);
+			    CHECK(status == TCL_OK);
+			    Nap_IncrRefCount(nap_cd, cv_nc_NAO);
+			    tmp_NAO = Nap_CastNAO(nap_cd, cv_nc_NAO, NAP_F64);
+			    CHECK2(tmp_NAO, "m4NAME: Error calling Nap_CastNAO");
+			    Nap_IncrRefCount(nap_cd, tmp_NAO);
+			    Nap_DecrRefCount(nap_cd, cv_nc_NAO);
+			    n = cv_nc_NAO->nels;
+			    extend = (cv_main_0 - cv_nc_NAO->data.F64[n-1]) *
+				     (cv_main_0 - cv_nc_NAO->data.F64[0]) > 0.0;
+			    Nap_DecrRefCount(nap_cd, tmp_NAO);
+			}
+			if (extend) {
+			} else {
+			    Tcl_AppendStringsToObj(indexObj, "@@", cv_main_NAO->id,
+				    (char *) NULL);
+			}
 		    }
 		    if (i < rank-1) {
 			Tcl_AppendStringsToObj(indexObj, ",", (char *) NULL);

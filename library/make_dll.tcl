@@ -2,7 +2,7 @@
 # 
 # Copyright (c) 2000, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: make_dll.tcl,v 1.34 2005/03/17 23:06:09 dav480 Exp $
+# $Id: make_dll.tcl,v 1.35 2005/07/20 07:37:06 dav480 Exp $
 
 
 # make_dll --
@@ -99,8 +99,8 @@
 
 proc make_dll args {
     set tcl_lib     "[file nativename [file dirname $::tcl_library]]"
-    set tcl_root    "[file nativename [file dirname $tcl_lib]]"
-    set tcl_include "[file nativename [file join $tcl_root include]]"
+    set tcl_root    "[file dirname [file dirname $::tcl_library]]"
+    set tcl_include "[file nativename [lindex [glob $tcl_root/include*] end]]"
     switch $::tcl_platform(platform) {
 	unix {
 	    set compile "cc -I$tcl_include -c"

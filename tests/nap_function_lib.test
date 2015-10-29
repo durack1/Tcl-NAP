@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2003, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: nap_function_lib.test,v 1.13 2004/02/12 01:23:50 dav480 Exp $
+# $Id: nap_function_lib.test,v 1.14 2005/07/20 01:55:36 dav480 Exp $
 
 source $env(LIBRARY_DIR)/nap_function_lib.tcl
 
@@ -302,5 +302,12 @@ Test nap_function_lib-9.2 {cv} {
 Test nap_function_lib-9.3 {cv} {
     [nap "cv(m)"] value
 } {5 2 0}
+
+Test nap_function_lib-10.1 {gets_matrix} {
+    [nap "gets_matrix('$env(TEST_DATA_DIR)/gets_matrix.in',2)"]
+} {   1.2    9.0   -3.0
+   0.0    2.0    4.0
+  -2.0    0.0    9.0
+1000.0      _   99.0}
 
 unset m v x y z nx ny nz ry rz

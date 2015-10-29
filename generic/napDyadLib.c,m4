@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.83 2005/07/13 07:50:45 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.84 2005/08/04 07:41:33 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -730,10 +730,13 @@ Nap_SubscriptCrossProduct(
 			newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
 		    } else if (naoArray->boxedCV) {
 			naoTmp = Nap_GetCoordVar(nap_cd, naoArray, d);
-			CHECK2(naoTmp, "m4NAME: Error calling Nap_GetCoordVar");
-			str = Nap_Index(nap_cd, naoTmp->id, naoSubNewEl[d]->id);
-			CHECK2(str, "m4NAME: Error calling Nap_Index");
-			newCV[rank] = Nap_GetNumericNaoFromId(nap_cd, str);
+			if (naoTmp) {
+			    str = Nap_Index(nap_cd, naoTmp->id, naoSubNewEl[d]->id);
+			    CHECK2(str, "m4NAME: Error calling Nap_Index");
+			    newCV[rank] = Nap_GetNumericNaoFromId(nap_cd, str);
+			} else {
+			    newCV[rank] = NULL;
+			}
 		    }
 		}
 		++rank;

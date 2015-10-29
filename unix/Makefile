@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.167 2005/07/15 00:00:49 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.169 2005/08/05 05:30:40 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -131,12 +131,12 @@ OBJS = \
 PACKAGE = nap
 MAJOR_VERSION = 5
 MINOR_VERSION = 0
-PATCHLEVEL = .3
+PATCHLEVEL = .5
 VERSION = 5.0
 NODOT_VERSION = 5_0
-NODOT_PATCHLEVEL = 3
+NODOT_PATCHLEVEL = 5
 USE_VERSION = 5_0
-USE_PATCHLEVEL = 3
+USE_PATCHLEVEL = 5
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -205,7 +205,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".3\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
+CPPFLAGS =  -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DUSE_TCL_STUBS=1 -DISNAN64=_isnan -DVERSION=\"5.0\" -DPATCHLEVEL=\".5\" -DBUILD_nap=1 -DWIN32=1  $(INCLUDES)
 HDF_HEADER_DIR = /cygdrive/c/dav480/hdf/use/include
 NC_HEADER_DIR = /cygdrive/c/dav480/nc/use/include
 TCL_HEADER_DIR = /cygdrive/c/dav480/tcl/include8.4
@@ -286,6 +286,14 @@ PACKAGE_SHELL_DEBUG = $(PACKAGE)sh$(USE_VERSION)g$(EXEEXT)
 BINARIES = $(PACKAGE_SHLIB)
 
 #------------------------------------------------------------------------------
+# documentation
+#------------------------------------------------------------------------------
+
+LOG = $(TOP_DIR)/change.log
+NOTES = $(TOP_DIR)/release_notes.txt
+PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
+
+#------------------------------------------------------------------------------
 # distribution tar files
 #------------------------------------------------------------------------------
 
@@ -310,7 +318,10 @@ binaries: $(BINARIES)
 
 libraries:
 
-doc:
+doc: \
+    $(LOG) \
+    $(PDF) \
+    $(NOTES)
 
 install: install-binaries install-headers install-libraries install-doc install-data
 
@@ -324,8 +335,6 @@ upload_src: $(SRC_TAR)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(SRC_TAR)`" > tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
-
-PDF = $(TOP_DIR)/NAP_User_Guide_V$(VERSION).$(NODOT_PATCHLEVEL).pdf
 
 upload_pdf: $(PDF)
 	$(ECHO) "source upload.tcl; upload_sf `$(NATIVE_PATH) $(PDF)`" > tmp.tcl

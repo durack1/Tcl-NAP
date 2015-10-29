@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: wish_tests.tcl,v 1.29 2005/07/07 04:40:33 dav480 Exp $
+# $Id: wish_tests.tcl,v 1.30 2005/07/20 01:10:22 dav480 Exp $
 
 puts "\n******* At end click on 'cancel' button in window .plot_nao12 *******\n"
 
@@ -126,7 +126,7 @@ set window [plot_nao z]
 
 nap "x = 0 .. 25 ... 1r4"
 nap "y = 0 .. 20 ... 1r4"
-nap "xyz = gets_matrix('../tests/data/xyz.txt')"
+nap "xyz = gets_matrix('$env(TEST_DATA_DIR)/xyz.txt')"
 nap "grid = scattered2grid(xyz, y, x)"
 set window [plot_nao grid]
 

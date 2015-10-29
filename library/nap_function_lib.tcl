@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.45 2005/05/02 06:40:12 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.46 2005/07/20 01:57:37 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -279,17 +279,22 @@ namespace eval ::NAP {
     # gets_matrix --
     #
     # Read text file and return NAO f64 matrix whose rows correspond to the lines in the file.
-    # Ignore blank lines and lines whose first non-whitespace character is '#'
+    # Ignore:
+    #   - first 'n_header_lines' (default 0) lines 
+    #   - blank lines 
+    #   - lines whose first non-whitespace character is '#'
 
     proc gets_matrix {
 	file_name_nao
+	{n_header_lines 0}
     } {
+	set n_header_lines [[nap "n_header_lines"]]
 	if [catch {set f [open [$file_name_nao value] r]} message] {
 	    error $message
 	}
-	while {[gets $f line] >= 0} {
-	    set line "[string trim $line] "
-	    if {[string length $line] > 0  &&  ![string equal [string index $line 0] #]} {
+	for {set line_number 1} {[gets $f line] >= 0} {incr line_number} {
+	    set line [string trim $line]
+	    if {$line_number > $n_header_lines  &&  $line ne ""  &&  ![regexp {^#} $line]} {
 		if {[info exists ncols]} {
 		    if {[llength $line] != $ncols} {
 			error "Following line has wrong number of fields\n$line"

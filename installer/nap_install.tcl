@@ -93,7 +93,7 @@ if {$dst ne ""} {
     copy_tree tcl $dst
     cd home
     set files "[glob -nocomplain *] [glob -nocomplain -types {f hidden} *]"
-    set files [string trim $files]
+    set files [string trim [lsort -unique $files]]
     set reply [tk_messageBox \
 	-message "Install startup files ($files) in [file nativename ~]?" \
 	-type yesno]
