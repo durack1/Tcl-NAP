@@ -1,0 +1,165 @@
+<!-- $Id: plot_nao.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP <code>plot_nao</code>
+</title> </head>
+
+<body>
+
+<h2> <center>
+NAP Visualisation using procedure <code>plot_nao</code>
+</center> </h2>
+
+A NAO can be visualised using procedure <code>plot_nao</code>, which can represent it by:
+<ul>
+<li> xy graphs (produced using BLT <code>graph</code> command)
+<li> barcharts and histograms (produced using BLT <code>barchart</code> command)
+<li> color-coded z images and maps (produced using the BLT graph image marker facility to
+    overlay a NAP photo-image)
+<li> tiled images (multiple images on a page) (produced directly from NAP photo-images)
+</ul>
+It is possible to animate color-coded images and xy graphs.
+
+<p>
+The Tcl code is in the files <code>plot_nao.tcl</code> and <code>plot_nao_procs.tcl</code>.
+
+<h3>
+Usage
+</h3>
+
+<code>plot_nao</code> <i>expression ?options?</i>
+
+<h4>
+Options
+</h4>
+
+<P><CODE>
+-barwidth </CODE> <I>float</I>: (bar chart only) width of bars in x-coordinate units. (Default: 1.0)
+<P><CODE>
+-buttonCommand </CODE> <I>script</I>: executed when button pressed with z-plots (Default:
+     "lappend Plot_nao::${window_id}::save [set Plot_nao::${window_id}::xyz]")
+<P><CODE>
+-colors </CODE> <I>list</I>: Colors of graph elements (lines). (Default: black red
+     green blue yellow orange purple grey aquamarine beige)
+<P><CODE>
+-configure </CODE> <I>script</I>: Prefix graph-name to each line & execute after graph created
+<P><CODE>
+-filename </CODE> <I>string</I>: Name of output PostScript file.
+<P><CODE>
+-fill </CODE> 0 or 1: 1 = Scale PostScript to fill page. (Default: 0)
+<P><CODE>
+-gap_height </CODE> <I>int</I>: height (pixels) of horizontal white gaps (Default: 20)
+<P><CODE>
+-gap_width </CODE>  <I>int</I>: width  (pixels) of  vertical  white gaps (Default: 20)
+<P><CODE>
+-geometry </CODE> <I>string</I>: If specified then use to create new toplevel window.
+<P><CODE>
+-height </CODE> <I>int</I>: Desired height (screen units)
+     Type xy/bar: Height of whole window (Default: automatic)
+     Type z: Image height (can be "min max") (Default: NAO dim if within limits)
+<P><CODE>
+-help: </CODE> Display this help page
+<P><CODE>
+-key </CODE> <I>int</I>: width (pixels) of image-key. No key if 0 or blank. (Default: 30)
+<P><CODE>
+-labels </CODE> <I>list</I>: Labels of graph elements (lines). (Default: Use element
+     names i.e. y0, y1, y2, &hellip;)
+<P><CODE>
+-menu </CODE> 0 or 1: 0 = Start with menu bar at top hidden. (Default: 1)
+<P><CODE>
+-orientation </CODE> P, L or A: P = portrait, L = landscape, A = automatic (Default: A)
+<P><CODE>
+-overlay </CODE> C, L, S, N or "E <I>expression</I>": Define overlay.
+     C = coast, L = land, S = sea, N = none, E = expr (Default: N)
+<P><CODE>
+-ovpal </CODE> <I>expression</I>: Overlay palette in same form as main palette
+      (Default: black white red green blue)
+<P><CODE>
+-palette </CODE> <I>expression</I>: Main palette defining color map for 2D image. This is
+      matrix with 3 or 4 columns & up to 256 rows.  If there are 4 columns then the
+      first gives color indices in range 0 to 255.  Values can be whole numbers in
+      range 0 to 255 or fractional values from 0.0 to 1.0.
+      "" = black-to-white.  (Default: blue-to-red)
+<P><CODE>
+-paperheight </CODE> <I>distance</I>: E.g. '11i' =  11 inch (Default: '297m' = 297 mm (A4))
+<P><CODE>
+-paperwidth </CODE> <I>distance</I>: E.g. '8.5i' = 8.5 inch (Default: '210m' = 210 mm (A4))
+<P><CODE>
+-parent </CODE> <I>string</I>: parent window (Default: "" i.e. create toplevel window)
+<P><CODE>
+-print </CODE> 0 or 1: 1 = automatic printing (for batch processing) (Default: 0)
+<P><CODE>
+-printer </CODE> <I>string</I>: name (Default: env(PRINTER) if defined, else any printer)
+<P><CODE>
+-range </CODE> <I>expression</I>: defines scaling (Default: auto scaling)
+<P><CODE>
+-rank </CODE> 1, 2 or 3: rank of sub-arrays to be displayed (Default: 3 &lt;&lt;&lt; rank(data))
+<P><CODE>
+-scaling </CODE> 0 or 1: 0 = Start with scaling widget hidden. (Default: 1)
+<P><CODE>
+-symbols </CODE> <I>list</I>: One for each element. Draw at points. Can be plus, square,
+     circle, cross, splus, scross, triangle (Default: "" i.e. none)
+<P><CODE>
+-title </CODE> <I>string</I>: title (Default: NAO label (if any) else <I>expression</I>)
+<P><CODE>
+-type </CODE> <I>string</I> plot-type ("bar", "xy" or "z")
+     If rank is 1 then default type is "xy".
+     If rank is 2 and n_rows &lt;= 8 then default type is "xy".
+     If rank is 2 and n_rows  &gt; 8 then default type is "z".
+     If rank is 3 then type is "z" regardless of this option.
+<P><CODE>
+-width </CODE> <I>int</I>: Desired width (screen units)
+     Type xy/bar: Width of whole window (Default: automatic)
+     Type z: Image width (can be "min max") (Default: NAO dim if within limits)
+<P><CODE>
+-xflip </CODE> 0 or 1: Flip left-right?  0 = no, 1 = yes.  (Default: 0)
+<P><CODE>
+-xlabel </CODE> <I>string</I>: x-axis label (Default: name of last dimension)
+<P><CODE>
+-yflip </CODE> 0, 1, ascending or geog: Flip upside down?  0 = no, 1 = yes,
+      ascending = "if y ascending", geog = "if ascending & (y_dim_name = latitude
+      or y_unit = degrees_north (or equivalent))" (Default: geog)
+<P><CODE>
+-ylabel </CODE> <I>string</I>: y-axis label (Default: name of 2nd-last dimension)
+
+<p>
+The height and width used are limited by the screen dimensions.
+</p>
+
+<h3>
+Examples
+</h3>
+
+<pre>
+  plot_nao "reshape(0 .. 199, {200 200})" -geometry +0+0
+  nap "sales = {{2 5 1}{1 3 8}}"
+  nap "month = 3 .. 5"
+  $sales set coord "" month
+  plot_nao sales -colors "blue red" -symbols "plus cross" -type xy
+  $sales set label "Car sales"
+  set windowID [plot_nao sales -labels "Joe Mary" -type bar]
+  set pathName $windowID.graph
+  $pathName element configure Joe -foreground blue"
+</pre>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: plot_nao.html,v 1.4 2002/08/07 08:07:56 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>
+

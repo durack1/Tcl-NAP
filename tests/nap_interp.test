@@ -1,0 +1,22 @@
+# nap_interp.test --
+# 
+# Test command 'nap_info'
+#
+# Copyright (c) 2002, CSIRO Australia
+# Author: Harvey Davies, CSIRO Atmospheric Research
+# $Id: nap_interp.test,v 1.4 2002/06/11 00:11:20 dav480 Exp $
+
+Test nap_interp-1.1 {run nap under slave interp} {
+    nap "a = 1"
+    interp create i
+    interp eval i "load $shared_lib"
+    interp eval i {NAP::nap "a = 3"}
+    interp eval i {$a}
+} {3} 1 have_shared_lib
+
+Test nap_interp-1.2 {delete slave interp} {
+    interp delete i
+    $a
+} {1} 1 have_shared_lib
+
+unset a

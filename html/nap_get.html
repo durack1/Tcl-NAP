@@ -1,0 +1,264 @@
+<!-- $Id: nap_get.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<html>
+
+<head> <title>
+nap_get
+</title> </head>
+
+<body>
+
+<h2> <center>
+Reading Files using <code>nap_get</code> Command
+</center> </h2>
+
+<p>
+The <code>nap_get</code> command creates a NAO containing data read from a file.
+The first argument specifies the type of file, which can be
+<code>binary</code>, <code>hdf</code> or <code>netcdf</code>.
+</p>
+
+<p>
+<a href="http://hdf.ncsa.uiuc.edu">HDF</a>
+and
+<a href="http://www.unidata.ucar.edu/packages/netcdf/index.html">netCDF</a>
+are similar array-oriented file formats which are popular in earth sciences
+such as meteorology and oceanography.
+(The new HDF5 format is not currently supported.)
+Such files contain data referenced by symbol tables containing the names, data-types
+and dimensions of variables.
+Each variable can also have attributes such as a label, a unit of measure and a missing-value.
+Note the similarity between these items and those in a NAO.
+</p>
+
+<h3>
+Reading Binary Data
+</h3>
+
+<p>
+Binary data is read using the command<br>
+<code>nap_get binary</code> <var>channel</var> [<var>datatype</var> [<var>shape</var>]]<br>
+where <var>datatype</var> defaults to <code>u8</code> and
+<var>shape</var> defaults to a vector corresponding to the file size.
+<p>
+The following example first writes six 32-bit floating-point values to a file using standard
+Tcl commands.
+It then reads them back into a NAO named
+&quot;<code>in</code>&quot;
+using 
+&quot;<code>nap_get binary</code>&quot;:
+
+<pre>
+% set file [open float.dat w]
+file6
+% puts -nonewline $file [binary format f* {1.5 -3 0 2 4 5}]
+% close $file
+% set file [open float.dat]
+file6
+% nap "in = [nap_get binary $file f32]"
+::NAP::22-22
+% close $file
+% $in all
+::NAP::22-22  f32  MissingValue: NaN  References: 1  Unit: (NULL)
+Dimension 0   Size: 6      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+1.5 -3 0 2 4 5
+</pre>
+Note that no shape was specified, giving a 6-element vector.
+The following example reads the file again, this time specifying a shape of <code>{2 3}</code>.
+The NAO is displayed but not saved.
+<pre>
+% set file [open float.dat]
+file6
+% [nap_get binary $file f32 "{2 3}"] all
+::NAP::32-32  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+ 1.5 -3.0  0.0
+ 2.0  4.0  5.0
+% close $file
+</pre>
+
+<h3>
+Reading netCDF Data
+</h3>
+
+<p>
+NetCDF data is read using the command<br>
+<code>nap_get netcdf</code> <var>filename name</var> [<var>index</var>]<br>
+<var>name</var> is the name of a variable or attribute and has the form
+<li> <var>varname</var> for a variable
+<li> <var>varname</var><code>:</code><var>attribute</var> for an attribute of a variable
+<li> <code>:</code><var>attribute</var> for a global attribute<br>
+If <var>index</var> is omitted then the entire variable is read in.
+Otherwise <var>index</var> selects using cross-product indexing.
+
+<p>
+The following example first creates a netCDF file using the netCDF utility <code>ncgen</code>.
+There is one variable called <code>vec</code>. It is a 3-element 32-bit integer vector with
+elements 6, -9 and 4.
+The data is read into a NAO called <code>v</code> using <code>nap_get netcdf</code>.
+<pre>
+% exec ncgen -b << {
+    netcdf int {
+        dimensions:
+            n = 3 ;
+        variables:
+            int vec(n) ;
+        data:
+            vec = 6, -9, 4 ;
+    }
+}
+% nap "v = [nap_get netcdf int.nc vec]"
+::NAP::52-52
+% $v all
+::NAP::52-52  i32  MissingValue: -2147483648  References: 1  Unit: (NULL)
+Dimension 0   Size: 3      Name: n         Coordinate-variable: (NULL)
+Value:
+6 -9 4
+</pre>
+
+<p>
+The following example specifies the index <code>{0 2}</code> to select the first and third
+elements:
+<pre>
+% [nap_get netcdf int.nc vec "{0 2}"] all
+::NAP::58-58  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+6 4
+</pre>
+
+<h3>
+Reading HDF Data
+</h3>
+
+<p>
+HDF data is read using the command<br>
+<code>nap_get hdf</code> <var>filename name</var> [<var>index</var>]<br>
+<var>name</var> is the name of an SDS or attribute and has the form
+<li> <var>sdsname</var> for a SDS
+<li> <var>sdsname</var><code>:</code><var>attribute</var> for an attribute of a SDS
+<li> <code>:</code><var>attribute</var> for a global attribute<br>
+If <var>index</var> is omitted then the entire SDS is read in.
+Otherwise <var>index</var> selects using cross-product indexing.
+
+<p>
+The following example writes data to an HDF file using the OOC <code>hdf</code> method.
+Then <code>nap_get hdf</code> reads the data back into a temporary NAO which is deleted
+after being displayed:
+<pre>
+% [nap "f64{{1 0 9}{3#-1}}"] hdf mat.hdf mat64
+% [nap_get hdf mat.hdf mat64] all
+::NAP::74-74  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: fakeDim0  Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: fakeDim1  Coordinate-variable: (NULL)
+Value:
+ 1  0  9
+-1 -1 -1
+</pre>
+
+<h3>
+Listing Names of Variables/SDSs and Attributes in HDF and netCDF Files
+</h3>
+
+One can list the names of variables/SDSs and attributes matching a regular expression <var>RE</var>
+using the command<br>
+<code>nap_get hdf -list</code> <var>filename</var> [<var>RE</var>]<br>
+or<br>
+<code>nap_get netcdf -list</code> <var>filename</var> [<var>RE</var>]<br>
+All variables/SDSs  and attributes are listed if <var>RE</var> is omitted.
+For example, using the HDF file created above:
+<pre>
+% nap_get hdf -list mat.hdf
+mat64
+mat64:_FillValue
+</pre>
+<p>
+Some useful regular expressions are
+
+<table border>
+<tr>
+<th>Regular Expression
+<th>Select all:
+<tr>
+<td><code>^[^:]*$</code> 
+<td> variables
+<tr>
+<td><code>:</code> 
+<td> attributes
+<tr>
+<td><code>^:</code> 
+<td> global attributes
+<tr>
+<td><code>.:</code> 
+<td> non-global attributes
+</table>
+<p>
+Thus we can restrict the above list to SDSs only using:
+<pre>
+% nap_get hdf -list mat.hdf {^[^:]*$}
+mat64
+</pre>
+
+<h3>
+Reading Metadata from HDF and netCDF Files
+</h3>
+
+<p>
+The command<br>
+<code>nap_get hdf -datatype</code> <var>filename sdsname</var><br>
+or<br>
+<code>nap_get netcdf -datatype</code> <var>filename varname</var><br>
+returns the data-type of a specified variable/SDS in the specified file.
+
+<p>
+The command<br>
+<code>nap_get hdf -rank</code> <var>filename sdsname</var><br>
+or<br>
+<code>nap_get netcdf -rank</code> <var>filename varname</var><br>
+returns the rank (number of dimensions) of a specified variable/SDS in the specified file.
+
+<p>
+The command<br>
+<code>nap_get hdf -shape</code> <var>filename sdsname</var><br>
+or<br>
+<code>nap_get netcdf -shape</code> <var>filename varname</var><br>
+returns the shape (dimension sizes) of a specified variable/SDS in the specified file.
+
+<p>
+The command<br>
+<code>nap_get hdf -dimension</code> <var>filename sdsname</var><br>
+or<br>
+<code>nap_get netcdf -dimension</code> <var>filename varname</var><br>
+returns the dimension names of a specified variable/SDS in the specified file.
+
+<p>
+The command<br>
+<code>nap_get hdf -coordinate</code> <var>filename sdsname</var><br>
+or<br>
+<code>nap_get netcdf -coordinate</code>
+<var>filename varname dim_name</var>|<var>dim_number</var><br>
+returns the name of the coordinate variable corresponding to a specified
+dimension of a specified variable/SDS in the specified file.
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: nap_get.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>
+

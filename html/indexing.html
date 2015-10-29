@@ -1,0 +1,633 @@
+<!-- $Id: indexing.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP Indexing
+</title> </head>
+
+<body>
+
+<h2> <center>
+Indexing
+</center> </h2>
+
+<p>
+<em>Indexing</em> is the process of extracting elements from arrays.
+NAP extends this concept to the estimation (using interpolation) of values <em>between</em> the 
+elements.
+
+<p>
+An index can appear:
+<ul>
+<li>within a NAP expression
+<li>as an argument of an OOC.
+    E.g. method <code>set&nbsp;value</code> takes an an argument which specifies
+    which elements are to be modified
+<li>as an argument of commands <code>nap_get hdf</code> and <code>nap_get netcdf</code>,
+    specifying positions within a file
+</ul>
+
+<p>
+NAP provides powerful indexing (subscripting) facilities.
+The subscript origin is 0 (as in other aspects of Tcl such as lists).
+The rightmost dimension is the least significant (varies fastest).
+Here is a simple example of a vector indexed by a scalar:
+
+<pre>
+% nap "vector = {2 -5 9 4}"
+::NAP::14-14
+% [nap "vector(2)"]
+9
+</pre>
+
+<h3>Indexing Syntax</h3>
+
+NAP syntax specifies that indexing is implied by two adjacent NAOs, with the base array
+on the left and the index on the right.
+Thus it is not necessary to parenthesize an index which is simply a constant or variable-name.
+However parentheses may make the code clearer to humans, who are likely to be
+familiar with languages where this is required.
+
+<p>
+This syntax means that the above example can be rewritten without 
+parentheses as:
+
+<pre>
+% [nap "vector 2"]
+9
+</pre>
+
+It also means that any non-scalar expression (including a constant of course)
+can be indexed, as shown by:
+<pre>
+% [nap "{2 -5 9 4} 2"]
+9
+% [nap "({2 -5 9 4} + 10) 2"]
+19
+</pre>
+
+<h3>Dimension-Position</h3>
+
+A <em>dimension-position</em> is a scalar value defining the position along a dimension.
+Fractional values are valid and represent positions <em>between</em> the array elements.
+Values at non-integral positions are estimated using n-dimensional linear interpolation.
+The following demonstrates this (continuing the above example):
+<pre>
+% [nap "vector 2.5"]
+6.5
+</pre>
+Note that the dimension-position 
+<code>2.5</code>
+is halfway between 
+<code>2</code>
+(corresponding to the value <code>9</code>)
+and
+<code>3</code>
+(corresponding to the value <code>4</code>).
+Thus the value is estimated to be
+<br>
+0.5 * 9.0 + 0.5 * 4.0 = 4.5 + 2.0 = 6.5
+<br>
+using ordinary one-dimensional linear interpolation.
+
+<p>
+If <var>s</var> is the dimension-size and <var>p</var> the position, then:
+<br>
+0 &le; <var>p</var> &lt; <var>s</var>
+<br>
+Values between 
+<var>s</var>-1
+and 
+<var>s</var>
+are defined by treating position 
+<var>s</var>
+as equivalent to 0.
+This gives wraparound useful with cyclic dimensions such as longitude.
+Thus
+
+<pre>
+% [nap "vector 3.1"]
+3.8
+</pre>
+Note that the dimension-position 
+<code>3.1</code>
+is 10% of the distance between 
+<code>3</code>
+(corresponding to the value <code>4</code>)
+and
+<code>4</code>
+(equivalent to
+<code>0</code>
+and corresponding to the value <code>2</code>).
+Thus the value is estimated to be
+<br>
+0.9 * 4.0 + 0.1 * 2.0 = 3.6 + 0.2 = 3.8
+
+<h3>Subscript</h3>
+
+A <em>subscript</em> is
+similar to a <em>dimension-position</em> except that there are no size limits.
+The corresponding <em>dimension-position</em> is defined by<br>
+<var>subscript</var>&nbsp;<code>%</code>&nbsp;<var>s</var><br>
+where <var>s</var> is the dimension-size.
+Note that dimension-positions can only be defined via subscripts.
+<p>
+Thus in our example subscript <code>6</code> is treated as 
+<code>6%4</code> = <code>2</code>.
+So we get
+<pre>
+% [nap "vector 6"]
+9
+</pre>
+	
+It also means that negative values can be use to
+index backward from the end, as shown by:
+<pre>
+% [nap "vector(-1)"]
+4
+% [nap "vector(-2)"]
+9
+% [nap "vector(-3)"]
+-5
+</pre>
+
+<h3>Elemental Index</h3>
+
+An <em>elemental index</em> is a
+vector of <var>rank</var> subscripts, specifying the subscripts of an element of an array.
+The following example creates a matrix <code>mat</code> and illustrates the use of
+elemental indices to extract individual elements.
+<pre>
+% nap "mat = {{1.5 0 7}{2 -4 -9}}"
+::NAP::60-60
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat {0 1}"]
+0
+% [nap "mat {1 -1}"]
+-9
+% 
+% [nap "mat {0.5 1.5}"]
+-1.5
+</pre>
+The value corresponding to the index
+<code>{0.5&nbsp;1.5}</code>
+is estimated, using bilinear interpolation, to be
+<br>
+0.25&nbsp;*&nbsp;0.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;7.0&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-4.0)&nbsp;+&nbsp;0.25&nbsp;*&nbsp;(-9.0) 
+= -1.5
+
+<h3>Index</h3>
+
+An <em>index</em> is an array defining one or more elemental indices.
+The following table lists the three types, which are explained in the sections below:
+
+<table border>
+    <tr>
+	<th align=center>Index Type
+	<th align=center>Rank of Indexed Array
+	<tr valign=top> <td>
+		shape-preserving
+	    </td> <td>
+		1
+	<tr valign=top> <td>
+		full
+	    </td> <td>
+		2 or more
+	<tr valign=top> <td>
+		cross-product
+	    </td> <td>
+		2 or more
+</table>
+
+<h3>Shape-Preserving</h3>
+
+<em>Shape-preserving</em> indexing is used to index a vector.
+The shape of the result is the same as that of the index.
+The following example shows how the previously defined variable
+<code>vector</code>
+can be indexed by 
+<li>a scalar to produce a scalar
+<li>a vector to produce a vector
+<li>a matrix to produce a matrix:
+
+<pre>
+% $vector
+2 -5 9 4
+% [nap "vector(2)"] all
+::NAP::57-57  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
+Value:
+9
+% [nap "vector({2 2.5 2})"] all
+::NAP::61-61  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+9 6.5 9
+% [nap "vector({
+{1 0 2.5}
+{-1 2 1}
+})"] all
+
+::NAP::67-67  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-5.0  2.0  6.5
+ 4.0  9.0 -5.0
+</pre>
+
+The <em>shape-preserving</em> property means one can use a vector to
+define a mapping.
+The following example maps 0 to 4, 1 to 1, 2 to 9 and 3 to 4:
+
+<pre>
+% [nap "{4 1 9 4} {
+{2 1 2 0}
+{3 3 0 1}
+}"]
+9 1 9 4
+4 4 4 1
+</pre>
+
+The following example uses the same technique to implement
+a simple substitution cipher
+(mapping space to R, A to X, B to B, C to T, &hellip; as shown)
+to encrypt the message 
+&quot;HELLO&nbsp;WORLD&quot;
+as
+&quot;A&nbsp;HHVREVZHC&quot;
+which is then decrypted.
+
+<pre>
+% nap "plain   = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ'"
+::NAP::63-63
+% nap "cipher  = 'RXBTC MUAFGWHYIVJKZDLNOEPQS'"
+::NAP::64-64
+% [nap "plain((plain @@ cipher)(plain @@ 'HELLO WORLD'))"]; # encrypt
+A HHVREVZHC
+% [nap "cipher((cipher @@ plain)(cipher @@ 'A HHVREVZHC'))"]; # decrypt
+HELLO WORLD
+</pre>
+
+<h3>Full-index</h3>
+
+A <em>full-index</em> is an
+array specifying a separate elemental index for every element of the result.
+The shape of the index is the shape of the result with <var>r</var>
+(the rank of the indexed array) appended. 
+Each row of the index 
+contains a vector of <var>r</var> elements defining an elemental index.
+
+<p>
+The following example shows how the previously defined variable
+<code>mat</code>
+can be indexed by 
+<li>a vector to produce a scalar
+<li>a matrix to produce a vector
+<pre>
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat {0.5 1.5}"] all
+::NAP::148-148  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Value:
+-1.5
+% [nap "mat {
+{0.5 1.5}
+{0 1}
+{-1 -1}
+}"] all
+::NAP::157-157  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-1.5 0 -9
+</pre>
+
+Note that <em>shape-preserving</em> indexing is similar to applying <em>full</em> indexing
+to a vector (if this were allowed).
+The shape-preserving-index is the hypothetical full-index reshaped to omit the
+final redundant dimension of size 1.
+
+<h3>Cross-product-index</h3>
+
+A <em>cross-product-index</em> is a boxed vector pointing to scalars, vectors and nulls,
+whose cross-product combination defines the elemental indices of the indexed array.
+The shape of a cross-product-index is a single-element vector containing the rank
+of the indexed array.
+
+<p>
+A cross-product-index is usually defined using the operator 
+&quot;<code>,</code>&quot.
+This allows the left and/or right operand to be omitted and such <em>null</em> (missing)
+operands are treated as
+<code>0..</code><var>s</var><code>-1</code>, where <var>s</var> is the dimension-size.
+Scalar operands produce no corresponding dimension in the result.
+
+<p>
+The following examples again use the previously defined variable
+<code>mat</code>.
+We begin by repeating the first <em>full-index</em> example above and then we provide the
+<em>cross-product-index</em> equivalent:
+
+<pre>
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat({0.5 1.5})"] all
+::NAP::196-196  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Value:
+-1.5
+% [nap "mat(0.5,1.5)"] all
+::NAP::204-204  f32  MissingValue: NaN  References: 0  Unit: (NULL)
+Value:
+-1.5
+</pre>
+
+The next example shows how the previously defined variable
+<code>mat</code>
+can be indexed by the cross-product of two vectors to produce a matrix,
+then provides the equivalent <em>full-index</em>:
+
+<pre>
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat({1 0},{2 0 -1 0})"] all
+::NAP::174-174  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-9.0  2.0 -9.0  2.0
+ 7.0  1.5  7.0  1.5
+% [nap "mat({
+{{1 2}{1 0}{1 -1}{1 0}}
+{{0 2}{2 0}{2 -1}{2 0}}
+})"] all
+::NAP::180-180  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+-9.0  2.0 -9.0  2.0
+ 7.0  1.5  7.0  1.5
+</pre>
+
+The following example illustrates the effect of a null operand to 
+&quot;<code>,</code>&quot.
+It also shows the difference between a scalar operand and a single-element vector
+containing the same value.
+
+<pre>
+% $mat
+ 1.5  0.0  7.0
+ 2.0 -4.0 -9.0
+% [nap "mat(1,)"] all
+::NAP::209-209  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+2 -4 -9
+% [nap "mat({1},)"] all
+::NAP::213-213  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 1      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+ 2 -4 -9
+</pre>
+
+The following example creates a rank-3 array <code>a3d</code> with shape
+<code>{2&nbsp;2&nbsp;3}</code>,
+then extracts all of row 0 from both layers:
+<pre>
+% nap "a3d = {
+{
+{9 1 4}
+{0 8 7}
+}{
+{2 3 5}
+{9 6 0}
+}
+}"
+::NAP::215-215
+% $a3d all
+::NAP::215-215  i32  MissingValue: -2147483648  References: 1  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 2   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+9 1 4
+0 8 7
+
+2 3 5
+9 6 0
+% [nap "a3d(,0,)"] all
+::NAP::220-220  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
+Dimension 0   Size: 2      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+9 1 4
+2 3 5
+</pre>
+
+Each element (corresponding to a dimension) of a cross-product index can be 
+<em>direct</em> or <em>indirect</em>.
+The <em>direct</em> type is the only one discussed so far 
+&mdash; this type specifies an ordinary subscript value.
+The <em>indirect</em> type specifies a value 
+(say <code><var>v</var></code>)
+of the <em>coordinate-variable</em>
+using one of the unary (monadic) operators
+<code>@</code> and <code>@@</code>.
+The following table defines how the subscript for dimension
+<code><var>d</var></code>
+of array
+<code><var>a</var></code>
+is calculated from these values of 
+<code><var>v</var></code>:
+
+<table border>
+    <tr>
+	<th align=center>Syntax
+	<th align=center>Subscript Value
+	<tr valign=top> <td>
+		<code>@</code><var>v</var>
+	    <td>
+<code>coordinate_variable(</code><var>a</var><code>,</code><var>d</var><code>)@</code><var>v</var>
+	<tr valign=top> <td>
+		<code>@@</code><var>v</var>
+	    <td>
+<code>coordinate_variable(</code><var>a</var><code>,</code><var>d</var><code>)@@</code><var>v</var>
+</table>
+
+<p>
+The syntax for a cross-product-index is:<br>
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+&hellip;
+<br>
+where 
+<code><var>expr</var></code>
+is an expression (which may need to be enclosed in parentheses).
+<p>
+Note that this syntax does not allow indices such as:
+<pre>
+a(3+@7.5, 0)
+</pre>
+Instead we have to use <em>binary</em> <code>@</code> as follows:
+<pre>
+a(3+coordinate_variable(a,0)@7.5, 0)
+</pre>
+
+<p>
+The following creates a 3&times;4 matrix 
+<code>temperature</code>
+which will be used to demonstrate <em>indirect indexing</em>.
+It has
+<li>unit of <code>degC</code> (degrees Celsius).
+<li>rows corresponding to latitudes 10&deg;N, 20&deg;N and 30&deg;N
+<li>columns corresponding to longitudes 
+110&deg;E, 120&deg;E, 130&deg;E and 140&deg;E
+
+<pre>
+% nap "temperature = f32{
+{31.5 37.2 32.9 34.0}
+{25.1 25.2 29.0 21.9}
+{20.5 21.2 21.0 19.9}
+}"
+::NAP::72-72
+% $temperature set unit degC
+% nap "latitude = f32{10 20 30}"
+::NAP::76-76
+% $latitude set unit degrees_north
+% nap "longitude = f32(110 .. 140 ... 10)"
+::NAP::86-86
+% $longitude set unit degrees_east
+% $temperature set coo latitude longitude
+</pre>
+
+The following verifies that the main NAO and its coordinate variables are as expected:
+<pre>
+% $temperature all
+::NAP::72-72  f32  MissingValue: NaN  References: 1  Unit: degC
+Dimension 0   Size: 3      Name: latitude  Coordinate-variable: ::NAP::76-76
+Dimension 1   Size: 4      Name: longitude  Coordinate-variable: ::NAP::86-86
+Value:
+31.5 37.2 32.9 34.0
+25.1 25.2 29.0 21.9
+20.5 21.2 21.0 19.9
+% ::NAP::76-76 all
+::NAP::76-76  f32  MissingValue: NaN  References: 2  Unit: degrees_north
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+10 20 30
+% ::NAP::86-86 all
+::NAP::86-86  f32  MissingValue: NaN  References: 2  Unit: degrees_east
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+110 120 130 140
+</pre>
+
+The following illustrates the use of both direct and indirect indexing to display
+the value of <code>29</code> in row 1 and column 2:
+<pre>
+% [nap "temperature(1,2)"]
+29
+% [nap "temperature(@20, @130)"]; # latitude=20 longitude=130
+29
+% [nap "temperature(@@20, @@130)"]
+29
+% [nap "temperature(1, @130)"]
+29
+</pre>
+
+In this case there is a point exactly corresponding to 20&deg;S, 130&deg;E,
+so the operators <code>@</code> and <code>@@</code> give the same result.
+Let us try the point 21&deg;S, 138&deg;E, which is not a grid point:
+<pre>
+% [nap "temperature(@21, @138)"]
+23
+% [nap "temperature(@@21, @@138)"]
+21.9
+</pre>
+Now we get different results for the two operators.
+Operator <code>@</code> gives a value estimated using bilinear interpolation.
+Operator <code>@@</code> gives the data value at the nearest row (1) and column (3).
+<p>
+If the unary operators <code>@</code> and <code>@@</code> did not exist we would have to
+use their binary equivalents as follows:
+
+<pre>
+% nap "interpolated_row = coordinate_variable(temperature,0) @ 21"
+::NAP::96-96
+% $interpolated_row
+1.1
+% nap "interpolated_col = coordinate_variable(temperature,1) @ 138"
+::NAP::103-103
+% $interpolated_col
+2.8
+% [nap "temperature(interpolated_row, interpolated_col)"]
+23
+% nap "nearest_row = coordinate_variable(temperature,0) @@ 21"
+::NAP::112-112
+% $nearest_row
+1
+% nap "nearest_col = coordinate_variable(temperature,1) @@ 138"
+::NAP::119-119
+% $nearest_col
+3
+% [nap "temperature(nearest_row, nearest_col)"]
+21.9
+</pre>
+
+Say we want to estimate temperatures on a grid with
+<li>latitudes 19&deg;N, 20&deg;N and 21&deg;N
+<li>longitudes 121&deg;E, 122&deg;E 123&deg;E and 124&deg;E
+<br>
+Naming the new matrix <code>region_temperature</code>, this can be done as follows:
+<pre>
+% nap "region_temperature = temperature(@(19 .. 21), @(121 .. 124))"
+::NAP::147-147
+% $region_temperature all
+::NAP::147-147  f32  MissingValue: NaN  References: 1  Unit: degC
+Dimension 0   Size: 3      Name: latitude  Coordinate-variable: ::NAP::145-145
+Dimension 1   Size: 4      Name: longitude  Coordinate-variable: ::NAP::146-146
+Value:
+26.699 26.998 27.297 27.596
+25.580 25.960 26.340 26.720
+25.140 25.480 25.820 26.160
+% ::NAP::145-145 all
+::NAP::145-145  i32  MissingValue: -2147483648  References: 1  Unit: degrees_north
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+19 20 21
+% ::NAP::146-146 all
+::NAP::146-146  i32  MissingValue: -2147483648  References: 1  Unit: degrees_east
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+121 122 123 124
+</pre>
+Why has the new longitude coordinate-variable been converted to data-type <code>f32</code>?
+NAP recognises <code>degrees_east</code> as a special unit implying longitude characteristics
+such as
+<li>wrap around to allow interpolation across longitude 180
+<li>data-type <code>f32</code>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: indexing.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

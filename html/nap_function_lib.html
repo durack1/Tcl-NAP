@@ -1,0 +1,424 @@
+<!-- $Id: nap_function_lib.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP Library: nap_function_lib.tcl
+</title> </head>
+
+<body>
+
+<h2> <center>
+Miscellaneous Functions
+</center> </h2>
+
+These are defined in <code>nap_function_lib.tcl</code>.
+
+<h3>
+<code>acof2boxed(</code><var>filename</var><code>)</code>
+</h3>
+Read ascii cof (.acof) file and return boxed nao.
+<p>
+Example:
+<br>
+<code>
+nap "i = acof2boxed('abc.acof')"
+</code>
+
+<h3>
+<code>ap0(</code><var>from</var><code>,</code><var>to</var><code>,</code><var>step</var><code>)</code>
+</h3>
+Quasi-arithmetic-progression, whose final step may be short.
+<p>
+Example:
+<br>
+<code>
+% [nap "ap0(0,8,3)"]
+<br>
+0 3 6 8
+</code>
+
+<h3>
+<code>ap_n(</code><var>from</var><code>,</code><var>to</var><code>,</code><var>n</var><code>)</code>
+</h3>
+Arithmetic progression with <var>n</var> elements.
+<p>
+Example:
+<br>
+<code>
+% [nap "ap_n(0,8,4)"]
+<br>
+0 2.66667 5.33333 8
+</code>
+
+<h3>
+<code>color_wheel(</code><var>n</var><code>,</code><var>v</var><code>,</code><var>b</var><code>)</code>
+</h3>
+Square containing color wheel.
+<br>
+<var>n</var> is number rows & columns
+<br>
+<var>v</var> is desired "value" level
+<br>
+<var>b</var> is background colour outside circle
+<p>
+Example:
+<br>
+<code>
+nap "color_wheel(100,255,3#150)"
+</code>
+<br>
+This produces a <code>u8</code> array with shape
+<code>{3 100 100}</code> & values from 0 to 255.
+
+<h3>
+<code>cv(</code><var>main_nao</var>[<code>,</code><var>dim_number</var>]<code>)</code>
+</h3>
+This is simply an alias for <code>coordinate_variable</code>.
+
+<h3>
+<code>fix_longitude(</code><var>longitude</var><code>)</code>
+</h3>
+Adjust elements of longitude vector by adding or subtracting multiple of 360 to ensure:
+<br>
+&minus;180 &le; <var>x</var><sub>0</sub> < 180
+<br>
+0 &le; <var>x</var><sub>i+1</sub>&minus;<var>x</var><sub>i</sub> < 360
+<br>
+Also ensure unit is <code>degrees_east</code>.
+
+<h3>
+<code>fuzzy_floor(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code>
+</h3>
+Like <code>floor()</code> except allow for rounding error.
+<br>
+<var>eps</var> is tolerance and defaults to <code>1e-9</code>.
+<p>
+Example:
+<br>
+<code>
+% [nap "fuzzy_floor({4.998 4.9998},1e-3)"]
+<br>
+4 5
+</code>
+
+<h3>
+<code>fuzzy_ceil(</code><var>x</var>[<code>,</code><var>eps</var>]<code>)</code>
+</h3>
+Like <code>ceil()</code> except allow for rounding error.
+<br>
+<var>eps</var> is tolerance and defaults to <code>1e-9</code>.
+<p>
+Example:
+<br>
+<code>
+% [nap "fuzzy_ceil({5.002 5.0002},1e-3)"]
+<br>
+6 5
+</code>
+
+<h3>
+<code>gets_matrix(</code><var>filename</var><code>)</code>
+</h3>
+Read text file and return NAO matrix whose rows correspond to the lines in the file.
+Ignore blank lines and lines whose first non-whitespace character is '#'.
+<br>
+<p>
+Example:
+<br>
+<code>
+gets_matrix('my_matrix.txt')
+</code>
+
+<h3>
+<code>head(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code>
+</h3>
+If <var>n</var> &ge; 0 then result is 1st <var>n</var> elements of <var>x</var>,
+cycling if <var>n</var> > nels(<var>x</var>).
+<br>
+<var>n</var> defaults to 1.
+<br>
+If <var>n</var> <  0 then result is 1st nels(<var>x</var>)+<var>n</var> elements of <var>x</var>
+i.e. drop &minus;<var>n</var> from end
+<br>
+<p>
+Example:
+<br>
+<pre>
+% [nap "head({3 1 9 2 7})"]
+3
+% [nap "head({3 1 9 2 7}, 2)"]
+3 1
+% [nap "head({3 1 9 2 7}, -2)"]
+3 1 9
+</pre>
+
+<h3>
+<code>hsv2rgb(</code><var>hsv</var><code>)</code>
+</h3>
+Convert colour in HSV form to RGB.
+<br>
+<var>hsv</var> is an array whose leading dimension has size 3.
+<p>
+    Layer 0 along this dimension corresponds to hue as an angle in degrees.
+    Angles of any sign or magnitude are allowed.
+    Red&nbsp;=&nbsp;0, yellow&nbsp;=&nbsp;60, green&nbsp;=&nbsp;120,
+    cyan&nbsp;=&nbsp;180, blue&nbsp;=&nbsp;&minus;120, magenta&nbsp;=&nbsp;&minus;60.
+<p>
+    Layer 1 along this dimension corresponds to saturation in range 0.0 to 1.0.
+<p>
+    Layer 2 along this dimension corresponds to "value". This has the same
+    range as the RGB values, normally either 0.0 to 1.0 or 0 to 255.
+    If you are casting the result to an integer & want a maximum of 255 then
+    set the maximum to say 255.999. Otherwise you will get few if any 255s.
+<p>
+    The result has the same shape as the argument (hsv).
+<p>
+    See Foley, vanDam, Feiner and Hughes, Computer Graphics
+    <em>Principles and Practice</em>, Second Edition, 1990, ISBN 0201121107
+    page 593. 
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "hsv2rgb {180.0 0.5 100.0}"]
+<br>
+50 100 100
+</code>
+
+<h3>
+<code>isMissing(</code><var>x</var><code>)</code>
+</h3>
+1 if <var>x</var> misssing, 0 if present.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "isMissing {0 _ 9}"]
+<br>
+0 1 0
+</code>
+
+<h3>
+<code>isPresent(</code><var>x</var><code>)</code>
+</h3>
+0 if <var>x</var> misssing, 1 if present.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "isPresent {0 _ 9}"]
+<br>
+1 0 1
+</code>
+
+<h3>
+<code>merid_wt(</code><var>longitude</var><code>)</code>
+</h3>
+Calculate normalised (so sum weights = 1) meridional weights from longitudes.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "merid_wt {-180 -90 -45 0 90 180}"]
+<br>
+0.125 0.1875 0.125 0.1875 0.25 0.125
+</code>
+
+<h3>
+<code>mixed_base(</code><var>x</var><code>,</code><var>b</var><code>)</code>
+</h3>
+Convert scalar value <var>x</var> to mixed base defined by vector <var>b</var>.
+<br>
+<p>
+Following example converts 87 inches to yards, feet & inches:
+<br>
+<code>
+% [nap "mixed_base(87, {3 12})"]
+<br>
+2 1 3
+</code>
+
+<h3>
+<code>outer(</code><var>dyad</var><code>,</code><var>y</var>[,</code><var>x</var>]<code>)</code>
+</h3>
+Tensor outer-product.
+<p>
+<var>dyad</var> is name of either
+<li> function with two arguments
+<li> binary (dyadic) operator
+<br>
+<var>x</var> is vector
+<br>
+<var>y</var> is vector defaulting to <var>x</var>
+<br>
+Result is cross-product of <var>x</var> and <var>y</var>,
+applying <var>dyad</var> to each combination of <var>x</var> & <var>y</var>.
+<br>
+<var>x</var> & <var>y</var> are the coordinate variables of the result.
+<br>
+<p>
+Following example produces a multiplication table:
+<br>
+<pre>
+% [nap "outer('*', 1 .. 5)"]
+ 1  2  3  4  5
+ 2  4  6  8 10
+ 3  6  9 12 15
+ 4  8 12 16 20
+ 5 10 15 20 25
+</pre>
+
+<h3>
+<code>reverse(</code><var>x</var>[<code>,</code><var>verb_rank</var>]<code>)</code>
+</h3>
+Reverse order of items in array <var>x</var>.
+<br>
+<p>
+Examples:
+<pre>
+% [nap "reverse {1 9 0 7}"]
+7 0 9 1
+% [nap "reverse {{1 2 3}{4 5 6}}"]
+4 5 6
+1 2 3
+% [nap "reverse({{1 2 3}{4 5 6}}, 1)"]
+3 2 1
+6 5 4
+</pre>
+
+<h3>
+<code>scaleAxis(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code>
+</h3>
+Find suitable values for axis of graph.
+<br>
+<var>xstart</var>: 1st data value
+<br>
+<var>xend</var>: Final data value
+<br>
+<var>nmax</var>: Max. allowable number of elements in result (Default: 10)
+<br>
+<var>nice</var>: Allowable increments (Default: <code>{1 2 5}</code>)
+<br>
+Result is the arithmetic progression which:
+<li> is within interval from <var>xstart</var> to <var>xend</var>
+<li> has same order (ascending/descending) as <var>xstart</var><code>//</code><var>xend</var>
+<li> has increment equal to element of <var>nice</var> times a power
+	<code>(-30 .. 30)</code> of 10
+<li> has at least two elements
+<li> has no more than <var>nmax</var> elements if possible
+<li> has as many elements as possible.
+	(Ties are resolved by choosing earlier element in <var>nice</var>.)
+<p>
+Example:
+<br>
+<code>
+% [nap "axis = scaleAxis(-370, 580, 10, {10 20 25 50})"] value
+<br>
+-300 -200 -100 0 100 200 300 400 500
+</code>
+
+<h3>
+<code>scaleAxisSpan(</code><var>xstart</var><code>,</code><var>xend</var>[<code>,</code><var>nmax</var>[<code>,</code><var>nice</var>]]<code>)</code>
+</h3>
+Find suitable values for axis of graph.
+<br>
+<var>xstart</var>: 1st data value
+<br>
+<var>xend</var>: Final data value
+<br>
+<var>nmax</var>: Max. allowable number of elements in result (Default: 10)
+<br>
+<var>nice</var>: Allowable increments (Default: <code>{1 2 5}</code>)
+<br>
+Result is the arithmetic progression which:
+<li> includes the interval from <var>xstart</var> to <var>xend</var>
+<li> has same order (ascending/descending) as <var>xstart</var><code>//</code><var>xend</var>
+<li> has increment equal to element of <var>nice</var> times a power
+	<code>(-30 .. 30)</code> of 10
+<li> has at least two elements
+<li> has no more than <var>nmax</var> elements if possible
+<li> has as many elements as possible.
+	(Ties are resolved by choosing earlier element in <var>nice</var>.)
+<p>
+Example:
+<br>
+<code>
+% [nap "axis = scaleAxisSpan(-370, 580, 10, {10 20 25 50})"] value
+<br>
+-400 -200 0 200 400 600
+</code>
+
+<h3>
+<code>range(</code><var>a</var><code>)</code>
+</h3>
+Result is 2-element vector containing minimum and maximum of array <var>a</var>.
+<br>
+Example:
+<br>
+<code>
+% [nap "range {{9 -1 -5}{2 9 3}}"]
+<br>
+-5 9
+</code>
+
+<h3>
+<code>tail(</code><var>x</var>[<code>,</code><var>n</var>]<code>)</code>
+</h3>
+If <var>n</var> &ge; 0 then result is final <var>n</var> elements of <var>x</var>,
+cycling if <var>n</var> > nels(<var>x</var>).
+<br>
+<var>n</var> defaults to 1.
+<br>
+If <var>n</var> <  0 then result is final 
+<code>nels(</code><var>x</var><code>)+</code><var>n</var> elements of <var>x</var>
+i.e. drop &minus;<var>n</var> from start.
+<br>
+<p>
+Example:
+<br>
+<pre>
+% [nap "tail({3 1 9 2 7})"]
+7
+% [nap "tail({3 1 9 2 7}, 2)"]
+2 7
+% [nap "tail({3 1 9 2 7}, -2)"]
+9 2 7
+</pre>
+
+<h3>
+<code>zone_wt(</code><var>latitude</var><code>)</code>
+</h3>
+Calculate normalised (so sum weights = 1) zonal weights from latitudes.
+<br>
+<p>
+Example:
+<br>
+<code>
+% [nap "zone_wt(-90 .. 90 ... 30)"] value
+<br>
+0.0334936 0.125 0.216506 0.25 0.216506 0.125 0.0334936
+</code>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: nap_function_lib.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!-- $Id: make_dll.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP Library: make_dll.tcl
+</title> </head>
+
+<body>
+
+<h2> <center>
+Interfacing NAP to a DLL based on C or Fortran Code
+</center> </h2>
+
+The file <code>make_dll.tcl</code> defines
+procedures for automatically producing an interface from NAP to a 
+<em>DLL</em> (<em>dynamic-link library</em> or <em>shared library</em>)
+based on C or Fortran Code.
+This process defines a new tcl command which can either be used directly or via another interface
+(written in Tcl) defining a NAP function.
+
+<h3>
+<code>make_dll</code>
+<var>options</var>
+<var>newCommand</var>
+<var>argDec</var>
+<var>argDec</var>
+<var>argDec</var>
+&hellip;
+</h3>
+
+This is the standard procedure used to create a DLL.
+<p>
+<var>newCommand</var> is name of new command.
+<p>
+Each argument-declaration <var>argDec</var> is a list with the form
+<code>{</code><var>name</var> <var>dataType</var> <var>intent</var><code>}</code> where
+<ul>
+<li> <var>name</var> is any string (used only in error messages)
+<li> <var>dataType</var> can be:
+    <code>c8 i8 u8 i16 u16 i32 u32 f32 f64 void</code>
+<li> <var>intent</var> can be: <code>in</code> (default) or <code>inout</code>.
+    Actual <code>in</code> arguments can be expressions of any type
+    (including <code>ragged</code>) and will be
+    converted to the specified type (unless this is <code>void</code>).
+</ul>
+
+<p>
+<var>options</var> are:
+<br> <code>-quiet</code>: Do not echo commands.
+<br> <code>-compile</code> <b>command</b>: C compile-command with options
+<br> <code>-dll</code> <b>fileName</b>: output filename for
+    DLL (default: <var>newCommand</var>.dll for windows,
+    <var>newCommand</var>.so for unix)
+<br> <code>-entry</code> <string>: User-routine entry-point (default: <var>newCommand</var>).
+    Note that fortran entry points often include suffix '_'.
+<br> <code>-header</code> <b>fileName</b>: header (<code>*.h</code>) filename (default: none)
+<br> <code>-libs</code> <b>fileNames</b>: filenames of extra binary libraries (default: none)
+<br> <code>-link</code> <b>command</b>: Link-command with options
+<br> <code>-object</code> <b>fileName</b>:
+    User-routine object-file (default: <var>newCommand</var><code>.obj</code>
+    for windows, <var>newCommand</var><code>.o</code> for unix)
+<br> <code>-source</code> <b>fileName</b>:
+    Output file containing C source code of interface 
+    (default: <var>newCommand</var><code>_i.c</code>)
+<br> <code>-version</code> <n.m>: Version number (default: <code>1.0</code>)
+
+<p>
+The following example (under Linux) defines a new NAP function <code>partialProd</code> 
+which calculates partial-products.
+This is analogous to the standard nap function <code>psum</code> which calculates partial sums.
+The new function is based on the following C file <code>pprod.c</code>:
+<pre>
+void pprod(int *n, float *x, float *result) {
+   int         i;
+   float       prod = 1;
+
+   for (i = 0; i < *n; i++) {
+       result[i] = prod = prod * x[i];
+   }
+}
+</pre>
+
+<pre>
+% exec cc -c -o pprod.o pprod.c
+% make_dll pprod {n i32 in} {x f32} {y f32 inout}
+cc -I/home/dav480/tcl/include -c pprod_i.c
+ld -shared -o libpprod.so pprod_i.o pprod.o  
+% load ./libpprod.so
+% proc partialProd x {
+    set result [nap "reshape(0f, shape(x))"]
+    pprod  "nels(x)" x result
+    return $result
+}
+% [nap "partialProd({2 1.5 3 0.5})"]
+2 3 9 4.5
+</pre>
+
+<p>
+You can do the same thing in fortran 90 using the following source code:
+
+<pre>
+subroutine pprod(n, x, result)
+   integer, intent(in) :: n
+   real, intent(in) :: x(n)
+   real, intent(out) :: result(n)
+   integer :: i
+   real :: prod
+   prod = 1.0
+   do i = 1, n
+       prod = prod * x(i)
+       result(i) = prod
+   end do
+end subroutine pprod
+</pre>
+
+<p>
+The following log was produced using the Linux Lahey f95 compiler.
+(Note that the entry point is <code>pprod_</code>)
+
+<pre>
+% exec lf95 -c pprod.f90
+Compiling file pprod.f90.
+Compiling program unit pprod at line 1:
+/home/dav480/tmp/asm03529aaa.s: Assembler messages:
+/home/dav480/tmp/asm03529aaa.s:86: Warning: translating to `fstp %st'
+/home/dav480/tmp/asm03529aaa.s:90: Warning: translating to `fstp %st'
+% make_dll -entry pprod_ pprod {n i32 in} {x f32} {y f32 inout}
+cc -I/home/dav480/tcl/include -c pprod_i.c
+ld -shared -o libpprod.so pprod_i.o pprod.o  
+% load ./libpprod.so
+% proc partialProd x {
+    set result [nap "reshape(0f, shape(x))"]
+    pprod  "nels(x)" x result
+    return $result
+}
+% [nap "partialProd({2 1.5 3 0.5})"]
+2 3 9 4.5
+</pre>
+
+<h3>
+<code>make_dll_i</code>
+<var>options</var>
+<var>newCommand</var>
+<var>argDec</var>
+<var>argDec</var>
+<var>argDec</var>
+&hellip;
+</h3>
+
+Make NAP C interface to user's C function or Fortran subroutine.
+This procedure is normally used via <code>make_dll</code>, but may be used directly if you prefer to
+do your own compiling and linking.
+The result of <code>make_dll_i</code> is the C code.
+
+<P>
+The arguments are similar to <code>make_dll</code>, except that the only options are:
+<br> <code>-entry</code> <string>: User-routine entry-point (default: <var>newCommand</var>).
+    Note that fortran entry points often include suffix '_'.
+<br> <code>-header</code> <b>fileName</b>: header (<code>*.h</code>) filename (default: none)
+<br> <code>-version</code> <n.m>: Version number (default: <code>1.0</code>)
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: make_dll.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

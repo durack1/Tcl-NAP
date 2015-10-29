@@ -1,0 +1,161 @@
+<!-- $Id: nao.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP NAOs
+</title> </head>
+
+<body>
+
+<h2> <center>
+N-dimensional Array Objects (NAOs)
+</center> </h2>
+
+A NAO is a data structure in memory.
+A NAO consists of the following components:
+<dl>
+
+    <dt> slot number
+	<dd> Index of entry in internal table used to provide fast access to NAOs.
+
+    <dt> sequence number
+	<dd> Number (starting from 1) assigned in order of creation of NAOs.
+
+    <dt> OOC-name
+	<dd> Name of object-oriented command associated with NAO.
+	Also used as unique identifier of NAO.
+
+    <dt> reference count 
+	<dd> Number of Tcl variables, NAOs, windows, etc. pointing to this NAO.
+	If the count decrements to 0 then NAP deletes the NAO and its associated OOC.
+
+    <dt> nap_cd
+	<dd> pointer to NAP structure created for each interpreter.
+
+    <dt> dataType
+	<dd> one of the following:<br>
+
+	<table border>
+	    <tr>
+		<th align=center>Name
+		<th align=center>Description
+	    <tr>
+		<td> <code>c8</code>
+		<td> 8-bit character
+	    <tr>
+		<td> <code>i8</code>
+		<td> 8-bit signed integer
+	    <tr>
+		<td> <code>i16</code>
+		<td> 16-bit signed integer
+	    <tr>
+		<td> <code>i32</code>
+		<td> 32-bit signed integer
+	    <tr>
+		<td> <code>u8</code>
+		<td> 8-bit unsigned integer
+	    <tr>
+		<td> <code>u16</code>
+		<td> 16-bit unsigned integer
+	    <tr>
+		<td> <code>u32</code>
+		<td> 32-bit unsigned integer
+	    <tr>
+		<td> <code>f32</code>
+		<td> 32-bit floating-point
+	    <tr>
+		<td> <code>f32</code>
+		<td> 64-bit floating-point
+	    <tr>
+		<td> <code>ragged</code>
+		<td> compressed
+	    <tr>
+		<td> <code>boxed</code>
+		<td> slot numbers (used as pointers to NAOs)
+	</table>
+
+    <dt> step
+	<dd> An efficiency hint for searching vectors.
+	    If this component is undefined before a search then NAP defines it according
+	    to whether the vector is
+	    <ul>
+	    <li>unordered
+	    <li>sorted into ascending order
+	    <li>sorted into descending order
+	    <li>quasi-arithmetic-progression i.e. a vector all of whose steps are equal,
+		except possibly the final one which may be shorter.
+	    </ul>
+
+    <dt> mortal
+	<dd> This is set FALSE for NAOs (e.g. standard missing values)
+	which must not be deleted regardless of reference count.
+
+    <dt> label
+	<dd> Text containing title, description of data, etc.
+
+    <dt> unit
+	<dd> Text defining unit of measure.
+
+    <dt> rank
+	<dd> number of dimensions.
+
+    <dt> nels
+	<dd> number of elements = product(shape).
+
+    <dt> nbytes
+	<dd> number of bytes in NAO. Mainly for debugging.
+
+    <dt> link slot
+	<dd> slot number (0 = none) of link NAO, which can be used to attach further
+	    information to a NAO (possibly via a boxed NAO which could link to any number
+	    of further NAOs).
+
+    <dt> next slot
+	<dd> used internally to create NAO <em>death list</em> when executing a Tcl
+	procedure defining a NAP function. (0 = none) 
+
+    <dt> missing value slot
+	<dd> slot number (0=none) of missing-value NAO.
+
+    <dt> pointer to missing value
+	<dd> pointer to missing value NAO (for fast access).
+
+    <dt> pointer to missing value function
+	<dd> This function tests whether an element of a NAO is missing.
+
+    <dt> ragged start slot number
+	<dd> slot number (0=none) of vector NAO giving start index of each row of ragged array.
+
+    <dt> shape
+	<dd> sizes of dimensions.
+
+    <dt> dimension names
+	<dd> names (if any) of dimensions.
+
+    <dt> coordinate-variable slot numbers
+	<dd> slot numbers (0 = none) of CVs.
+
+    <dt> data
+	<dd> Main data.
+
+</dl>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: nao.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>
