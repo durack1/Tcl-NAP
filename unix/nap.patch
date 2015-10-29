@@ -1,0 +1,36 @@
+--- unix/configure.orig	Sat Jan 29 21:31:11 2005
++++ unix/configure	Sat Jan 29 21:33:12 2005
+@@ -3094,6 +3094,11 @@
+     do64bit_ok=no
+     fullSrcDir=`cd $srcdir; pwd`
+     case $system in
++  Darwin* )
++   SHLIB_SUFFIX=".dylib"
++   LDFLAGS_OPTIMIZE='cc -dynamiclib -single_module -flat_namespace -undefined suppress'
++   CFLAGS_OPTIMIZE="-fno-common"
++   ;;
+ 	AIX-4.[2-9])
+ 	    SHLIB_CFLAGS=""
+ 	    SHLIB_LD="$fullSrcDir/ldAix /bin/ld -bhalt:4 -bM:SRE -bE:lib.exp -H512 -T512 -bnoentry"
+
+--- unix/Makefile.orig	Sun Jan 30 23:21:43 2005
++++ unix/Makefile.in	Sun Jan 30 23:28:27 2005
+@@ -307,7 +307,8 @@
+ 
+ doc:
+ 
+-install: install-binaries install-headers install-libraries install-doc install-data
++#install: install-binaries install-headers install-libraries install-doc install-data
++install: install-binaries install-headers install-libraries install-doc
+ 
+ src_tar: $(SRC_TAR)
+ 
+@@ -363,7 +364,7 @@
+ 	$(MKDIR) $@
+ 
+ install-doc: $(PACKAGE_HTML_DIR)
+-	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/nap.pdf $(HTML_DIR)/*.html $(PACKAGE_HTML_DIR)
++	$(CP) $(HTML_DIR)/index.php $(HTML_DIR)/NAP_Manual.pdf $(HTML_DIR)/*.html $(PACKAGE_HTML_DIR)
+ 
+ # C header files
+ install-headers: \

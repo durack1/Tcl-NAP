@@ -22,8 +22,8 @@
 package ifneeded nap 6.2 [subst {
     [list load [file join \
 	[file dirname [file dirname $dir]] \
-	lib \
-	libnap6.2.so]]
+	bin \
+	nap6_2.dll]]
     set dir {$dir}
     [list source [file join $dir tclIndex]]
     unset dir

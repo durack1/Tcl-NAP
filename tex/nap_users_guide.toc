@@ -1,0 +1,419 @@
+\contentsline {chapter}{\numberline {1}Introduction}{1}{chapter.1}
+\contentsline {section}{\numberline {1.1}Overview of Nap (N-Dimensional Array Processor)}{1}{section.1.1}
+\contentsline {section}{\numberline {1.2}Typographic Conventions}{2}{section.1.2}
+\contentsline {section}{\numberline {1.3}Acknowledgments}{2}{section.1.3}
+\contentsline {chapter}{\numberline {2}Background}{5}{chapter.2}
+\contentsline {section}{\numberline {2.1}Demonstration of Simple Tcl/Tk}{5}{section.2.1}
+\contentsline {subsection}{\numberline {2.1.1}Introduction}{5}{subsection.2.1.1}
+\contentsline {subsection}{\numberline {2.1.2}First Look at Tcl}{5}{subsection.2.1.2}
+\contentsline {subsection}{\numberline {2.1.3}First Look at Tk}{6}{subsection.2.1.3}
+\contentsline {subsection}{\numberline {2.1.4}Syntax of Tcl}{6}{subsection.2.1.4}
+\contentsline {subsection}{\numberline {2.1.5}Lists and Strings}{7}{subsection.2.1.5}
+\contentsline {subsection}{\numberline {2.1.6}File Input and Output}{7}{subsection.2.1.6}
+\contentsline {subsection}{\numberline {2.1.7}Procedures and Control Structures}{8}{subsection.2.1.7}
+\contentsline {section}{\numberline {2.2}Data Models}{9}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}What values can the data take?}{9}{subsection.2.2.1}
+\contentsline {subsection}{\numberline {2.2.2}What is the measurement level?}{10}{subsection.2.2.2}
+\contentsline {subsection}{\numberline {2.2.3}How accurate are the values?}{10}{subsection.2.2.3}
+\contentsline {subsection}{\numberline {2.2.4}Are the data located in some space?}{10}{subsection.2.2.4}
+\contentsline {section}{\numberline {2.3}Terminology}{10}{section.2.3}
+\contentsline {subsection}{\numberline {2.3.1}Arrays}{10}{subsection.2.3.1}
+\contentsline {subsection}{\numberline {2.3.2}Special Numeric Values}{11}{subsection.2.3.2}
+\contentsline {section}{\numberline {2.4}Grids}{11}{section.2.4}
+\contentsline {subsection}{\numberline {2.4.1}Dimensions, Coordinate variables and Mappings}{11}{subsection.2.4.1}
+\contentsline {subsection}{\numberline {2.4.2}Difference between Grids and Scattered Data}{11}{subsection.2.4.2}
+\contentsline {subsubsection}{\numberline {2.4.2.1}Example of Scattered 2D Data (Not a Grid)}{12}{subsubsection.2.4.2.1}
+\contentsline {subsubsection}{\numberline {2.4.2.2}Example of 2D Grid}{12}{subsubsection.2.4.2.2}
+\contentsline {subsection}{\numberline {2.4.3}Missing Data}{12}{subsection.2.4.3}
+\contentsline {subsection}{\numberline {2.4.4}Processing Scattered Data}{13}{subsection.2.4.4}
+\contentsline {section}{\numberline {2.5}HDF and netCDF File Formats}{13}{section.2.5}
+\contentsline {section}{\numberline {2.6}References}{13}{section.2.6}
+\contentsline {subsection}{\numberline {2.6.1}Introduction}{13}{subsection.2.6.1}
+\contentsline {subsection}{\numberline {2.6.2}Tcl/Tk}{13}{subsection.2.6.2}
+\contentsline {subsection}{\numberline {2.6.3}Nap}{13}{subsection.2.6.3}
+\contentsline {subsection}{\numberline {2.6.4}Array Processing}{14}{subsection.2.6.4}
+\contentsline {subsection}{\numberline {2.6.5}Array-oriented File Formats}{14}{subsection.2.6.5}
+\contentsline {subsection}{\numberline {2.6.6}Arithmetic}{14}{subsection.2.6.6}
+\contentsline {chapter}{\numberline {3}Installation}{15}{chapter.3}
+\contentsline {section}{\numberline {3.1}Installing Tcl/Tk and Nap}{15}{section.3.1}
+\contentsline {subsection}{\numberline {3.1.1}Introduction}{15}{subsection.3.1.1}
+\contentsline {subsection}{\numberline {3.1.2}Installing Tcl/Tk}{15}{subsection.3.1.2}
+\contentsline {subsection}{\numberline {3.1.3}Tcl/Tk Documentation}{16}{subsection.3.1.3}
+\contentsline {subsection}{\numberline {3.1.4}Installing Nap}{16}{subsection.3.1.4}
+\contentsline {subsection}{\numberline {3.1.5}Nap User's Guide}{17}{subsection.3.1.5}
+\contentsline {subsection}{\numberline {3.1.6}Nap Source Code}{17}{subsection.3.1.6}
+\contentsline {subsection}{\numberline {3.1.7}Related Packages}{17}{subsection.3.1.7}
+\contentsline {section}{\numberline {3.2}Sample Startup Scripts}{17}{section.3.2}
+\contentsline {subsection}{\numberline {3.2.1}Introduction}{17}{subsection.3.2.1}
+\contentsline {subsection}{\numberline {3.2.2}Script \texttt {my.tcl}}{17}{subsection.3.2.2}
+\contentsline {subsection}{\numberline {3.2.3}Script \texttt {my\_tkcon.tcl}}{18}{subsection.3.2.3}
+\contentsline {chapter}{\numberline {4}Nap Basics}{19}{chapter.4}
+\contentsline {section}{\numberline {4.1}Sample Session}{19}{section.4.1}
+\contentsline {section}{\numberline {4.2}NAOs, OOCs and \texttt {nap} command}{22}{section.4.2}
+\contentsline {section}{\numberline {4.3}Arguments of \texttt {nap} Command}{23}{section.4.3}
+\contentsline {section}{\numberline {4.4}Data Types}{24}{section.4.4}
+\contentsline {subsection}{\numberline {4.4.1}Nap Data-types}{24}{subsection.4.4.1}
+\contentsline {subsection}{\numberline {4.4.2}Data-type of Constants}{24}{subsection.4.4.2}
+\contentsline {subsection}{\numberline {4.4.3}Data-type Conversion Functions}{24}{subsection.4.4.3}
+\contentsline {subsection}{\numberline {4.4.4}Data-type of result of operation}{25}{subsection.4.4.4}
+\contentsline {section}{\numberline {4.5}Arrays}{26}{section.4.5}
+\contentsline {subsection}{\numberline {4.5.1}Introduction}{26}{subsection.4.5.1}
+\contentsline {subsection}{\numberline {4.5.2}Vectors}{26}{subsection.4.5.2}
+\contentsline {subsection}{\numberline {4.5.3}Matrices}{28}{subsection.4.5.3}
+\contentsline {subsection}{\numberline {4.5.4}Higher Rank Arrays}{29}{subsection.4.5.4}
+\contentsline {subsection}{\numberline {4.5.5}Grids}{30}{subsection.4.5.5}
+\contentsline {subsection}{\numberline {4.5.6}Strings}{31}{subsection.4.5.6}
+\contentsline {chapter}{\numberline {5}Nap Expressions}{33}{chapter.5}
+\contentsline {section}{\numberline {5.1}Syntax of Nap Expressions}{33}{section.5.1}
+\contentsline {subsection}{\numberline {5.1.1}Introduction}{33}{subsection.5.1.1}
+\contentsline {subsection}{\numberline {5.1.2}Substitution}{33}{subsection.5.1.2}
+\contentsline {subsection}{\numberline {5.1.3}Nap Names}{34}{subsection.5.1.3}
+\contentsline {subsection}{\numberline {5.1.4}Functions}{34}{subsection.5.1.4}
+\contentsline {subsection}{\numberline {5.1.5}Indexing}{35}{subsection.5.1.5}
+\contentsline {subsection}{\numberline {5.1.6}Parenthesising Function Arguments and Indices}{35}{subsection.5.1.6}
+\contentsline {section}{\numberline {5.2}Constants}{36}{section.5.2}
+\contentsline {subsection}{\numberline {5.2.1}Introduction}{36}{subsection.5.2.1}
+\contentsline {subsection}{\numberline {5.2.2}Integer Scalar Constants}{36}{subsection.5.2.2}
+\contentsline {subsection}{\numberline {5.2.3}Floating-point Scalar Constants}{36}{subsection.5.2.3}
+\contentsline {subsection}{\numberline {5.2.4}Numeric Array Constants}{37}{subsection.5.2.4}
+\contentsline {subsection}{\numberline {5.2.5}String Constants}{39}{subsection.5.2.5}
+\contentsline {section}{\numberline {5.3}Operators}{39}{section.5.3}
+\contentsline {subsection}{\numberline {5.3.1}Operators and Precedence}{39}{subsection.5.3.1}
+\contentsline {subsection}{\numberline {5.3.2}Assignment Operator `\texttt {=}'}{40}{subsection.5.3.2}
+\contentsline {subsection}{\numberline {5.3.3}Link Operator `\texttt {,}'}{41}{subsection.5.3.3}
+\contentsline {subsection}{\numberline {5.3.4}Arithmetic Progression Operators `\texttt {..}' and `\texttt {...}'}{41}{subsection.5.3.4}
+\contentsline {subsection}{\numberline {5.3.5}Concatenation Operators `\texttt {//}' and `\texttt {///}'}{42}{subsection.5.3.5}
+\contentsline {subsection}{\numberline {5.3.6}Inverse Indexing Operators `\texttt {@}', `\texttt {@@}' and `\texttt {@@@}'}{43}{subsection.5.3.6}
+\contentsline {subsubsection}{\numberline {5.3.6.1}Interpolated Subscript `\texttt {@}'}{44}{subsubsection.5.3.6.1}
+\contentsline {subsubsection}{\numberline {5.3.6.2}Subscript of Closest `\texttt {@@}'}{45}{subsubsection.5.3.6.2}
+\contentsline {subsubsection}{\numberline {5.3.6.3}Subscript of Match `\texttt {@@@}'}{46}{subsubsection.5.3.6.3}
+\contentsline {subsection}{\numberline {5.3.7}Tally Unary Operator `\texttt {\#}'}{46}{subsection.5.3.7}
+\contentsline {subsection}{\numberline {5.3.8}Replicate Binary Operator `\texttt {\#}'}{47}{subsection.5.3.8}
+\contentsline {subsection}{\numberline {5.3.9}Remainder Operator `\texttt {\%}'}{47}{subsection.5.3.9}
+\contentsline {subsection}{\numberline {5.3.10}Unary Sorting Operators `\texttt {$<$=}' and `\texttt {$>$=}'}{48}{subsection.5.3.10}
+\contentsline {section}{\numberline {5.4}Indexing}{48}{section.5.4}
+\contentsline {subsection}{\numberline {5.4.1}Introduction}{48}{subsection.5.4.1}
+\contentsline {subsubsection}{\numberline {5.4.1.1}Indexing Syntax}{48}{subsubsection.5.4.1.1}
+\contentsline {subsubsection}{\numberline {5.4.1.2}Dimension-Position}{49}{subsubsection.5.4.1.2}
+\contentsline {subsubsection}{\numberline {5.4.1.3}Subscript}{49}{subsubsection.5.4.1.3}
+\contentsline {subsubsection}{\numberline {5.4.1.4}Elemental Index}{49}{subsubsection.5.4.1.4}
+\contentsline {subsection}{\numberline {5.4.2}Index}{50}{subsection.5.4.2}
+\contentsline {subsubsection}{\numberline {5.4.2.1}Shape-Preserving}{50}{subsubsection.5.4.2.1}
+\contentsline {subsubsection}{\numberline {5.4.2.2}Vector-Flip}{51}{subsubsection.5.4.2.2}
+\contentsline {subsubsection}{\numberline {5.4.2.3}Full-index}{51}{subsubsection.5.4.2.3}
+\contentsline {subsubsection}{\numberline {5.4.2.4}Cross-product-index}{52}{subsubsection.5.4.2.4}
+\contentsline {subsection}{\numberline {5.4.3}Indirect Indexing and Unary Operators `\texttt {@}' and `\texttt {@@}'}{54}{subsection.5.4.3}
+\contentsline {subsubsection}{\numberline {5.4.3.1}1D Time-Series Example}{55}{subsubsection.5.4.3.1}
+\contentsline {subsubsection}{\numberline {5.4.3.2}2D Geographic Example}{55}{subsubsection.5.4.3.2}
+\contentsline {section}{\numberline {5.5}Built-in Functions}{58}{section.5.5}
+\contentsline {subsection}{\numberline {5.5.1}Elemental Functions}{58}{subsection.5.5.1}
+\contentsline {subsubsection}{\numberline {5.5.1.1}Mathematical Elemental Functions}{58}{subsubsection.5.5.1.1}
+\contentsline {subsubsection}{\numberline {5.5.1.2}Data-type Conversion Functions}{59}{subsubsection.5.5.1.2}
+\contentsline {subsection}{\numberline {5.5.2}Reduction Functions}{59}{subsection.5.5.2}
+\contentsline {subsection}{\numberline {5.5.3}Function \texttt {count(}$x$[ \texttt {,} $r$]\texttt {)}}{61}{subsection.5.5.3}
+\contentsline {subsection}{\numberline {5.5.4}Scan Functions}{62}{subsection.5.5.4}
+\contentsline {subsection}{\numberline {5.5.5}Metadata Functions}{63}{subsection.5.5.5}
+\contentsline {subsection}{\numberline {5.5.6}Functions which change shape or order}{63}{subsection.5.5.6}
+\contentsline {subsection}{\numberline {5.5.7}Linear-algebra Functions}{64}{subsection.5.5.7}
+\contentsline {subsection}{\numberline {5.5.8}Correlation}{65}{subsection.5.5.8}
+\contentsline {subsubsection}{\numberline {5.5.8.1}Function \texttt {correlation(}$x$[,$y$]\texttt {)}}{65}{subsubsection.5.5.8.1}
+\contentsline {subsubsection}{\numberline {5.5.8.2}Function \texttt {moving\_correlation(}$x$,$y$,[$lag_0$[,$lag_1$]]\texttt {)}}{66}{subsubsection.5.5.8.2}
+\contentsline {subsection}{\numberline {5.5.9}Geometry}{66}{subsection.5.5.9}
+\contentsline {subsubsection}{\numberline {5.5.9.1}Testing whether points are in polygon}{66}{subsubsection.5.5.9.1}
+\contentsline {subsubsection}{\numberline {5.5.9.2}Triangulation}{67}{subsubsection.5.5.9.2}
+\contentsline {subsection}{\numberline {5.5.10}Grid Functions}{68}{subsection.5.5.10}
+\contentsline {subsection}{\numberline {5.5.11}Cartographic Projection Functions}{71}{subsection.5.5.11}
+\contentsline {subsubsection}{\numberline {5.5.11.1}Function \texttt {cart\_proj\_fwd(}$\@mathit {proj\_spec, lat, lon}$\texttt {)}}{71}{subsubsection.5.5.11.1}
+\contentsline {subsubsection}{\numberline {5.5.11.2}Function \texttt {cart\_proj\_inv(}$\@mathit {proj\_spec, x, y}$\texttt {)}}{72}{subsubsection.5.5.11.2}
+\contentsline {subsection}{\numberline {5.5.12}Functions related to Special Data-types}{72}{subsection.5.5.12}
+\contentsline {subsubsection}{\numberline {5.5.12.1}Function \texttt {open\_box(}$x$\texttt {)}}{72}{subsubsection.5.5.12.1}
+\contentsline {subsubsection}{\numberline {5.5.12.2}Functions \texttt {prune(}$x$\texttt {)} and \texttt {pad(}$x$\texttt {)}}{73}{subsubsection.5.5.12.2}
+\contentsline {subsection}{\numberline {5.5.13}Morphological Functions}{73}{subsection.5.5.13}
+\contentsline {subsubsection}{\numberline {5.5.13.1}Morphological Binary Dilation and Erosion}{73}{subsubsection.5.5.13.1}
+\contentsline {subsubsection}{\numberline {5.5.13.2}Moving Range}{73}{subsubsection.5.5.13.2}
+\contentsline {chapter}{\numberline {6}Object-Oriented Commands (OOCs)}{75}{chapter.6}
+\contentsline {section}{\numberline {6.1}Introduction}{75}{section.6.1}
+\contentsline {section}{\numberline {6.2}OOC Methods which return Data Values (with or without metadata)}{75}{section.6.2}
+\contentsline {subsection}{\numberline {6.2.1}Method \texttt {all}}{75}{subsection.6.2.1}
+\contentsline {subsubsection}{\numberline {6.2.1.1}Example}{75}{subsubsection.6.2.1.1}
+\contentsline {subsection}{\numberline {6.2.2}Method \texttt {value}}{76}{subsection.6.2.2}
+\contentsline {subsubsection}{\numberline {6.2.2.1}Example}{76}{subsubsection.6.2.2.1}
+\contentsline {subsection}{\numberline {6.2.3}Default method}{76}{subsection.6.2.3}
+\contentsline {subsubsection}{\numberline {6.2.3.1}Examples}{76}{subsubsection.6.2.3.1}
+\contentsline {subsection}{\numberline {6.2.4}Format Conversion Strings}{77}{subsection.6.2.4}
+\contentsline {section}{\numberline {6.3}OOC Methods which return Metadata}{78}{section.6.3}
+\contentsline {subsection}{\numberline {6.3.1}Introduction}{78}{subsection.6.3.1}
+\contentsline {subsection}{\numberline {6.3.2}Method \texttt {coordinate}}{78}{subsection.6.3.2}
+\contentsline {subsection}{\numberline {6.3.3}Method \texttt {count}}{78}{subsection.6.3.3}
+\contentsline {subsection}{\numberline {6.3.4}Method \texttt {datatype}}{79}{subsection.6.3.4}
+\contentsline {subsection}{\numberline {6.3.5}Method \texttt {dimension}}{79}{subsection.6.3.5}
+\contentsline {subsection}{\numberline {6.3.6}Method \texttt {format}}{79}{subsection.6.3.6}
+\contentsline {subsection}{\numberline {6.3.7}Method \texttt {header}}{79}{subsection.6.3.7}
+\contentsline {subsection}{\numberline {6.3.8}Method \texttt {label}}{79}{subsection.6.3.8}
+\contentsline {subsection}{\numberline {6.3.9}Method \texttt {link}}{80}{subsection.6.3.9}
+\contentsline {subsection}{\numberline {6.3.10}Method \texttt {missing}}{80}{subsection.6.3.10}
+\contentsline {subsection}{\numberline {6.3.11}Method \texttt {ooc}}{80}{subsection.6.3.11}
+\contentsline {subsection}{\numberline {6.3.12}Method \texttt {rank}}{80}{subsection.6.3.12}
+\contentsline {subsection}{\numberline {6.3.13}Method \texttt {sequence}}{80}{subsection.6.3.13}
+\contentsline {subsection}{\numberline {6.3.14}Method \texttt {shape}}{80}{subsection.6.3.14}
+\contentsline {subsection}{\numberline {6.3.15}Method \texttt {slot}}{81}{subsection.6.3.15}
+\contentsline {subsection}{\numberline {6.3.16}Method \texttt {step}}{81}{subsection.6.3.16}
+\contentsline {subsection}{\numberline {6.3.17}Method \texttt {unit}}{81}{subsection.6.3.17}
+\contentsline {section}{\numberline {6.4}OOC Methods which Modify NAO}{81}{section.6.4}
+\contentsline {subsection}{\numberline {6.4.1}Method \texttt {draw}}{81}{subsection.6.4.1}
+\contentsline {subsection}{\numberline {6.4.2}Method \texttt {fill}}{82}{subsection.6.4.2}
+\contentsline {subsection}{\numberline {6.4.3}Method \texttt {set}}{82}{subsection.6.4.3}
+\contentsline {subsubsection}{\numberline {6.4.3.1}set coordinate}{82}{subsubsection.6.4.3.1}
+\contentsline {subsubsection}{\numberline {6.4.3.2}set count}{82}{subsubsection.6.4.3.2}
+\contentsline {subsubsection}{\numberline {6.4.3.3}Set dimension}{83}{subsubsection.6.4.3.3}
+\contentsline {subsubsection}{\numberline {6.4.3.4}set format}{83}{subsubsection.6.4.3.4}
+\contentsline {subsubsection}{\numberline {6.4.3.5}set label}{83}{subsubsection.6.4.3.5}
+\contentsline {subsubsection}{\numberline {6.4.3.6}Set link}{83}{subsubsection.6.4.3.6}
+\contentsline {subsubsection}{\numberline {6.4.3.7}Set missing}{83}{subsubsection.6.4.3.7}
+\contentsline {subsubsection}{\numberline {6.4.3.8}Set unit}{83}{subsubsection.6.4.3.8}
+\contentsline {subsubsection}{\numberline {6.4.3.9}Set value}{84}{subsubsection.6.4.3.9}
+\contentsline {section}{\numberline {6.5}OOC Methods which Write to File}{84}{section.6.5}
+\contentsline {subsection}{\numberline {6.5.1}Method \texttt {binary}}{85}{subsection.6.5.1}
+\contentsline {subsection}{\numberline {6.5.2}Method \texttt {hdf}}{85}{subsection.6.5.2}
+\contentsline {subsection}{\numberline {6.5.3}Method \texttt {netcdf}}{86}{subsection.6.5.3}
+\contentsline {subsection}{\numberline {6.5.4}Method \texttt {swap}}{87}{subsection.6.5.4}
+\contentsline {chapter}{\numberline {7}Reading Files using \texttt {nap\_get} Command}{89}{chapter.7}
+\contentsline {section}{\numberline {7.1}Introduction}{89}{section.7.1}
+\contentsline {section}{\numberline {7.2}Reading Binary Data}{89}{section.7.2}
+\contentsline {section}{\numberline {7.3}Reading netCDF Data}{90}{section.7.3}
+\contentsline {section}{\numberline {7.4}Reading HDF Data}{91}{section.7.4}
+\contentsline {section}{\numberline {7.5}Listing Names of Variables/SDSs and Attributes in HDF and netCDF Files}{92}{section.7.5}
+\contentsline {section}{\numberline {7.6}Reading Metadata from HDF and netCDF Files}{92}{section.7.6}
+\contentsline {chapter}{\numberline {8}Other Nap Commands}{95}{chapter.8}
+\contentsline {section}{\numberline {8.1}The \texttt {nap\_info} Command}{95}{section.8.1}
+\contentsline {section}{\numberline {8.2}The \texttt {nap\_land\_flag} Command}{95}{section.8.2}
+\contentsline {chapter}{\numberline {9}Defining New Nap Commands and Functions}{97}{chapter.9}
+\contentsline {section}{\numberline {9.1}Writing Procedures to be called as Commands or Functions}{97}{section.9.1}
+\contentsline {subsection}{\numberline {9.1.1}Introduction}{97}{subsection.9.1.1}
+\contentsline {subsection}{\numberline {9.1.2}Command or Function?}{97}{subsection.9.1.2}
+\contentsline {subsection}{\numberline {9.1.3}Writing a Procedure to be called as a Function}{97}{subsection.9.1.3}
+\contentsline {subsubsection}{\numberline {9.1.3.1}Function \texttt {sind}}{97}{subsubsection.9.1.3.1}
+\contentsline {subsubsection}{\numberline {9.1.3.2}Function \texttt {lam}}{98}{subsubsection.9.1.3.2}
+\contentsline {subsubsection}{\numberline {9.1.3.3}Function \texttt {get\_bin}}{98}{subsubsection.9.1.3.3}
+\contentsline {subsubsection}{\numberline {9.1.3.4}Function \texttt {fact}}{99}{subsubsection.9.1.3.4}
+\contentsline {subsubsection}{\numberline {9.1.3.5}Function \texttt {factorial}}{99}{subsubsection.9.1.3.5}
+\contentsline {subsection}{\numberline {9.1.4}How Nap Functions Work}{100}{subsection.9.1.4}
+\contentsline {subsection}{\numberline {9.1.5}Writing a Procedure to be called as a Command}{101}{subsection.9.1.5}
+\contentsline {subsubsection}{\numberline {9.1.5.1}Command \texttt {write\_expr}}{101}{subsubsection.9.1.5.1}
+\contentsline {subsubsection}{\numberline {9.1.5.2}Command \texttt {get\_binary}}{101}{subsubsection.9.1.5.2}
+\contentsline {section}{\numberline {9.2}Interfacing Nap to a DLL based on C or Fortran Code}{101}{section.9.2}
+\contentsline {subsection}{\numberline {9.2.1}Introduction}{101}{subsection.9.2.1}
+\contentsline {subsection}{\numberline {9.2.2}\texttt {make\_dll}}{102}{subsection.9.2.2}
+\contentsline {subsubsection}{\numberline {9.2.2.1}C Example}{102}{subsubsection.9.2.2.1}
+\contentsline {subsubsection}{\numberline {9.2.2.2}Fortran 90 Example}{103}{subsubsection.9.2.2.2}
+\contentsline {subsection}{\numberline {9.2.3}\texttt {make\_dll\_i}}{103}{subsection.9.2.3}
+\contentsline {chapter}{\numberline {10}Tcl Library Procedures called as Nap Functions}{105}{chapter.10}
+\contentsline {section}{\numberline {10.1}Introduction}{105}{section.10.1}
+\contentsline {section}{\numberline {10.2}Functions for Dates and Times}{105}{section.10.2}
+\contentsline {subsection}{\numberline {10.2.1}Introduction}{105}{subsection.10.2.1}
+\contentsline {subsection}{\numberline {10.2.2}Dates and Julian Day Numbers (JDNs)}{106}{subsection.10.2.2}
+\contentsline {subsubsection}{\numberline {10.2.2.1}\texttt {date2jdn(}$ymd$\texttt {)}}{106}{subsubsection.10.2.2.1}
+\contentsline {subsubsection}{\numberline {10.2.2.2}\texttt {jdn2date(}$jdn$\texttt {)}}{107}{subsubsection.10.2.2.2}
+\contentsline {subsection}{\numberline {10.2.3}Date/Times and Modified Julian Dates (MJDs)}{107}{subsection.10.2.3}
+\contentsline {subsubsection}{\numberline {10.2.3.1}\texttt {dateTime2mjd(}$ymdhms$\texttt {)}}{107}{subsubsection.10.2.3.1}
+\contentsline {subsubsection}{\numberline {10.2.3.2}\texttt {mjd2dateTime(}$mjd$[\texttt {,} $delta$]\texttt {)}}{108}{subsubsection.10.2.3.2}
+\contentsline {subsection}{\numberline {10.2.4}Calendars with Fixed-length Years}{108}{subsection.10.2.4}
+\contentsline {subsubsection}{\numberline {10.2.4.1}\texttt {dateTime2days(}$ymdhms, ndim$\texttt {)}}{108}{subsubsection.10.2.4.1}
+\contentsline {subsubsection}{\numberline {10.2.4.2}\texttt {days2dateTime(}$days, ndim[, delta]$\texttt {)}}{108}{subsubsection.10.2.4.2}
+\contentsline {section}{\numberline {10.3}Statistical Functions}{109}{section.10.3}
+\contentsline {subsection}{\numberline {10.3.1}Introduction}{109}{subsection.10.3.1}
+\contentsline {subsection}{\numberline {10.3.2}Simple Statistics}{109}{subsection.10.3.2}
+\contentsline {subsubsection}{\numberline {10.3.2.1}Arithmetic mean: \texttt {am(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{109}{subsubsection.10.3.2.1}
+\contentsline {subsubsection}{\numberline {10.3.2.2}Coefficient of variation (with division by $n$): \texttt {CV(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{109}{subsubsection.10.3.2.2}
+\contentsline {subsubsection}{\numberline {10.3.2.3}Coefficient of variation (with division by $n-1$): \texttt {CV1(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{110}{subsubsection.10.3.2.3}
+\contentsline {subsubsection}{\numberline {10.3.2.4}Geometric mean: \texttt {gm(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{110}{subsubsection.10.3.2.4}
+\contentsline {subsubsection}{\numberline {10.3.2.5}Median: \texttt {median(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{110}{subsubsection.10.3.2.5}
+\contentsline {subsubsection}{\numberline {10.3.2.6}Mode: \texttt {mode(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{110}{subsubsection.10.3.2.6}
+\contentsline {subsubsection}{\numberline {10.3.2.7}Percentiles: \texttt {percentile(}$x$\texttt {,} $pc$[\texttt {,} $\@mathit {verb\_rank}$[\texttt {,} $nc$]]\texttt {)}}{110}{subsubsection.10.3.2.7}
+\contentsline {subsubsection}{\numberline {10.3.2.8}Root mean square: \texttt {rms(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{111}{subsubsection.10.3.2.8}
+\contentsline {subsubsection}{\numberline {10.3.2.9}Standard-deviation (with division by $n$): \texttt {sd(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{111}{subsubsection.10.3.2.9}
+\contentsline {subsubsection}{\numberline {10.3.2.10}Standard-deviation (with division by $n-1$): \texttt {sd1(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{111}{subsubsection.10.3.2.10}
+\contentsline {subsubsection}{\numberline {10.3.2.11}Variance (with division by $n$): \texttt {var(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{111}{subsubsection.10.3.2.11}
+\contentsline {subsubsection}{\numberline {10.3.2.12}Variance (with division by $n-1$): \texttt {var1(}$x$[\texttt {,} $\@mathit {verb\_rank}$]\texttt {)}}{111}{subsubsection.10.3.2.12}
+\contentsline {subsection}{\numberline {10.3.3}Moving Average: \texttt {moving\_average(}$x$\texttt {,} $\@mathit {shape\_window}$[, $\@mathit {step}$]\texttt {)}}{111}{subsection.10.3.3}
+\contentsline {subsection}{\numberline {10.3.4}Least Squares Regresssion and Curve Fitting}{112}{subsection.10.3.4}
+\contentsline {subsubsection}{\numberline {10.3.4.1}\texttt {regression(}$x$\texttt {,} $y$\texttt {)}}{112}{subsubsection.10.3.4.1}
+\contentsline {subsubsection}{\numberline {10.3.4.2}\texttt {fit\_polynomial(}$x$\texttt {,} $y$\texttt {,} $n$\texttt {)} and \texttt {polynomial(}$c$\texttt {,} $x$\texttt {)}}{114}{subsubsection.10.3.4.2}
+\contentsline {section}{\numberline {10.4}Geographic Functions}{115}{section.10.4}
+\contentsline {subsection}{\numberline {10.4.1}Introduction}{115}{subsection.10.4.1}
+\contentsline {subsection}{\numberline {10.4.2}Divergence and Vorticity of Wind}{115}{subsection.10.4.2}
+\contentsline {subsection}{\numberline {10.4.3}Things related to Latitude and Longitude}{115}{subsection.10.4.3}
+\contentsline {subsubsection}{\numberline {10.4.3.1}\texttt {area\_on\_globe(}$latitude$\texttt {,} $longitude$\texttt {)}}{115}{subsubsection.10.4.3.1}
+\contentsline {subsubsection}{\numberline {10.4.3.2}\texttt {fix\_longitude(}$longitude$\texttt {)}}{115}{subsubsection.10.4.3.2}
+\contentsline {subsubsection}{\numberline {10.4.3.3}\texttt {merid\_bounds(}$longitude$\texttt {)}}{116}{subsubsection.10.4.3.3}
+\contentsline {subsubsection}{\numberline {10.4.3.4}\texttt {merid\_wt(}$longitude$\texttt {)}}{116}{subsubsection.10.4.3.4}
+\contentsline {subsubsection}{\numberline {10.4.3.5}\texttt {zone\_bounds(}$latitude$\texttt {)}}{116}{subsubsection.10.4.3.5}
+\contentsline {subsubsection}{\numberline {10.4.3.6}\texttt {zone\_wt(}$latitude$\texttt {)}}{116}{subsubsection.10.4.3.6}
+\contentsline {subsection}{\numberline {10.4.4}Land, Water and Shoreline}{117}{subsection.10.4.4}
+\contentsline {subsubsection}{\numberline {10.4.4.1}Functions based on \texttt {land\_flag}}{117}{subsubsection.10.4.4.1}
+\contentsline {paragraph}{\numberline {10.4.4.1.1}\texttt {is\_land(}$latitude$\texttt {,} $longitude$[\texttt {,} $data\_dir$]\texttt {)}\\}{117}{paragraph.10.4.4.1.1}
+\contentsline {paragraph}{\numberline {10.4.4.1.2}\texttt {is\_coast(}$latitude$\texttt {,} $longitude$[\texttt {,} $nlat$\texttt {,} $nlon$\texttt {,} $data\_dir$]\texttt {)}\\}{118}{paragraph.10.4.4.1.2}
+\contentsline {paragraph}{\numberline {10.4.4.1.3}\texttt {fraction\_land(}$latitude$\texttt {,} $longitude$[\texttt {,} $nlat$\texttt {,} $nlon$\texttt {,} $data\_dir$]\texttt {)}\\}{118}{paragraph.10.4.4.1.3}
+\contentsline {subsubsection}{\numberline {10.4.4.2}\texttt {acof2boxed(}$\@mathit {filename}$[\texttt {,} $\@mathit {min\_longitude}$]\texttt {)}}{119}{subsubsection.10.4.4.2}
+\contentsline {subsubsection}{\numberline {10.4.4.3}\texttt {get\_gshhs(}$\@mathit {resolution}$\texttt {,} $\@mathit {min\_area}$\texttt {,} $\@mathit {max\_level}$\texttt {,} $\@mathit {min\_longitude}$\texttt {,} $\@mathit {max\_longitude}$\texttt {,} $\@mathit {min\_latitude}$\texttt {,} $\@mathit {max\_latitude}$\texttt {,} $\@mathit {data\_dir}$\texttt {)}}{120}{subsubsection.10.4.4.3}
+\contentsline {subsection}{\numberline {10.4.5}Reading Miscellaneous Geographic Files}{120}{subsection.10.4.5}
+\contentsline {subsubsection}{\numberline {10.4.5.1}\texttt {get\_gridascii(}$\@mathit {filename}$[\texttt {,} $\@mathit {unit}$]\texttt {)}}{120}{subsubsection.10.4.5.1}
+\contentsline {section}{\numberline {10.5}Miscellaneous Functions}{120}{section.10.5}
+\contentsline {subsection}{\numberline {10.5.1}Introduction}{120}{subsection.10.5.1}
+\contentsline {subsection}{\numberline {10.5.2}\texttt {color\_wheel(}$n$\texttt {,} $v$\texttt {,} $b$\texttt {)}}{120}{subsection.10.5.2}
+\contentsline {subsection}{\numberline {10.5.3}\texttt {cpi(}$\@mathit {array}$[\texttt {,}$i$[\texttt {,}$j$[\texttt {,}$k$ \dots ]]]\texttt {)}}{121}{subsection.10.5.3}
+\contentsline {subsection}{\numberline {10.5.4}\texttt {cv(}$main\_nao$[\texttt {,} $\@mathit {dim\_number}|\@mathit {dim\_name}$]\texttt {)}}{121}{subsection.10.5.4}
+\contentsline {subsection}{\numberline {10.5.5}\texttt {derivative(}$a$[\texttt {,} $\@mathit {dim\_number}|\@mathit {dim\_name}$]\texttt {)}}{121}{subsection.10.5.5}
+\contentsline {subsection}{\numberline {10.5.6}\texttt {fill\_holes(}$x$\texttt {,} [$\@mathit {max\_nloops}$]\texttt {)}}{122}{subsection.10.5.6}
+\contentsline {subsection}{\numberline {10.5.7}\texttt {fuzzy\_floor(}$x$[\texttt {,} $\@mathit {eps}$]\texttt {)}}{122}{subsection.10.5.7}
+\contentsline {subsection}{\numberline {10.5.8}\texttt {fuzzy\_ceil(}$x$[\texttt {,} $\@mathit {eps}$]\texttt {)}}{122}{subsection.10.5.8}
+\contentsline {subsection}{\numberline {10.5.9}\texttt {gets\_matrix(}$\@mathit {filename}$[\texttt {,} $\@mathit {n\_header\_lines}$]\texttt {)}}{122}{subsection.10.5.9}
+\contentsline {subsection}{\numberline {10.5.10}\texttt {head(}$x$[\texttt {,} $n$]\texttt {)}}{122}{subsection.10.5.10}
+\contentsline {subsection}{\numberline {10.5.11}\texttt {hsv2rgb(}$\@mathit {hsv}$\texttt {)}}{123}{subsection.10.5.11}
+\contentsline {subsection}{\numberline {10.5.12}\texttt {isMissing(}$x$\texttt {)}}{123}{subsection.10.5.12}
+\contentsline {subsection}{\numberline {10.5.13}\texttt {isPresent(}$x$\texttt {)}}{123}{subsection.10.5.13}
+\contentsline {subsection}{\numberline {10.5.14}\texttt {magnify\_interp(}$a$\texttt {,} $\@mathit {mag\_factor}$\texttt {)} }{123}{subsection.10.5.14}
+\contentsline {subsection}{\numberline {10.5.15}\texttt {magnify\_nearest(}$a$\texttt {,} $\@mathit {mag\_factor}$\texttt {)}}{123}{subsection.10.5.15}
+\contentsline {subsection}{\numberline {10.5.16}\texttt {mixed\_base(}$x$\texttt {,} $b$\texttt {)}}{124}{subsection.10.5.16}
+\contentsline {subsection}{\numberline {10.5.17}\texttt {nub(}$x$\texttt {)}}{124}{subsection.10.5.17}
+\contentsline {subsection}{\numberline {10.5.18}\texttt {outer(}$\@mathit {dyad}$\texttt {,} $y$[, $x$]\texttt {)}}{124}{subsection.10.5.18}
+\contentsline {subsection}{\numberline {10.5.19}\texttt {palette\_interpolate(}$\@mathit {from}$\texttt {,} $\@mathit {to}$)}{124}{subsection.10.5.19}
+\contentsline {subsection}{\numberline {10.5.20}\texttt {scattered2grid(}$\@mathit {xyz}$\texttt {,} $\@mathit {ycv}$\texttt {,} $\@mathit {xcv}$\texttt {)}}{124}{subsection.10.5.20}
+\contentsline {subsection}{\numberline {10.5.21}\texttt {scaleAxis(}$\@mathit {xstart}$\texttt {,} $\@mathit {xend}$[\texttt {,} $\@mathit {nmax}$[\texttt {,} $\@mathit {nice}$]]\texttt {)}}{125}{subsection.10.5.21}
+\contentsline {subsection}{\numberline {10.5.22}\texttt {scaleAxisSpan(}$\@mathit {xstart}$\texttt {,} $\@mathit {xend}$[\texttt {,} $\@mathit {nmax}$[\texttt {,} $\@mathit {nice}$]]\texttt {)}}{125}{subsection.10.5.22}
+\contentsline {subsection}{\numberline {10.5.23}\texttt {range(}$a$\texttt {)}}{125}{subsection.10.5.23}
+\contentsline {subsection}{\numberline {10.5.24}\texttt {tail(}$x$[\texttt {,} $n$]\texttt {)}}{126}{subsection.10.5.24}
+\contentsline {chapter}{\numberline {11}Tcl Library Procedures called as Commands}{127}{chapter.11}
+\contentsline {section}{\numberline {11.1}Introduction}{127}{section.11.1}
+\contentsline {section}{\numberline {11.2}Procedures for Formatting Dates and Times}{127}{section.11.2}
+\contentsline {subsection}{\numberline {11.2.1}Introduction}{127}{subsection.11.2.1}
+\contentsline {subsection}{\numberline {11.2.2}Formatting Julian Day Numbers (JDNs)}{127}{subsection.11.2.2}
+\contentsline {subsubsection}{\numberline {11.2.2.1}Examples}{127}{subsubsection.11.2.2.1}
+\contentsline {subsection}{\numberline {11.2.3}Formatting Modified Julian Dates (MJDs)}{128}{subsection.11.2.3}
+\contentsline {subsubsection}{\numberline {11.2.3.1}Examples}{128}{subsubsection.11.2.3.1}
+\contentsline {section}{\numberline {11.3}Binary Input/Output Procedures}{128}{section.11.3}
+\contentsline {subsection}{\numberline {11.3.1}Introduction}{128}{subsection.11.3.1}
+\contentsline {subsection}{\numberline {11.3.2}Reading and Writing Simple Binary Files}{128}{subsection.11.3.2}
+\contentsline {subsubsection}{\numberline {11.3.2.1}Procedure \texttt {get\_nao} [$\@mathit {fileName}$ [$\@mathit {dataType}$ [$\@mathit {shape}$]]]}{128}{subsubsection.11.3.2.1}
+\contentsline {subsubsection}{\numberline {11.3.2.2}Procedure \texttt {put\_nao} [$napExpr$ [$\@mathit {fileName}$]]}{128}{subsubsection.11.3.2.2}
+\contentsline {subsection}{\numberline {11.3.3}Reading and Writing Fortran Unformatted Files}{128}{subsection.11.3.3}
+\contentsline {subsubsection}{\numberline {11.3.3.1}Procedure \texttt {get\_bin} $\@mathit {dataType}$ [$\@mathit {fileId}$ [$\@mathit {mode}$]]}{129}{subsubsection.11.3.3.1}
+\contentsline {subsubsection}{\numberline {11.3.3.2}Procedure \texttt {put\_bin} $napExpr$ [$\@mathit {fileId}$ [$\@mathit {mode}$]]}{129}{subsubsection.11.3.3.2}
+\contentsline {subsubsection}{\numberline {11.3.3.3}Example}{129}{subsubsection.11.3.3.3}
+\contentsline {subsection}{\numberline {11.3.4}Reading and Writing \texttt {cif} Files}{129}{subsection.11.3.4}
+\contentsline {subsubsection}{\numberline {11.3.4.1}Procedure \texttt {get\_cif} [$\@mathit {options}$] $\@mathit {pattern}$ [$\@mathit {pattern}$ ...]}{130}{subsubsection.11.3.4.1}
+\contentsline {subsubsection}{\numberline {11.3.4.2}Procedure \texttt {put\_cif} $napExpr$ [$\@mathit {fileName}$ [$\@mathit {mode}$]]}{130}{subsubsection.11.3.4.2}
+\contentsline {subsubsection}{\numberline {11.3.4.3}Procedure \texttt {get\_cif1} [$\@mathit {options}$] $\@mathit {fileId}$}{130}{subsubsection.11.3.4.3}
+\contentsline {subsubsection}{\numberline {11.3.4.4}Procedure \texttt {put\_cif1} $napExpr$ [$\@mathit {fileId}$ [$\@mathit {mode}$]]}{131}{subsubsection.11.3.4.4}
+\contentsline {subsection}{\numberline {11.3.5}Writing HDF and netCDF files}{131}{subsection.11.3.5}
+\contentsline {subsubsection}{\numberline {11.3.5.1}Procedure \texttt {put16} $napExpr$ $\@mathit {fileName}$ $\@mathit {variableName}$}{131}{subsubsection.11.3.5.1}
+\contentsline {section}{\numberline {11.4}Geographic Procedures}{131}{section.11.4}
+\contentsline {subsection}{\numberline {11.4.1}Introduction}{131}{subsection.11.4.1}
+\contentsline {subsection}{\numberline {11.4.2}Write \emph {ARC/INFO GRIDASCII} file using \texttt {put\_gridascii}}{131}{subsection.11.4.2}
+\contentsline {subsubsection}{\numberline {11.4.2.1}Usage}{131}{subsubsection.11.4.2.1}
+\contentsline {subsubsection}{\numberline {11.4.2.2}Example}{131}{subsubsection.11.4.2.2}
+\contentsline {subsection}{\numberline {11.4.3}Write \emph {Surfer} file using \texttt {put\_text\_surfer}}{132}{subsection.11.4.3}
+\contentsline {subsubsection}{\numberline {11.4.3.1}Usage}{132}{subsubsection.11.4.3.1}
+\contentsline {subsubsection}{\numberline {11.4.3.2}Example}{132}{subsubsection.11.4.3.2}
+\contentsline {section}{\numberline {11.5}Map Projection Procedures}{132}{section.11.5}
+\contentsline {subsection}{\numberline {11.5.1}Introduction}{132}{subsection.11.5.1}
+\contentsline {subsection}{\numberline {11.5.2}\texttt {projection} $\@mathit {code}$ $p_0$ $p_1$ $p_2$ $\dots $}{132}{subsection.11.5.2}
+\contentsline {section}{\numberline {11.6}Miscellaneous Procedures}{132}{section.11.6}
+\contentsline {subsection}{\numberline {11.6.1}Procedure \texttt {size\_of} $\@mathit {dataType}$}{132}{subsection.11.6.1}
+\contentsline {chapter}{\numberline {12}Tk GUI Procedures}{133}{chapter.12}
+\contentsline {section}{\numberline {12.1}Introduction}{133}{section.12.1}
+\contentsline {section}{\numberline {12.2}Caps/Nap Menu}{133}{section.12.2}
+\contentsline {subsection}{\numberline {12.2.1}Introduction}{133}{subsection.12.2.1}
+\contentsline {subsection}{\numberline {12.2.2}Browse}{133}{subsection.12.2.2}
+\contentsline {subsubsection}{\numberline {12.2.2.1}Tcl Variables}{133}{subsubsection.12.2.2.1}
+\contentsline {subsubsection}{\numberline {12.2.2.2}\emph {AVHRR} and \emph {ATSR} Satellite Files}{134}{subsubsection.12.2.2.2}
+\contentsline {subsubsection}{\numberline {12.2.2.3}\emph {CIF} Files}{134}{subsubsection.12.2.2.3}
+\contentsline {subsubsection}{\numberline {12.2.2.4}\emph {HDF} and \emph {netCDF} Files}{134}{subsubsection.12.2.2.4}
+\contentsline {paragraph}{\numberline {12.2.2.4.1}Introduction \\}{134}{paragraph.12.2.2.4.1}
+\contentsline {paragraph}{\numberline {12.2.2.4.2}Instructions}{134}{paragraph.12.2.2.4.2}
+\contentsline {subsubsection}{\numberline {12.2.2.5}\emph {Image} Files}{135}{subsubsection.12.2.2.5}
+\contentsline {subsection}{\numberline {12.2.3}Command}{135}{subsection.12.2.3}
+\contentsline {subsection}{\numberline {12.2.4}Help}{135}{subsection.12.2.4}
+\contentsline {section}{\numberline {12.3}choose\_file GUI}{135}{section.12.3}
+\contentsline {subsection}{\numberline {12.3.1}Introduction}{135}{subsection.12.3.1}
+\contentsline {subsection}{\numberline {12.3.2}Instructions}{135}{subsection.12.3.2}
+\contentsline {subsection}{\numberline {12.3.3}Usage}{136}{subsection.12.3.3}
+\contentsline {section}{\numberline {12.4}Visualisation using procedure \texttt {plot\_nao}}{136}{section.12.4}
+\contentsline {subsection}{\numberline {12.4.1}Introduction}{136}{subsection.12.4.1}
+\contentsline {subsection}{\numberline {12.4.2}Usage}{136}{subsection.12.4.2}
+\contentsline {subsubsection}{\numberline {12.4.2.1}Options}{136}{subsubsection.12.4.2.1}
+\contentsline {subsection}{\numberline {12.4.3}Examples}{138}{subsection.12.4.3}
+\contentsline {subsubsection}{\numberline {12.4.3.1}x-y graphs and bar-charts}{138}{subsubsection.12.4.3.1}
+\contentsline {subsubsection}{\numberline {12.4.3.2}Scattergram}{138}{subsubsection.12.4.3.2}
+\contentsline {subsubsection}{\numberline {12.4.3.3}Color-coded z-images}{138}{subsubsection.12.4.3.3}
+\contentsline {subsubsection}{\numberline {12.4.3.4}RGB z-images, tiles and animation}{138}{subsubsection.12.4.3.4}
+\contentsline {subsubsection}{\numberline {12.4.3.5}Printing and writing files}{138}{subsubsection.12.4.3.5}
+\contentsline {chapter}{\numberline {13}Nap Internal Details}{141}{chapter.13}
+\contentsline {section}{\numberline {13.1}N-dimensional Array Objects (NAOs)}{141}{section.13.1}
+\contentsline {section}{\numberline {13.2}Nap Photo Image Format}{142}{section.13.2}
+\contentsline {chapter}{\numberline {14}Demonstrations of Nap}{145}{chapter.14}
+\contentsline {section}{\numberline {14.1}Introduction to Demonstrations of Nap}{145}{section.14.1}
+\contentsline {section}{\numberline {14.2}Simple Nap}{145}{section.14.2}
+\contentsline {section}{\numberline {14.3}Constants}{146}{section.14.3}
+\contentsline {subsection}{\numberline {14.3.1}Scalar Constants}{146}{subsection.14.3.1}
+\contentsline {subsection}{\numberline {14.3.2}Array Constants}{147}{subsection.14.3.2}
+\contentsline {subsection}{\numberline {14.3.3}String Constants}{148}{subsection.14.3.3}
+\contentsline {section}{\numberline {14.4}Arithmetic}{148}{section.14.4}
+\contentsline {subsection}{\numberline {14.4.1}Binary arithmetic operators}{148}{subsection.14.4.1}
+\contentsline {subsection}{\numberline {14.4.2}Unary arithmetic operators \texttt {- +}}{149}{subsection.14.4.2}
+\contentsline {subsection}{\numberline {14.4.3}Ternary choice operator \texttt {?:}}{149}{subsection.14.4.3}
+\contentsline {section}{\numberline {14.5}OOCs (Object-Oriented Commands)}{150}{section.14.5}
+\contentsline {subsection}{\numberline {14.5.1}Display contents (data and attributes) of NAO}{150}{subsection.14.5.1}
+\contentsline {subsubsection}{\numberline {14.5.1.1}Default OOC}{150}{subsubsection.14.5.1.1}
+\contentsline {subsubsection}{\numberline {14.5.1.2}Method \texttt {value}: Display all lines and columns}{150}{subsubsection.14.5.1.2}
+\contentsline {subsubsection}{\numberline {14.5.1.3}Method \texttt {head}}{150}{subsubsection.14.5.1.3}
+\contentsline {subsubsection}{\numberline {14.5.1.4}Method \texttt {all}}{150}{subsubsection.14.5.1.4}
+\contentsline {subsubsection}{\numberline {14.5.1.5}Individual attributes}{150}{subsubsection.14.5.1.5}
+\contentsline {subsection}{\numberline {14.5.2}Method \texttt {set}: Change these contents}{150}{subsection.14.5.2}
+\contentsline {subsubsection}{\numberline {14.5.2.1}Set \emph {missing value}}{150}{subsubsection.14.5.2.1}
+\contentsline {subsubsection}{\numberline {14.5.2.2}Set \emph {coordinate variable}}{151}{subsubsection.14.5.2.2}
+\contentsline {subsection}{\numberline {14.5.3}Write data to (netCDF) file}{151}{subsection.14.5.3}
+\contentsline {section}{\numberline {14.6}Built-in Functions}{151}{section.14.6}
+\contentsline {subsection}{\numberline {14.6.1}Built-in elemental functions}{151}{subsection.14.6.1}
+\contentsline {subsubsection}{\numberline {14.6.1.1}Mathematical Elemental Functions}{151}{subsubsection.14.6.1.1}
+\contentsline {subsubsection}{\numberline {14.6.1.2}Type-conversion Elemental Functions}{152}{subsubsection.14.6.1.2}
+\contentsline {subsubsection}{\numberline {14.6.1.3}Elemental Functions which test for Special Values}{153}{subsubsection.14.6.1.3}
+\contentsline {subsubsection}{\numberline {14.6.1.4}Elemental Function \texttt {random}, which generates random numbers}{153}{subsubsection.14.6.1.4}
+\contentsline {subsection}{\numberline {14.6.2}Non-elemental functions}{153}{subsection.14.6.2}
+\contentsline {subsubsection}{\numberline {14.6.2.1}Meta-data functions}{153}{subsubsection.14.6.2.1}
+\contentsline {subsubsection}{\numberline {14.6.2.2}Reduction functions applied to vector}{154}{subsubsection.14.6.2.2}
+\contentsline {subsubsection}{\numberline {14.6.2.3}Reduction functions applied to \texttt {matrix} defined above}{154}{subsubsection.14.6.2.3}
+\contentsline {subsubsection}{\numberline {14.6.2.4}Partial sum function \texttt {psum}}{154}{subsubsection.14.6.2.4}
+\contentsline {section}{\numberline {14.7}Constructing Arrays}{154}{section.14.7}
+\contentsline {subsection}{\numberline {14.7.1}Arithmetic Progression}{154}{subsection.14.7.1}
+\contentsline {subsection}{\numberline {14.7.2}Catenate: (`\texttt {//}')}{154}{subsection.14.7.2}
+\contentsline {subsection}{\numberline {14.7.3}Laminate (`\texttt {///}')}{155}{subsection.14.7.3}
+\contentsline {subsection}{\numberline {14.7.4}Reverse (niladic `\texttt {-}')}{155}{subsection.14.7.4}
+\contentsline {subsection}{\numberline {14.7.5}Replicate (binary `\texttt {\#}')}{155}{subsection.14.7.5}
+\contentsline {subsection}{\numberline {14.7.6}Function \texttt {reshape}}{155}{subsection.14.7.6}
+\contentsline {subsection}{\numberline {14.7.7}Function \texttt {transpose}}{155}{subsection.14.7.7}
+\contentsline {subsection}{\numberline {14.7.8}Function \texttt {sort}}{155}{subsection.14.7.8}
+\contentsline {section}{\numberline {14.8}Indexing}{155}{section.14.8}
+\contentsline {subsection}{\numberline {14.8.1}Indexing of vectors}{155}{subsection.14.8.1}
+\contentsline {subsection}{\numberline {14.8.2}Inverse indexing of vectors (position of specified value)}{156}{subsection.14.8.2}
+\contentsline {subsection}{\numberline {14.8.3}Indirect indexing (via coordinate variable)}{156}{subsection.14.8.3}
+\contentsline {subsection}{\numberline {14.8.4}Shape-preserving indexing}{157}{subsection.14.8.4}
+\contentsline {subsection}{\numberline {14.8.5}Indexing of Matrices}{157}{subsection.14.8.5}
+\contentsline {subsection}{\numberline {14.8.6}Cross-product indexing to extract single element (scalar)}{157}{subsection.14.8.6}
+\contentsline {subsection}{\numberline {14.8.7}Cross-product indexing to extract multiple elements}{158}{subsection.14.8.7}
+\contentsline {subsection}{\numberline {14.8.8}Full indexing to extract single element}{158}{subsection.14.8.8}
+\contentsline {subsection}{\numberline {14.8.9}Full indexing to form a new array from randomly selected elements of an existing array}{158}{subsection.14.8.9}
+\contentsline {section}{\numberline {14.9}Linear algebra}{159}{section.14.9}
+\contentsline {subsection}{\numberline {14.9.1}Solving System of Linear Equations}{159}{subsection.14.9.1}
+\contentsline {subsection}{\numberline {14.9.2}Inner-product operator (`\texttt {.}')}{159}{subsection.14.9.2}
+\contentsline {subsection}{\numberline {14.9.3}Linear Regression}{159}{subsection.14.9.3}
+\contentsline {subsection}{\numberline {14.9.4}Multiple Regression}{160}{subsection.14.9.4}
+\contentsline {subsection}{\numberline {14.9.5}Least-squares Polynomial}{160}{subsection.14.9.5}
+\contentsline {section}{\numberline {14.10}Input/Output}{161}{section.14.10}
+\contentsline {subsection}{\numberline {14.10.1}ASCII input/output}{161}{subsection.14.10.1}
+\contentsline {subsection}{\numberline {14.10.2}netCDF input/output}{161}{subsection.14.10.2}
+\contentsline {subsection}{\numberline {14.10.3}CIF Input/output}{163}{subsection.14.10.3}
+\contentsline {section}{\numberline {14.11}Defining Nap functions}{164}{section.14.11}
+\contentsline {section}{\numberline {14.12}Statistics}{165}{section.14.12}
+\contentsline {subsection}{\numberline {14.12.1}Elementary Descriptive Statistics (Toy example)}{165}{subsection.14.12.1}
+\contentsline {subsection}{\numberline {14.12.2}Example using real satellite data}{165}{subsection.14.12.2}

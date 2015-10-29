@@ -1,0 +1,419 @@
+\BOOKMARK [0][-]{chapter.1}{Introduction}{}
+\BOOKMARK [1][-]{section.1.1}{Overview of Nap \(N-Dimensional Array Processor\)}{chapter.1}
+\BOOKMARK [1][-]{section.1.2}{Typographic Conventions}{chapter.1}
+\BOOKMARK [1][-]{section.1.3}{Acknowledgments}{chapter.1}
+\BOOKMARK [0][-]{chapter.2}{Background}{}
+\BOOKMARK [1][-]{section.2.1}{Demonstration of Simple Tcl/Tk}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.1.1}{Introduction}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.2}{First Look at Tcl}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.3}{First Look at Tk}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.4}{Syntax of Tcl}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.5}{Lists and Strings}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.6}{File Input and Output}{section.2.1}
+\BOOKMARK [2][-]{subsection.2.1.7}{Procedures and Control Structures}{section.2.1}
+\BOOKMARK [1][-]{section.2.2}{Data Models}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.2.1}{What values can the data take?}{section.2.2}
+\BOOKMARK [2][-]{subsection.2.2.2}{What is the measurement level?}{section.2.2}
+\BOOKMARK [2][-]{subsection.2.2.3}{How accurate are the values?}{section.2.2}
+\BOOKMARK [2][-]{subsection.2.2.4}{Are the data located in some space?}{section.2.2}
+\BOOKMARK [1][-]{section.2.3}{Terminology}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.3.1}{Arrays}{section.2.3}
+\BOOKMARK [2][-]{subsection.2.3.2}{Special Numeric Values}{section.2.3}
+\BOOKMARK [1][-]{section.2.4}{Grids}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.4.1}{Dimensions, Coordinate variables and Mappings}{section.2.4}
+\BOOKMARK [2][-]{subsection.2.4.2}{Difference between Grids and Scattered Data}{section.2.4}
+\BOOKMARK [3][-]{subsubsection.2.4.2.1}{Example of Scattered 2D Data \(Not a Grid\)}{subsection.2.4.2}
+\BOOKMARK [3][-]{subsubsection.2.4.2.2}{Example of 2D Grid}{subsection.2.4.2}
+\BOOKMARK [2][-]{subsection.2.4.3}{Missing Data}{section.2.4}
+\BOOKMARK [2][-]{subsection.2.4.4}{Processing Scattered Data}{section.2.4}
+\BOOKMARK [1][-]{section.2.5}{HDF and netCDF File Formats}{chapter.2}
+\BOOKMARK [1][-]{section.2.6}{References}{chapter.2}
+\BOOKMARK [2][-]{subsection.2.6.1}{Introduction}{section.2.6}
+\BOOKMARK [2][-]{subsection.2.6.2}{Tcl/Tk}{section.2.6}
+\BOOKMARK [2][-]{subsection.2.6.3}{Nap}{section.2.6}
+\BOOKMARK [2][-]{subsection.2.6.4}{Array Processing}{section.2.6}
+\BOOKMARK [2][-]{subsection.2.6.5}{Array-oriented File Formats}{section.2.6}
+\BOOKMARK [2][-]{subsection.2.6.6}{Arithmetic}{section.2.6}
+\BOOKMARK [0][-]{chapter.3}{Installation}{}
+\BOOKMARK [1][-]{section.3.1}{Installing Tcl/Tk and Nap}{chapter.3}
+\BOOKMARK [2][-]{subsection.3.1.1}{Introduction}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.2}{Installing Tcl/Tk}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.3}{Tcl/Tk Documentation}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.4}{Installing Nap}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.5}{Nap User's Guide}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.6}{Nap Source Code}{section.3.1}
+\BOOKMARK [2][-]{subsection.3.1.7}{Related Packages}{section.3.1}
+\BOOKMARK [1][-]{section.3.2}{Sample Startup Scripts}{chapter.3}
+\BOOKMARK [2][-]{subsection.3.2.1}{Introduction}{section.3.2}
+\BOOKMARK [2][-]{subsection.3.2.2}{Script my.tcl}{section.3.2}
+\BOOKMARK [2][-]{subsection.3.2.3}{Script my\137tkcon.tcl}{section.3.2}
+\BOOKMARK [0][-]{chapter.4}{Nap Basics}{}
+\BOOKMARK [1][-]{section.4.1}{Sample Session}{chapter.4}
+\BOOKMARK [1][-]{section.4.2}{NAOs, OOCs and nap command}{chapter.4}
+\BOOKMARK [1][-]{section.4.3}{Arguments of nap Command}{chapter.4}
+\BOOKMARK [1][-]{section.4.4}{Data Types}{chapter.4}
+\BOOKMARK [2][-]{subsection.4.4.1}{Nap Data-types}{section.4.4}
+\BOOKMARK [2][-]{subsection.4.4.2}{Data-type of Constants}{section.4.4}
+\BOOKMARK [2][-]{subsection.4.4.3}{Data-type Conversion Functions}{section.4.4}
+\BOOKMARK [2][-]{subsection.4.4.4}{Data-type of result of operation}{section.4.4}
+\BOOKMARK [1][-]{section.4.5}{Arrays}{chapter.4}
+\BOOKMARK [2][-]{subsection.4.5.1}{Introduction}{section.4.5}
+\BOOKMARK [2][-]{subsection.4.5.2}{Vectors}{section.4.5}
+\BOOKMARK [2][-]{subsection.4.5.3}{Matrices}{section.4.5}
+\BOOKMARK [2][-]{subsection.4.5.4}{Higher Rank Arrays}{section.4.5}
+\BOOKMARK [2][-]{subsection.4.5.5}{Grids}{section.4.5}
+\BOOKMARK [2][-]{subsection.4.5.6}{Strings}{section.4.5}
+\BOOKMARK [0][-]{chapter.5}{Nap Expressions}{}
+\BOOKMARK [1][-]{section.5.1}{Syntax of Nap Expressions}{chapter.5}
+\BOOKMARK [2][-]{subsection.5.1.1}{Introduction}{section.5.1}
+\BOOKMARK [2][-]{subsection.5.1.2}{Substitution}{section.5.1}
+\BOOKMARK [2][-]{subsection.5.1.3}{Nap Names}{section.5.1}
+\BOOKMARK [2][-]{subsection.5.1.4}{Functions}{section.5.1}
+\BOOKMARK [2][-]{subsection.5.1.5}{Indexing}{section.5.1}
+\BOOKMARK [2][-]{subsection.5.1.6}{Parenthesising Function Arguments and Indices}{section.5.1}
+\BOOKMARK [1][-]{section.5.2}{Constants}{chapter.5}
+\BOOKMARK [2][-]{subsection.5.2.1}{Introduction}{section.5.2}
+\BOOKMARK [2][-]{subsection.5.2.2}{Integer Scalar Constants}{section.5.2}
+\BOOKMARK [2][-]{subsection.5.2.3}{Floating-point Scalar Constants}{section.5.2}
+\BOOKMARK [2][-]{subsection.5.2.4}{Numeric Array Constants}{section.5.2}
+\BOOKMARK [2][-]{subsection.5.2.5}{String Constants}{section.5.2}
+\BOOKMARK [1][-]{section.5.3}{Operators}{chapter.5}
+\BOOKMARK [2][-]{subsection.5.3.1}{Operators and Precedence}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.2}{Assignment Operator `='}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.3}{Link Operator `,'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.4}{Arithmetic Progression Operators `..' and `...'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.5}{Concatenation Operators `//' and `///'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.6}{Inverse Indexing Operators `@', `@@' and `@@@'}{section.5.3}
+\BOOKMARK [3][-]{subsubsection.5.3.6.1}{Interpolated Subscript `@'}{subsection.5.3.6}
+\BOOKMARK [3][-]{subsubsection.5.3.6.2}{Subscript of Closest `@@'}{subsection.5.3.6}
+\BOOKMARK [3][-]{subsubsection.5.3.6.3}{Subscript of Match `@@@'}{subsection.5.3.6}
+\BOOKMARK [2][-]{subsection.5.3.7}{Tally Unary Operator `\043'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.8}{Replicate Binary Operator `\043'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.9}{Remainder Operator `\045'}{section.5.3}
+\BOOKMARK [2][-]{subsection.5.3.10}{Unary Sorting Operators `<=' and `>='}{section.5.3}
+\BOOKMARK [1][-]{section.5.4}{Indexing}{chapter.5}
+\BOOKMARK [2][-]{subsection.5.4.1}{Introduction}{section.5.4}
+\BOOKMARK [3][-]{subsubsection.5.4.1.1}{Indexing Syntax}{subsection.5.4.1}
+\BOOKMARK [3][-]{subsubsection.5.4.1.2}{Dimension-Position}{subsection.5.4.1}
+\BOOKMARK [3][-]{subsubsection.5.4.1.3}{Subscript}{subsection.5.4.1}
+\BOOKMARK [3][-]{subsubsection.5.4.1.4}{Elemental Index}{subsection.5.4.1}
+\BOOKMARK [2][-]{subsection.5.4.2}{Index}{section.5.4}
+\BOOKMARK [3][-]{subsubsection.5.4.2.1}{Shape-Preserving}{subsection.5.4.2}
+\BOOKMARK [3][-]{subsubsection.5.4.2.2}{Vector-Flip}{subsection.5.4.2}
+\BOOKMARK [3][-]{subsubsection.5.4.2.3}{Full-index}{subsection.5.4.2}
+\BOOKMARK [3][-]{subsubsection.5.4.2.4}{Cross-product-index}{subsection.5.4.2}
+\BOOKMARK [2][-]{subsection.5.4.3}{Indirect Indexing and Unary Operators `@' and `@@'}{section.5.4}
+\BOOKMARK [3][-]{subsubsection.5.4.3.1}{1D Time-Series Example}{subsection.5.4.3}
+\BOOKMARK [3][-]{subsubsection.5.4.3.2}{2D Geographic Example}{subsection.5.4.3}
+\BOOKMARK [1][-]{section.5.5}{Built-in Functions}{chapter.5}
+\BOOKMARK [2][-]{subsection.5.5.1}{Elemental Functions}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.1.1}{Mathematical Elemental Functions}{subsection.5.5.1}
+\BOOKMARK [3][-]{subsubsection.5.5.1.2}{Data-type Conversion Functions}{subsection.5.5.1}
+\BOOKMARK [2][-]{subsection.5.5.2}{Reduction Functions}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.3}{Function count\(x[ , r]\)}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.4}{Scan Functions}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.5}{Metadata Functions}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.6}{Functions which change shape or order}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.7}{Linear-algebra Functions}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.8}{Correlation}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.8.1}{Function correlation\(x[,y]\)}{subsection.5.5.8}
+\BOOKMARK [3][-]{subsubsection.5.5.8.2}{Function moving\137correlation\(x,y,[lag0[,lag1]]\)}{subsection.5.5.8}
+\BOOKMARK [2][-]{subsection.5.5.9}{Geometry}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.9.1}{Testing whether points are in polygon}{subsection.5.5.9}
+\BOOKMARK [3][-]{subsubsection.5.5.9.2}{Triangulation}{subsection.5.5.9}
+\BOOKMARK [2][-]{subsection.5.5.10}{Grid Functions}{section.5.5}
+\BOOKMARK [2][-]{subsection.5.5.11}{Cartographic Projection Functions}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.11.1}{Function cart\137proj\137fwd\(proj\137spec, lat, lon\)}{subsection.5.5.11}
+\BOOKMARK [3][-]{subsubsection.5.5.11.2}{Function cart\137proj\137inv\(proj\137spec, x, y\)}{subsection.5.5.11}
+\BOOKMARK [2][-]{subsection.5.5.12}{Functions related to Special Data-types}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.12.1}{Function open\137box\(x\)}{subsection.5.5.12}
+\BOOKMARK [3][-]{subsubsection.5.5.12.2}{Functions prune\(x\) and pad\(x\)}{subsection.5.5.12}
+\BOOKMARK [2][-]{subsection.5.5.13}{Morphological Functions}{section.5.5}
+\BOOKMARK [3][-]{subsubsection.5.5.13.1}{Morphological Binary Dilation and Erosion}{subsection.5.5.13}
+\BOOKMARK [3][-]{subsubsection.5.5.13.2}{Moving Range}{subsection.5.5.13}
+\BOOKMARK [0][-]{chapter.6}{Object-Oriented Commands \(OOCs\)}{}
+\BOOKMARK [1][-]{section.6.1}{Introduction}{chapter.6}
+\BOOKMARK [1][-]{section.6.2}{OOC Methods which return Data Values \(with or without metadata\)}{chapter.6}
+\BOOKMARK [2][-]{subsection.6.2.1}{Method all}{section.6.2}
+\BOOKMARK [3][-]{subsubsection.6.2.1.1}{Example}{subsection.6.2.1}
+\BOOKMARK [2][-]{subsection.6.2.2}{Method value}{section.6.2}
+\BOOKMARK [3][-]{subsubsection.6.2.2.1}{Example}{subsection.6.2.2}
+\BOOKMARK [2][-]{subsection.6.2.3}{Default method}{section.6.2}
+\BOOKMARK [3][-]{subsubsection.6.2.3.1}{Examples}{subsection.6.2.3}
+\BOOKMARK [2][-]{subsection.6.2.4}{Format Conversion Strings}{section.6.2}
+\BOOKMARK [1][-]{section.6.3}{OOC Methods which return Metadata}{chapter.6}
+\BOOKMARK [2][-]{subsection.6.3.1}{Introduction}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.2}{Method coordinate}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.3}{Method count}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.4}{Method datatype}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.5}{Method dimension}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.6}{Method format}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.7}{Method header}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.8}{Method label}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.9}{Method link}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.10}{Method missing}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.11}{Method ooc}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.12}{Method rank}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.13}{Method sequence}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.14}{Method shape}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.15}{Method slot}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.16}{Method step}{section.6.3}
+\BOOKMARK [2][-]{subsection.6.3.17}{Method unit}{section.6.3}
+\BOOKMARK [1][-]{section.6.4}{OOC Methods which Modify NAO}{chapter.6}
+\BOOKMARK [2][-]{subsection.6.4.1}{Method draw}{section.6.4}
+\BOOKMARK [2][-]{subsection.6.4.2}{Method fill}{section.6.4}
+\BOOKMARK [2][-]{subsection.6.4.3}{Method set}{section.6.4}
+\BOOKMARK [3][-]{subsubsection.6.4.3.1}{set coordinate}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.2}{set count}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.3}{Set dimension}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.4}{set format}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.5}{set label}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.6}{Set link}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.7}{Set missing}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.8}{Set unit}{subsection.6.4.3}
+\BOOKMARK [3][-]{subsubsection.6.4.3.9}{Set value}{subsection.6.4.3}
+\BOOKMARK [1][-]{section.6.5}{OOC Methods which Write to File}{chapter.6}
+\BOOKMARK [2][-]{subsection.6.5.1}{Method binary}{section.6.5}
+\BOOKMARK [2][-]{subsection.6.5.2}{Method hdf}{section.6.5}
+\BOOKMARK [2][-]{subsection.6.5.3}{Method netcdf}{section.6.5}
+\BOOKMARK [2][-]{subsection.6.5.4}{Method swap}{section.6.5}
+\BOOKMARK [0][-]{chapter.7}{Reading Files using nap\137get Command}{}
+\BOOKMARK [1][-]{section.7.1}{Introduction}{chapter.7}
+\BOOKMARK [1][-]{section.7.2}{Reading Binary Data}{chapter.7}
+\BOOKMARK [1][-]{section.7.3}{Reading netCDF Data}{chapter.7}
+\BOOKMARK [1][-]{section.7.4}{Reading HDF Data}{chapter.7}
+\BOOKMARK [1][-]{section.7.5}{Listing Names of Variables/SDSs and Attributes in HDF and netCDF Files}{chapter.7}
+\BOOKMARK [1][-]{section.7.6}{Reading Metadata from HDF and netCDF Files}{chapter.7}
+\BOOKMARK [0][-]{chapter.8}{Other Nap Commands}{}
+\BOOKMARK [1][-]{section.8.1}{The nap\137info Command}{chapter.8}
+\BOOKMARK [1][-]{section.8.2}{The nap\137land\137flag Command}{chapter.8}
+\BOOKMARK [0][-]{chapter.9}{Defining New Nap Commands and Functions}{}
+\BOOKMARK [1][-]{section.9.1}{Writing Procedures to be called as Commands or Functions}{chapter.9}
+\BOOKMARK [2][-]{subsection.9.1.1}{Introduction}{section.9.1}
+\BOOKMARK [2][-]{subsection.9.1.2}{Command or Function?}{section.9.1}
+\BOOKMARK [2][-]{subsection.9.1.3}{Writing a Procedure to be called as a Function}{section.9.1}
+\BOOKMARK [3][-]{subsubsection.9.1.3.1}{Function sind}{subsection.9.1.3}
+\BOOKMARK [3][-]{subsubsection.9.1.3.2}{Function lam}{subsection.9.1.3}
+\BOOKMARK [3][-]{subsubsection.9.1.3.3}{Function get\137bin}{subsection.9.1.3}
+\BOOKMARK [3][-]{subsubsection.9.1.3.4}{Function fact}{subsection.9.1.3}
+\BOOKMARK [3][-]{subsubsection.9.1.3.5}{Function factorial}{subsection.9.1.3}
+\BOOKMARK [2][-]{subsection.9.1.4}{How Nap Functions Work}{section.9.1}
+\BOOKMARK [2][-]{subsection.9.1.5}{Writing a Procedure to be called as a Command}{section.9.1}
+\BOOKMARK [3][-]{subsubsection.9.1.5.1}{Command write\137expr}{subsection.9.1.5}
+\BOOKMARK [3][-]{subsubsection.9.1.5.2}{Command get\137binary}{subsection.9.1.5}
+\BOOKMARK [1][-]{section.9.2}{Interfacing Nap to a DLL based on C or Fortran Code}{chapter.9}
+\BOOKMARK [2][-]{subsection.9.2.1}{Introduction}{section.9.2}
+\BOOKMARK [2][-]{subsection.9.2.2}{make\137dll}{section.9.2}
+\BOOKMARK [3][-]{subsubsection.9.2.2.1}{C Example}{subsection.9.2.2}
+\BOOKMARK [3][-]{subsubsection.9.2.2.2}{Fortran 90 Example}{subsection.9.2.2}
+\BOOKMARK [2][-]{subsection.9.2.3}{make\137dll\137i}{section.9.2}
+\BOOKMARK [0][-]{chapter.10}{Tcl Library Procedures called as Nap Functions}{}
+\BOOKMARK [1][-]{section.10.1}{Introduction}{chapter.10}
+\BOOKMARK [1][-]{section.10.2}{Functions for Dates and Times}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.2.1}{Introduction}{section.10.2}
+\BOOKMARK [2][-]{subsection.10.2.2}{Dates and Julian Day Numbers \(JDNs\)}{section.10.2}
+\BOOKMARK [3][-]{subsubsection.10.2.2.1}{date2jdn\(ymd\)}{subsection.10.2.2}
+\BOOKMARK [3][-]{subsubsection.10.2.2.2}{jdn2date\(jdn\)}{subsection.10.2.2}
+\BOOKMARK [2][-]{subsection.10.2.3}{Date/Times and Modified Julian Dates \(MJDs\)}{section.10.2}
+\BOOKMARK [3][-]{subsubsection.10.2.3.1}{dateTime2mjd\(ymdhms\)}{subsection.10.2.3}
+\BOOKMARK [3][-]{subsubsection.10.2.3.2}{mjd2dateTime\(mjd[, delta]\)}{subsection.10.2.3}
+\BOOKMARK [2][-]{subsection.10.2.4}{Calendars with Fixed-length Years}{section.10.2}
+\BOOKMARK [3][-]{subsubsection.10.2.4.1}{dateTime2days\(ymdhms, ndim\)}{subsection.10.2.4}
+\BOOKMARK [3][-]{subsubsection.10.2.4.2}{days2dateTime\(days, ndim[, delta]\)}{subsection.10.2.4}
+\BOOKMARK [1][-]{section.10.3}{Statistical Functions}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.3.1}{Introduction}{section.10.3}
+\BOOKMARK [2][-]{subsection.10.3.2}{Simple Statistics}{section.10.3}
+\BOOKMARK [3][-]{subsubsection.10.3.2.1}{Arithmetic mean: am\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.2}{Coefficient of variation \(with division by n\): CV\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.3}{Coefficient of variation \(with division by n-1\): CV1\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.4}{Geometric mean: gm\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.5}{Median: median\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.6}{Mode: mode\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.7}{Percentiles: percentile\(x, pc[, verb\137rank[, nc]]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.8}{Root mean square: rms\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.9}{Standard-deviation \(with division by n\): sd\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.10}{Standard-deviation \(with division by n-1\): sd1\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.11}{Variance \(with division by n\): var\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [3][-]{subsubsection.10.3.2.12}{Variance \(with division by n-1\): var1\(x[, verb\137rank]\)}{subsection.10.3.2}
+\BOOKMARK [2][-]{subsection.10.3.3}{Moving Average: moving\137average\(x, shape\137window[, step]\)}{section.10.3}
+\BOOKMARK [2][-]{subsection.10.3.4}{Least Squares Regresssion and Curve Fitting}{section.10.3}
+\BOOKMARK [3][-]{subsubsection.10.3.4.1}{regression\(x, y\)}{subsection.10.3.4}
+\BOOKMARK [3][-]{subsubsection.10.3.4.2}{fit\137polynomial\(x, y, n\) and polynomial\(c, x\)}{subsection.10.3.4}
+\BOOKMARK [1][-]{section.10.4}{Geographic Functions}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.4.1}{Introduction}{section.10.4}
+\BOOKMARK [2][-]{subsection.10.4.2}{Divergence and Vorticity of Wind}{section.10.4}
+\BOOKMARK [2][-]{subsection.10.4.3}{Things related to Latitude and Longitude}{section.10.4}
+\BOOKMARK [3][-]{subsubsection.10.4.3.1}{area\137on\137globe\(latitude, longitude\)}{subsection.10.4.3}
+\BOOKMARK [3][-]{subsubsection.10.4.3.2}{fix\137longitude\(longitude\)}{subsection.10.4.3}
+\BOOKMARK [3][-]{subsubsection.10.4.3.3}{merid\137bounds\(longitude\)}{subsection.10.4.3}
+\BOOKMARK [3][-]{subsubsection.10.4.3.4}{merid\137wt\(longitude\)}{subsection.10.4.3}
+\BOOKMARK [3][-]{subsubsection.10.4.3.5}{zone\137bounds\(latitude\)}{subsection.10.4.3}
+\BOOKMARK [3][-]{subsubsection.10.4.3.6}{zone\137wt\(latitude\)}{subsection.10.4.3}
+\BOOKMARK [2][-]{subsection.10.4.4}{Land, Water and Shoreline}{section.10.4}
+\BOOKMARK [3][-]{subsubsection.10.4.4.1}{Functions based on land\137flag}{subsection.10.4.4}
+\BOOKMARK [4][-]{paragraph.10.4.4.1.1}{is\137land\(latitude, longitude[, data\137dir]\)}{subsubsection.10.4.4.1}
+\BOOKMARK [4][-]{paragraph.10.4.4.1.2}{is\137coast\(latitude, longitude[, nlat, nlon, data\137dir]\)}{subsubsection.10.4.4.1}
+\BOOKMARK [4][-]{paragraph.10.4.4.1.3}{fraction\137land\(latitude, longitude[, nlat, nlon, data\137dir]\)}{subsubsection.10.4.4.1}
+\BOOKMARK [3][-]{subsubsection.10.4.4.2}{acof2boxed\(filename[, min\137longitude]\)}{subsection.10.4.4}
+\BOOKMARK [3][-]{subsubsection.10.4.4.3}{get\137gshhs\(resolution, min\137area, max\137level, min\137longitude, max\137longitude, min\137latitude, max\137latitude, data\137dir\)}{subsection.10.4.4}
+\BOOKMARK [2][-]{subsection.10.4.5}{Reading Miscellaneous Geographic Files}{section.10.4}
+\BOOKMARK [3][-]{subsubsection.10.4.5.1}{get\137gridascii\(filename[, unit]\)}{subsection.10.4.5}
+\BOOKMARK [1][-]{section.10.5}{Miscellaneous Functions}{chapter.10}
+\BOOKMARK [2][-]{subsection.10.5.1}{Introduction}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.2}{color\137wheel\(n, v, b\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.3}{cpi\(array[,i[,j[,k \203]]]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.4}{cv\(main\137nao[, dim\137number|dim\137name]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.5}{derivative\(a[, dim\137number|dim\137name]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.6}{fill\137holes\(x, [max\137nloops]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.7}{fuzzy\137floor\(x[, eps]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.8}{fuzzy\137ceil\(x[, eps]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.9}{gets\137matrix\(filename[, n\137header\137lines]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.10}{head\(x[, n]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.11}{hsv2rgb\(hsv\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.12}{isMissing\(x\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.13}{isPresent\(x\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.14}{magnify\137interp\(a, mag\137factor\) }{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.15}{magnify\137nearest\(a, mag\137factor\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.16}{mixed\137base\(x, b\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.17}{nub\(x\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.18}{outer\(dyad, y[, x]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.19}{palette\137interpolate\(from, to\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.20}{scattered2grid\(xyz, ycv, xcv\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.21}{scaleAxis\(xstart, xend[, nmax[, nice]]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.22}{scaleAxisSpan\(xstart, xend[, nmax[, nice]]\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.23}{range\(a\)}{section.10.5}
+\BOOKMARK [2][-]{subsection.10.5.24}{tail\(x[, n]\)}{section.10.5}
+\BOOKMARK [0][-]{chapter.11}{Tcl Library Procedures called as Commands}{}
+\BOOKMARK [1][-]{section.11.1}{Introduction}{chapter.11}
+\BOOKMARK [1][-]{section.11.2}{Procedures for Formatting Dates and Times}{chapter.11}
+\BOOKMARK [2][-]{subsection.11.2.1}{Introduction}{section.11.2}
+\BOOKMARK [2][-]{subsection.11.2.2}{Formatting Julian Day Numbers \(JDNs\)}{section.11.2}
+\BOOKMARK [3][-]{subsubsection.11.2.2.1}{Examples}{subsection.11.2.2}
+\BOOKMARK [2][-]{subsection.11.2.3}{Formatting Modified Julian Dates \(MJDs\)}{section.11.2}
+\BOOKMARK [3][-]{subsubsection.11.2.3.1}{Examples}{subsection.11.2.3}
+\BOOKMARK [1][-]{section.11.3}{Binary Input/Output Procedures}{chapter.11}
+\BOOKMARK [2][-]{subsection.11.3.1}{Introduction}{section.11.3}
+\BOOKMARK [2][-]{subsection.11.3.2}{Reading and Writing Simple Binary Files}{section.11.3}
+\BOOKMARK [3][-]{subsubsection.11.3.2.1}{Procedure get\137nao [fileName [dataType [shape]]]}{subsection.11.3.2}
+\BOOKMARK [3][-]{subsubsection.11.3.2.2}{Procedure put\137nao [napExpr [fileName]]}{subsection.11.3.2}
+\BOOKMARK [2][-]{subsection.11.3.3}{Reading and Writing Fortran Unformatted Files}{section.11.3}
+\BOOKMARK [3][-]{subsubsection.11.3.3.1}{Procedure get\137bin dataType [fileId [mode]]}{subsection.11.3.3}
+\BOOKMARK [3][-]{subsubsection.11.3.3.2}{Procedure put\137bin napExpr [fileId [mode]]}{subsection.11.3.3}
+\BOOKMARK [3][-]{subsubsection.11.3.3.3}{Example}{subsection.11.3.3}
+\BOOKMARK [2][-]{subsection.11.3.4}{Reading and Writing cif Files}{section.11.3}
+\BOOKMARK [3][-]{subsubsection.11.3.4.1}{Procedure get\137cif [options] pattern [pattern ...]}{subsection.11.3.4}
+\BOOKMARK [3][-]{subsubsection.11.3.4.2}{Procedure put\137cif napExpr [fileName [mode]]}{subsection.11.3.4}
+\BOOKMARK [3][-]{subsubsection.11.3.4.3}{Procedure get\137cif1 [options] fileId}{subsection.11.3.4}
+\BOOKMARK [3][-]{subsubsection.11.3.4.4}{Procedure put\137cif1 napExpr [fileId [mode]]}{subsection.11.3.4}
+\BOOKMARK [2][-]{subsection.11.3.5}{Writing HDF and netCDF files}{section.11.3}
+\BOOKMARK [3][-]{subsubsection.11.3.5.1}{Procedure put16 napExpr fileName variableName}{subsection.11.3.5}
+\BOOKMARK [1][-]{section.11.4}{Geographic Procedures}{chapter.11}
+\BOOKMARK [2][-]{subsection.11.4.1}{Introduction}{section.11.4}
+\BOOKMARK [2][-]{subsection.11.4.2}{Write ARC/INFO GRIDASCII file using put\137gridascii}{section.11.4}
+\BOOKMARK [3][-]{subsubsection.11.4.2.1}{Usage}{subsection.11.4.2}
+\BOOKMARK [3][-]{subsubsection.11.4.2.2}{Example}{subsection.11.4.2}
+\BOOKMARK [2][-]{subsection.11.4.3}{Write Surfer file using put\137text\137surfer}{section.11.4}
+\BOOKMARK [3][-]{subsubsection.11.4.3.1}{Usage}{subsection.11.4.3}
+\BOOKMARK [3][-]{subsubsection.11.4.3.2}{Example}{subsection.11.4.3}
+\BOOKMARK [1][-]{section.11.5}{Map Projection Procedures}{chapter.11}
+\BOOKMARK [2][-]{subsection.11.5.1}{Introduction}{section.11.5}
+\BOOKMARK [2][-]{subsection.11.5.2}{projection code p0 p1 p2 \203}{section.11.5}
+\BOOKMARK [1][-]{section.11.6}{Miscellaneous Procedures}{chapter.11}
+\BOOKMARK [2][-]{subsection.11.6.1}{Procedure size\137of dataType}{section.11.6}
+\BOOKMARK [0][-]{chapter.12}{Tk GUI Procedures}{}
+\BOOKMARK [1][-]{section.12.1}{Introduction}{chapter.12}
+\BOOKMARK [1][-]{section.12.2}{Caps/Nap Menu}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.2.1}{Introduction}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.2}{Browse}{section.12.2}
+\BOOKMARK [3][-]{subsubsection.12.2.2.1}{Tcl Variables}{subsection.12.2.2}
+\BOOKMARK [3][-]{subsubsection.12.2.2.2}{AVHRR and ATSR Satellite Files}{subsection.12.2.2}
+\BOOKMARK [3][-]{subsubsection.12.2.2.3}{CIF Files}{subsection.12.2.2}
+\BOOKMARK [3][-]{subsubsection.12.2.2.4}{HDF and netCDF Files}{subsection.12.2.2}
+\BOOKMARK [4][-]{paragraph.12.2.2.4.1}{Introduction }{subsubsection.12.2.2.4}
+\BOOKMARK [4][-]{paragraph.12.2.2.4.2}{Instructions}{subsubsection.12.2.2.4}
+\BOOKMARK [3][-]{subsubsection.12.2.2.5}{Image Files}{subsection.12.2.2}
+\BOOKMARK [2][-]{subsection.12.2.3}{Command}{section.12.2}
+\BOOKMARK [2][-]{subsection.12.2.4}{Help}{section.12.2}
+\BOOKMARK [1][-]{section.12.3}{choose\137file GUI}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.3.1}{Introduction}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.2}{Instructions}{section.12.3}
+\BOOKMARK [2][-]{subsection.12.3.3}{Usage}{section.12.3}
+\BOOKMARK [1][-]{section.12.4}{Visualisation using procedure plot\137nao}{chapter.12}
+\BOOKMARK [2][-]{subsection.12.4.1}{Introduction}{section.12.4}
+\BOOKMARK [2][-]{subsection.12.4.2}{Usage}{section.12.4}
+\BOOKMARK [3][-]{subsubsection.12.4.2.1}{Options}{subsection.12.4.2}
+\BOOKMARK [2][-]{subsection.12.4.3}{Examples}{section.12.4}
+\BOOKMARK [3][-]{subsubsection.12.4.3.1}{x-y graphs and bar-charts}{subsection.12.4.3}
+\BOOKMARK [3][-]{subsubsection.12.4.3.2}{Scattergram}{subsection.12.4.3}
+\BOOKMARK [3][-]{subsubsection.12.4.3.3}{Color-coded z-images}{subsection.12.4.3}
+\BOOKMARK [3][-]{subsubsection.12.4.3.4}{RGB z-images, tiles and animation}{subsection.12.4.3}
+\BOOKMARK [3][-]{subsubsection.12.4.3.5}{Printing and writing files}{subsection.12.4.3}
+\BOOKMARK [0][-]{chapter.13}{Nap Internal Details}{}
+\BOOKMARK [1][-]{section.13.1}{N-dimensional Array Objects \(NAOs\)}{chapter.13}
+\BOOKMARK [1][-]{section.13.2}{Nap Photo Image Format}{chapter.13}
+\BOOKMARK [0][-]{chapter.14}{Demonstrations of Nap}{}
+\BOOKMARK [1][-]{section.14.1}{Introduction to Demonstrations of Nap}{chapter.14}
+\BOOKMARK [1][-]{section.14.2}{Simple Nap}{chapter.14}
+\BOOKMARK [1][-]{section.14.3}{Constants}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.3.1}{Scalar Constants}{section.14.3}
+\BOOKMARK [2][-]{subsection.14.3.2}{Array Constants}{section.14.3}
+\BOOKMARK [2][-]{subsection.14.3.3}{String Constants}{section.14.3}
+\BOOKMARK [1][-]{section.14.4}{Arithmetic}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.4.1}{Binary arithmetic operators}{section.14.4}
+\BOOKMARK [2][-]{subsection.14.4.2}{Unary arithmetic operators - +}{section.14.4}
+\BOOKMARK [2][-]{subsection.14.4.3}{Ternary choice operator ?:}{section.14.4}
+\BOOKMARK [1][-]{section.14.5}{OOCs \(Object-Oriented Commands\)}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.5.1}{Display contents \(data and attributes\) of NAO}{section.14.5}
+\BOOKMARK [3][-]{subsubsection.14.5.1.1}{Default OOC}{subsection.14.5.1}
+\BOOKMARK [3][-]{subsubsection.14.5.1.2}{Method value: Display all lines and columns}{subsection.14.5.1}
+\BOOKMARK [3][-]{subsubsection.14.5.1.3}{Method head}{subsection.14.5.1}
+\BOOKMARK [3][-]{subsubsection.14.5.1.4}{Method all}{subsection.14.5.1}
+\BOOKMARK [3][-]{subsubsection.14.5.1.5}{Individual attributes}{subsection.14.5.1}
+\BOOKMARK [2][-]{subsection.14.5.2}{Method set: Change these contents}{section.14.5}
+\BOOKMARK [3][-]{subsubsection.14.5.2.1}{Set missing value}{subsection.14.5.2}
+\BOOKMARK [3][-]{subsubsection.14.5.2.2}{Set coordinate variable}{subsection.14.5.2}
+\BOOKMARK [2][-]{subsection.14.5.3}{Write data to \(netCDF\) file}{section.14.5}
+\BOOKMARK [1][-]{section.14.6}{Built-in Functions}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.6.1}{Built-in elemental functions}{section.14.6}
+\BOOKMARK [3][-]{subsubsection.14.6.1.1}{Mathematical Elemental Functions}{subsection.14.6.1}
+\BOOKMARK [3][-]{subsubsection.14.6.1.2}{Type-conversion Elemental Functions}{subsection.14.6.1}
+\BOOKMARK [3][-]{subsubsection.14.6.1.3}{Elemental Functions which test for Special Values}{subsection.14.6.1}
+\BOOKMARK [3][-]{subsubsection.14.6.1.4}{Elemental Function random, which generates random numbers}{subsection.14.6.1}
+\BOOKMARK [2][-]{subsection.14.6.2}{Non-elemental functions}{section.14.6}
+\BOOKMARK [3][-]{subsubsection.14.6.2.1}{Meta-data functions}{subsection.14.6.2}
+\BOOKMARK [3][-]{subsubsection.14.6.2.2}{Reduction functions applied to vector}{subsection.14.6.2}
+\BOOKMARK [3][-]{subsubsection.14.6.2.3}{Reduction functions applied to matrix defined above}{subsection.14.6.2}
+\BOOKMARK [3][-]{subsubsection.14.6.2.4}{Partial sum function psum}{subsection.14.6.2}
+\BOOKMARK [1][-]{section.14.7}{Constructing Arrays}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.7.1}{Arithmetic Progression}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.2}{Catenate: \(`//'\)}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.3}{Laminate \(`///'\)}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.4}{Reverse \(niladic `-'\)}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.5}{Replicate \(binary `\043'\)}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.6}{Function reshape}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.7}{Function transpose}{section.14.7}
+\BOOKMARK [2][-]{subsection.14.7.8}{Function sort}{section.14.7}
+\BOOKMARK [1][-]{section.14.8}{Indexing}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.8.1}{Indexing of vectors}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.2}{Inverse indexing of vectors \(position of specified value\)}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.3}{Indirect indexing \(via coordinate variable\)}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.4}{Shape-preserving indexing}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.5}{Indexing of Matrices}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.6}{Cross-product indexing to extract single element \(scalar\)}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.7}{Cross-product indexing to extract multiple elements}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.8}{Full indexing to extract single element}{section.14.8}
+\BOOKMARK [2][-]{subsection.14.8.9}{Full indexing to form a new array from randomly selected elements of an existing array}{section.14.8}
+\BOOKMARK [1][-]{section.14.9}{Linear algebra}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.9.1}{Solving System of Linear Equations}{section.14.9}
+\BOOKMARK [2][-]{subsection.14.9.2}{Inner-product operator \(`.'\)}{section.14.9}
+\BOOKMARK [2][-]{subsection.14.9.3}{Linear Regression}{section.14.9}
+\BOOKMARK [2][-]{subsection.14.9.4}{Multiple Regression}{section.14.9}
+\BOOKMARK [2][-]{subsection.14.9.5}{Least-squares Polynomial}{section.14.9}
+\BOOKMARK [1][-]{section.14.10}{Input/Output}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.10.1}{ASCII input/output}{section.14.10}
+\BOOKMARK [2][-]{subsection.14.10.2}{netCDF input/output}{section.14.10}
+\BOOKMARK [2][-]{subsection.14.10.3}{CIF Input/output}{section.14.10}
+\BOOKMARK [1][-]{section.14.11}{Defining Nap functions}{chapter.14}
+\BOOKMARK [1][-]{section.14.12}{Statistics}{chapter.14}
+\BOOKMARK [2][-]{subsection.14.12.1}{Elementary Descriptive Statistics \(Toy example\)}{section.14.12}
+\BOOKMARK [2][-]{subsection.14.12.2}{Example using real satellite data}{section.14.12}

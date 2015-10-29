@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.192 2006/10/02 02:03:31 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.196 2006/10/05 06:33:33 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -298,13 +298,6 @@ PACKAGE_SHELL_DEBUG = $(PACKAGE)sh$(USE_VERSION)g$(EXEEXT)
 BINARIES = $(PACKAGE_SHLIB)
 
 #------------------------------------------------------------------------------
-# documentation
-#------------------------------------------------------------------------------
-
-LOG = $(TOP_DIR)/change.log
-NOTES = $(TOP_DIR)/release_notes.txt
-
-#------------------------------------------------------------------------------
 # distribution tar files
 #------------------------------------------------------------------------------
 
@@ -382,6 +375,7 @@ install-binaries: install-lib-binaries install-bin-binaries
 
 install-doc:
 	cd $(TEX_DIR); $(MAKE) all; $(CP) *.pdf $(PACKAGE_LIBRARY_DIR)
+	chmod +x $(PACKAGE_LIBRARY_DIR)/*.pdf
 
 # C header files
 install-headers: \
@@ -499,6 +493,7 @@ $(TOP_DIR_TAIL)/generic \
 $(TOP_DIR_TAIL)/installer \
 $(TOP_DIR_TAIL)/library \
 $(TOP_DIR_TAIL)/tests \
+$(TOP_DIR_TAIL)/tex \
 $(TOP_DIR_TAIL)/unix
 
 PLATFORM_MANIFEST = @PLATFORM_MANIFEST@

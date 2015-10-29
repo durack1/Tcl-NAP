@@ -675,10 +675,11 @@ AC_DEFUN(SC_CONFIG_CFLAGS, [
 	    SYS_LIB_DIR=`dirname "$CC_PROG"`
 	    SYS_LIB_DIR=`dirname "$SYS_LIB_DIR"`/lib
 	    SYS_LIBS="-nodefaultlib"
-	    # SYS_LIBS="$SYS_LIBS '`cygpath -w $SYS_LIB_DIR/msvcrt\$DBGX.lib`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/msvcrt.lib"`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/oldnames.lib"`'"
-	    SYS_LIBS="$SYS_LIBS '`cygpath -w "$SYS_LIB_DIR/kernel32.lib"`'"
+	    NATIVE_PATH='cygpath -m'
+	    # SYS_LIBS="$SYS_LIBS '`$NATIVE_PATH $SYS_LIB_DIR/msvcrt\$DBGX.lib`'"
+	    SYS_LIBS="$SYS_LIBS '`$NATIVE_PATH "$SYS_LIB_DIR/msvcrt.lib"`'"
+	    SYS_LIBS="$SYS_LIBS '`$NATIVE_PATH "$SYS_LIB_DIR/oldnames.lib"`'"
+	    SYS_LIBS="$SYS_LIBS '`$NATIVE_PATH "$SYS_LIB_DIR/kernel32.lib"`'"
 	    RC="rc"
 	    ;;
 	dgux*)

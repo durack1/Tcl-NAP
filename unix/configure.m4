@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.35 2005/11/22 01:25:29 dav480 Exp $
+dnl	$Id: configure.m4,v 1.37 2006/10/05 06:30:25 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -235,7 +235,7 @@ AC_SUBST(NODOT_PATCHLEVEL)
 
 TCL_VERSION=$TCL_MAJOR_VERSION.$TCL_MINOR_VERSION
 TK_VERSION=$TK_MAJOR_VERSION.$TK_MINOR_VERSION
-TAR_SUFFIX=.tgz
+TAR_SUFFIX=.tar.gz
 
 case "$HOST_OS" in
     *win32* | *WIN32* | *CYGWIN_NT*)
@@ -267,6 +267,60 @@ AC_SUBST(USE_VERSION)
 
 eval AC_DEFINE_UNQUOTED(VERSION, "${VERSION}")
 eval AC_DEFINE_UNQUOTED(PATCHLEVEL, "${PATCHLEVEL}")
+
+#------------------------------------------------------------------------------
+# A few miscellaneous platform-specific items:
+#
+# Define a special symbol for Windows (BUILD_$PACKAGE) so
+# that we create the export library with the dll.  See sha1.h on how
+# to use this.
+#
+# Windows creates a few extra files that need to be cleaned up.
+# You can add more files to clean if your extension creates any extra
+# files.
+#
+# Define any extra compiler flags in the PACKAGE_CFLAGS variable.
+# These will be appended to the current set of compiler flags for
+# your system.
+#
+# NATIVE_PATH is command (echo or 'cygpath -m') to print native file path name.
+#------------------------------------------------------------------------------
+
+PLATFORM=windows
+PLATFORM_DIR=unix
+NATIVE_PATH='cygpath -m'
+CP='cp -f'
+RM='rm -f'
+TOUCH='touch'
+case "$HOST_OS" in
+    *CYGWIN_NT*)
+    ;;
+    *win32* | *WIN32*)
+	PLATFORM_DIR=win
+	CP=copy
+	RM=del
+    ;;
+    Linux)
+	NATIVE_PATH='echo'
+	PLATFORM="${HOST_OS}_`uname -i`"
+    ;;
+    *)
+	NATIVE_PATH='echo'
+	PLATFORM=$HOST_OS
+    ;;
+esac
+case "$PLATFORM" in
+    windows)
+        AC_DEFINE_UNQUOTED(BUILD_$PACKAGE)
+	AC_DEFINE(WIN32)
+    ;;
+esac
+AC_SUBST(CP)
+AC_SUBST(NATIVE_PATH)
+AC_SUBST(PLATFORM)
+AC_SUBST(PLATFORM_DIR)
+AC_SUBST(RM)
+AC_SUBST(TOUCH)
 
 #------------------------------------------------------------------------------
 # Locate directories containing the installed header files & libraries
@@ -363,28 +417,28 @@ case "$HOST_OS" in
     *win32* | *WIN32* | *CYGWIN_NT*)
 	TCL_LIB_PATH="$TCL_LIB_DIR/tcl$TCL_USE_VERSION\$(DBGX).lib"
 	TCL_STUB_LIB_PATH="$TCL_LIB_DIR/tclstub$TCL_USE_VERSION\$(DBGX).lib"
-	TCL_LINK_SPEC="'`cygpath -w $TCL_LIB_PATH`'"
-	TCL_LINK_SPEC="$TCL_LINK_SPEC '`cygpath -w $TCL_STUB_LIB_PATH`'"
-	TCL_SHLIB_SPEC="'`cygpath -w $TCL_STUB_LIB_PATH`' $SHLIB_LD_LIBS"
-	TCL_LIBRARY_DIR="'`cygpath -w $TCL_LIB_DIR/tcl$TCL_VERSION`'"
+	TCL_LINK_SPEC="'`$NATIVE_PATH $TCL_LIB_PATH`'"
+	TCL_LINK_SPEC="$TCL_LINK_SPEC '`$NATIVE_PATH $TCL_STUB_LIB_PATH`'"
+	TCL_SHLIB_SPEC="'`$NATIVE_PATH $TCL_STUB_LIB_PATH`' $SHLIB_LD_LIBS"
+	TCL_LIBRARY_DIR="'`$NATIVE_PATH $TCL_LIB_DIR/tcl$TCL_VERSION`'"
 	TK_LIB_PATH="$TCL_LIB_DIR/tk$TK_USE_VERSION\$(DBGX).lib"
-	TK_LIB_SPEC="'`cygpath -w $TK_LIB_PATH`'"
+	TK_LIB_SPEC="'`$NATIVE_PATH $TK_LIB_PATH`'"
 	TK_STUB_LIB_PATH="$TCL_LIB_DIR/tkstub$TK_USE_VERSION\$(DBGX).lib"
 	HDF_LIB_PATH="$HDF_LIB_DIR/hd${HDF_999_VERSION}m.lib"
 	HDF_LIB_PATH="$HDF_LIB_PATH $HDF_LIB_DIR/hm${HDF_999_VERSION}m.lib"
-	HDF_LIB_DIR="`cygpath -w $HDF_LIB_DIR`"
-	HDF_LIB_SPEC="'$HDF_LIB_DIR\\hd${HDF_999_VERSION}m.lib'"
-	HDF_LIB_SPEC="$HDF_LIB_SPEC '$HDF_LIB_DIR\\hm${HDF_999_VERSION}m.lib'"
+	HDF_LIB_DIR="`$NATIVE_PATH $HDF_LIB_DIR`"
+	HDF_LIB_SPEC="'$HDF_LIB_DIR/hd${HDF_999_VERSION}m.lib'"
+	HDF_LIB_SPEC="$HDF_LIB_SPEC '$HDF_LIB_DIR/hm${HDF_999_VERSION}m.lib'"
 	NC_LIB_PATH="$NC_LIB_DIR/netcdf.lib"
-	NC_LIB_DIR="`cygpath -w $NC_LIB_DIR`"
-	NC_LIB_SPEC="'$NC_LIB_DIR\\netcdf.lib'"
+	NC_LIB_DIR="`$NATIVE_PATH $NC_LIB_DIR`"
+	NC_LIB_SPEC="'$NC_LIB_DIR/netcdf.lib'"
 	PROJ_LIB_PATH="$PROJ_LIB_DIR/proj.lib"
-	PROJ_LIB_DIR="`cygpath -w $PROJ_LIB_DIR`"
-	PROJ_LIB_SPEC="'$PROJ_LIB_DIR\\proj.lib'"
+	PROJ_LIB_DIR="`$NATIVE_PATH $PROJ_LIB_DIR`"
+	PROJ_LIB_SPEC="'$PROJ_LIB_DIR/proj.lib'"
 	SHLIB_DIR="\${bindir}"
 	SHLIB_DIR_BASE=bin
 	TMP="$TCL_LIB_DIR/nap$USE_VERSION\${DBGX}.lib"
-	NAP_LIB_SPEC="'`cygpath -w $TMP`'"
+	NAP_LIB_SPEC="'`$NATIVE_PATH $TMP`'"
 	PLATFORM_MANIFEST="bin/h*m.dll bin/netcdf.dll lib/\$(PACKAGE_IMPORT_LIB)"
 	PLATFORM_MANIFEST="$PLATFORM_MANIFEST lib/ezprint$EZPRINT_VERSION/*"
     ;;
@@ -481,60 +535,6 @@ AC_MSG_RESULT([Using TCL_STUB_LIB_PATH=$TCL_STUB_LIB_PATH])
 AC_MSG_RESULT([Using TK_LIB_SPEC=$TK_LIB_SPEC])
 AC_MSG_RESULT([Using TK_LIB_PATH=$TK_LIB_PATH])
 AC_MSG_RESULT([Using TK_STUB_LIB_PATH=$TK_STUB_LIB_PATH])
-
-#------------------------------------------------------------------------------
-# A few miscellaneous platform-specific items:
-#
-# Define a special symbol for Windows (BUILD_$PACKAGE) so
-# that we create the export library with the dll.  See sha1.h on how
-# to use this.
-#
-# Windows creates a few extra files that need to be cleaned up.
-# You can add more files to clean if your extension creates any extra
-# files.
-#
-# Define any extra compiler flags in the PACKAGE_CFLAGS variable.
-# These will be appended to the current set of compiler flags for
-# your system.
-#
-# NATIVE_PATH is command (echo or 'cygpath -m') to print native file path name.
-#------------------------------------------------------------------------------
-
-PLATFORM=windows
-PLATFORM_DIR=unix
-NATIVE_PATH='cygpath -m'
-CP='cp -f'
-RM='rm -f'
-TOUCH='touch'
-case "$HOST_OS" in
-    *CYGWIN_NT*)
-    ;;
-    *win32* | *WIN32*)
-	PLATFORM_DIR=win
-	CP=copy
-	RM=del
-    ;;
-    Linux)
-	NATIVE_PATH='echo'
-	PLATFORM="${HOST_OS}_`uname -i`"
-    ;;
-    *)
-	NATIVE_PATH='echo'
-	PLATFORM=$HOST_OS
-    ;;
-esac
-case "$PLATFORM" in
-    windows)
-        AC_DEFINE_UNQUOTED(BUILD_$PACKAGE)
-	AC_DEFINE(WIN32)
-    ;;
-esac
-AC_SUBST(CP)
-AC_SUBST(NATIVE_PATH)
-AC_SUBST(PLATFORM)
-AC_SUBST(PLATFORM_DIR)
-AC_SUBST(RM)
-AC_SUBST(TOUCH)
 
 #------------------------------------------------------------------------------
 # Find tclsh & wish

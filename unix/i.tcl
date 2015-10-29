@@ -1,3 +1,4 @@
-interp create i
-interp eval i {package require nap}
-interp delete i
+package require nap
+namespace import ::NAP::*
+
+nap "{1 3 4 1i} @ 0"

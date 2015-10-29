@@ -1,0 +1,60 @@
+%  $Id: geog_proc.tex,v 1.4 2006/06/07 01:39:34 dav480 Exp $ 
+    % Nap Library: Geographic Procedures
+
+\section{Geographic Procedures}
+    \label{geog-proc}
+
+\subsection{Introduction}
+    \label{geog-proc-Introduction}
+
+The following procedures are defined in the file 
+  \texttt{geog.tcl}. Note that there are also 
+  \href{geog.html}{Geographic Functions}.
+
+\subsection{Write \emph{ARC/INFO GRIDASCII} file using \texttt{put\_gridascii}}
+    \label{geog-proc-put-gridascii}
+
+Procedure 
+  \texttt{put\_gridascii} writes a file in ARC/INFO GRIDASCII
+  format. All cells must be squares of the same size. Coordinate
+  variable 0 (usually latitude) can be either ascending or descending.
+
+  \subsubsection{Usage}
+
+  \texttt{put\_gridascii} $\mathit{expr}$ $\mathit{filename}$ [$\mathit{missing\_value\_string}$]
+  \begin{description}
+    \item[$\mathit{expr}$]
+    Nap expression defining a matrix with coordinate variables (normally latitude and longitude)
+    \item[$\mathit{filename}$]
+    Pathname of the output file
+    \item[$\mathit{missing\_value\_string}$]
+    String representing missing value in file (Default: \texttt{1e9})
+  \end{description}
+
+  \subsubsection{Example}
+
+  \texttt{\% put\_gridascii mat abc.txt -999}
+
+  \subsection{Write \emph{Surfer} file using \texttt{put\_text\_surfer}}
+    \label{geog-proc-put-text-surfer}
+
+Procedure 
+  \texttt{put\_text\_surfer} writes a file in 
+  \emph{Surfer} format. Surfer is a package developed by 
+  \emph{Golden Software}.
+
+\subsubsection{Usage}
+
+  \texttt{put\_text\_surfer} $\mathit{expr}$ [$\mathit{filename}$] [$\mathit{format}$]
+  \begin{description}
+    \item[$\mathit{expr}$]
+    Nap expression defining a matrix with coordinate variables
+    \item[$\mathit{filename}$]
+    Pathname of the output file. If none then writes to standard output.
+    \item[$\mathit{format}$]
+    C format specification of each output element (Default: \texttt{"\%g"})
+  \end{description}
+
+  \subsubsection{Example}
+
+  \texttt{\% put\_text\_surfer mat abc.txt \%8.4f}
