@@ -8,7 +8,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_get.c,v 1.12 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_get.c,v 1.13 2002/10/10 07:32:27 dav480 Exp $";
 #endif /* not lint */
 
 #include "napInt.h"
@@ -82,7 +82,7 @@ Nap_GetBinary(
 	CHECK2(naoPtr, TEXT0 "Error evaluating subscript");
 	Nap_IncrRefCount(nap_cd, naoPtr);
 	shape_NAO = Nap_CastNAO(nap_cd, naoPtr, NAP_I32);
-	assert(shape_NAO);
+	CHECK2(shape_NAO, TEXT0 "Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, shape_NAO);
 	Nap_DecrRefCount(nap_cd, naoPtr);
 	rank = shape_NAO->nels;
@@ -93,7 +93,7 @@ Nap_GetBinary(
     }
 
     naoPtr = Nap_NewNAO(nap_cd, dataType, rank, shape);
-    assert(naoPtr);
+    CHECK2(naoPtr, TEXT0 "Error calling Nap_NewNAO");
     toRead = naoPtr->nels * size;
     n = Tcl_Read(channel, naoPtr->data.c, toRead);
     CHECK5(n == toRead, TEXT0 "Only %d bytes read from %s but expecting %d",
@@ -300,7 +300,7 @@ Nap_GetHDF(
 	sds_name = Tcl_GetStringFromObj(objv[3], NULL);
 	if (objc > 4) {
             objArgs = Tcl_ConcatObj(objc-4, objv+4);
-            assert(objArgs);
+	    CHECK2(objArgs, TEXT0 "Error calling Tcl_ConcatObj");
             Tcl_IncrRefCount(objArgs);
 	    if (Tcl_GetCharLength(objArgs) > 0) {
 		subscript_NAO = Nap_GetNaoFromObj(nap_cd, objArgs);
@@ -565,7 +565,7 @@ Nap_GetNetcdf(
 	var_name = Tcl_GetStringFromObj(objv[3], NULL);
 	if (objc > 4) {
             objArgs = Tcl_ConcatObj(objc-4, objv+4);
-            assert(objArgs);
+	    CHECK2(objArgs, TEXT0 "Error calling Tcl_ConcatObj");
             Tcl_IncrRefCount(objArgs);
 	    if (Tcl_GetCharLength(objArgs) > 0) {
 		subscript_NAO = Nap_GetNaoFromObj(nap_cd, objArgs);

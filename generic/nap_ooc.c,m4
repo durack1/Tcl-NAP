@@ -14,7 +14,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.24 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_ooc.c,m4,v 1.25 2002/10/10 09:00:22 dav480 Exp $";
 #endif /* not lint */
 
 #include <blt.h>
@@ -948,7 +948,7 @@ Nap_OOC_set(
 	    }
 	    Tcl_DecrRefCount(objArgs);
 	    mv_NAO = Nap_CastNAO(nap_cd, tmpNao, naoPtr->dataType);
-	    assert(mv_NAO);
+	    CHECK2(mv_NAO, "m4NAME: Error calling Nap_CastNAO");
 	    if (tmpNao != mv_NAO) {
 		Nap_FreeNAO(nap_cd, tmpNao);
 	    }

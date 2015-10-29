@@ -4,7 +4,7 @@
 #
 # Copyright (c) 2001, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: nap_function_lib.tcl,v 1.15 2002/08/07 08:19:28 dav480 Exp $
+# $Id: nap_function_lib.tcl,v 1.16 2002/08/26 06:49:00 dav480 Exp $
 
 
 namespace eval ::NAP {
@@ -68,36 +68,33 @@ namespace eval ::NAP {
     }
 
 
-    # ap0 --
+    # ap --
     #
-    # Function "ap0" gives same result as nap arithmetic progression function "ap"
-    # if (z-a) is multiple of d.  Even if it is not a multiple, ap0 still gives
-    # vector ending with z.
-
-    proc ap0 {a z d} {
-	nap "n = fuzzy_floor(f64(z-a) / f64(d))"
-	if [[nap "d == 0  ||  n < 0"]] {
-	    nap "{}"
-	} else {
-	    nap "ap(a, a+n*d, d) // ((n > 0  &&  d*(z-(a+n*d)) > 0) # z)"
-	}
-    }
-
-
-    # ap_n --
+    # Arithmetic Progression
     #
-    # Function "ap_n" gives arithmetic progression from a to z with n elements.
+    # If (to-from)/step is not integer value then round to nearest integer value
 
-    proc ap_n {
-	a 
-	z 
-	{n 2}
+    proc ap {
+	{from ""}
+	{to ""}
+	{step 1}
     } {
-	nap "n = 0.0 >>> round(n)"
-	switch [$n] {
-	    0		{nap "{}"}
-	    1		{nap "a .. a"}
-	    default	{nap "a .. z ... (f64(z - a) / (n-1.0))"}
+	if {$from == ""} {
+	    nap "{}"
+	} elseif {$to == ""} {
+	    if {[$from rank] == 0} {
+		nap "1 .. from"
+	    } elseif {[$from nels] == 1} {
+		nap "1 .. from(0)"
+	    } else {
+		nap "v = from // 1"
+		nap "v(0) .. v(1) ... v(2)"
+	    }
+	} else {
+	    if {[[nap "(to - from) % step != 0"]]} {
+		nap "to = from + step * i32(nint(f64(to - from) / step))"
+	    }
+	    nap "from .. to ... step"
 	}
     }
 

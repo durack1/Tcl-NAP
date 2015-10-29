@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.45 2002/05/27 04:28:46 dav480 Exp $";
+static char *rcsid="@(#) $Id: napParseLib.c,m4,v 1.46 2002/10/10 09:00:21 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -352,6 +352,7 @@ Nap_NegateNumber(
 }
 
 m4begin
+m4define(`m4NAME', `Nap_ScalarConstant')
 M4DEF_RESULT(TYPE)  e.g. M4DEF_RESULT(I16)
 m4define(`M4DEF_RESULT', 
     `case m4DataTypeEnum($1): *(result->data.$1) =  n.$1;  break;')
@@ -365,7 +366,7 @@ Nap_ScalarConstant(
     Nap_NAO		*result;
 
     result = Nap_NewNAO(nap_cd, n.dataType, 0, NULL);
-    assert(result);
+    CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
     switch (result->dataType) {
 	m4ForAllNumericDataType(`M4DEF_RESULT(', `)')
 	default: assert(FALSE);
@@ -510,7 +511,7 @@ Nap_ArrayConstant(
 	    shape[i] = Nap_SizePNodeList(t);
 	}
 	result = Nap_NewNAO(nap_cd, m4DataTypeEnum(m4MaxRealDataType), rank, shape);
-	assert(result);
+	CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
 	dPtr = result->data.F64;
 	dPtrMax = dPtr + result->nels;
 	for (i = 0; i < result->nels; i++) {

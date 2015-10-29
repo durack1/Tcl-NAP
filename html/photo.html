@@ -1,0 +1,98 @@
+<!-- $Id: photo.html,v 1.2 2002/10/18 04:53:15 dav480 Exp $ -->
+<html>
+
+<head> <title>
+NAP Photo Image Format
+</title> </head>
+
+<body>
+
+<h2> <center>
+NAP Photo Image Format
+</center> </h2>
+
+NAP defines a new photo image format.
+This enables one to use the "<code>image create photo</code>" command 
+to produce a photo image from a NAO.
+One can also use the photo image write operation to produce
+a NAO from a photo image.
+
+<P>
+The data type of the NAO is normally 
+<code>u8</code> (8-bit unsigned integer).
+Any other type will be converted to 
+<code>u8</code>.
+
+<P>
+The rank can be 2 or 3.
+A matrix gives a grey-scale image.
+Colour requires three dimensions.
+In this case there normally are three layers corresponding to red, green and blue.
+If there are only two layers then the first is used for both red and green (which 
+together give yellow).
+
+<P>
+The name of the new photo image format is "<code>NAO</code>".
+
+<P>
+The following example (input only shown) creates and displays a grey-scale photo image from a 
+<code>u8</code>
+matrix:
+
+<PRE>
+nap "u = u8(reshape(0 .. 255, 2 # 255))"
+set i [image create photo -format NAO -data $u]
+button .b -image $i
+pack .b
+</PRE>
+
+<P>
+The following example (input only shown) creates and displays a colour photo image from a 
+three-dimensional <code>u8</code>
+array.
+It then writes this image to a GIF file named "<code>n.gif</code>".
+
+<PRE>
+destroy .b
+nap "u = u8(reshape({32768#0 65536#255}, {3 2#256}))"
+set i [image create photo -format NAO -data $u]
+button .b -image $i
+pack .b
+$i write n.gif -format GIF
+</PRE>
+
+<P>
+The following example (input and output shown) first creates a photo image by reading this
+GIF file named "<code>n.gif</code>".
+Then a new NAO is created and assigned the name "<code>abc</code>".
+
+<PRE>
+% set pi [image create photo -file n.gif]
+image8
+% $pi write abc -format NAO
+% $abc header
+::NAP::2790-2790  u8  MissingValue: (NULL)  References: 1  Unit: (NULL)
+Dimension 0   Size: 3      Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 1   Size: 256    Name: (NULL)    Coordinate-variable: (NULL)
+Dimension 2   Size: 256    Name: (NULL)    Coordinate-variable: (NULL)
+</PRE>
+
+<P>
+<TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
+  <TR>
+    <TD align="center"><FONT color="#ffffff" size=-2><SPAN class="titlebar">
+        <b>Author:</b> <a href="http://sourceforge.net/users/dav480/">Harvey Davies</a>
+        &nbsp; &nbsp; &nbsp;
+        &copy; 2002, CSIRO Australia.
+        &nbsp; &nbsp; &nbsp;
+        <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
+        <br>
+
+        <b>CVS Version Details:</b> $Id: photo.html,v 1.2 2002/10/18 04:53:15 dav480 Exp $
+        </SPAN></FONT>
+    </TD>
+  </TR>
+</TABLE>
+
+</body>
+</html>

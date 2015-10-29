@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napChoice.c,m4,v 1.34 2002/05/14 00:32:03 dav480 Exp $";
+static char *rcsid="@(#) $Id: napChoice.c,m4,v 1.35 2002/10/10 09:00:19 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -126,7 +126,7 @@ Nap_Choice(
 	}
 	dataType = Nap_DataType2(naoPtr2->dataType, naoPtr3->dataType);
 	new = Nap_NewNAO(nap_cd, dataType, rank, shape);
-	assert(new);
+	CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
 	nao2 = Nap_CastNAO(nap_cd, naoPtr2, dataType);
 	nao3 = Nap_CastNAO(nap_cd, naoPtr3, dataType);
 	Nap_IncrRefCount(nap_cd, nao2);

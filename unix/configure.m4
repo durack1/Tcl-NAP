@@ -2,7 +2,7 @@ dnl	configure.m4 --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.m4,v 1.6 2002/08/13 06:25:38 dav480 Exp $
+dnl	$Id: configure.m4,v 1.8 2002/09/25 03:41:14 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the "configure" files for each package.
@@ -116,6 +116,23 @@ AC_SUBST(SHLIB_SUFFIX)
 AC_SUBST(STLIB_LD)
 AC_SUBST(STLIB_SUFFIX)
 AC_SUBST(TAR)
+
+#------------------------------------------------------------------------------
+#	Locate the X11 header files and the X11 library archive.
+#------------------------------------------------------------------------------
+
+case "$HOST_OS" in
+    *win32* | *WIN32* | *CYGWIN_NT*)
+	XINCLUDES=''
+	XLIBSW=''
+    ;;
+    *)
+	SC_PATH_X
+    ;;
+esac
+
+AC_SUBST(XINCLUDES)
+AC_SUBST(XLIBSW)
 
 #------------------------------------------------------------------------------
 # Determine other binary file extensions (.o, .obj, .exe etc.)

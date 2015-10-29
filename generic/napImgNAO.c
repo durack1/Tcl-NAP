@@ -1,11 +1,12 @@
 /*
  * napImgNAO.c --
  *
- *      A photo image file handler for Numeric Array Objects (NAO's).
- *      At present there is no write function.
- *
- * NAO's are structures containing binary data. They are only available when
- * Tcl/Tk has the Numerical Array Processor (NAP) extension.
+ *	A photo image file handler for NAP Numeric Array Objects (NAOs).
+ *	This enables one to use the "image create photo" command to produce a
+ *	photo image from a NAO.
+ *	One can also use the photo image write operation to produce a NAO from
+ *	a photo image.
+ *	The name of the new photo image format is "NAO".
  *
  * Copyright (c) 1998, CSIRO Australia
  *
@@ -13,7 +14,7 @@
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napImgNAO.c,v 1.24 2002/05/14 00:32:03 dav480 Exp $";
+static char *rcsid="@(#) $Id: napImgNAO.c,v 1.26 2002/10/18 06:04:01 dav480 Exp $";
 #endif /* not lint */
 
 #include <tk.h>
@@ -99,43 +100,31 @@ StringReadNAO(
     int			naoWidth;
     int			naoHeight;
     int			naoDepth;
+    Nap_NAO		*naoPtr;
+    Nap_NAO		*naoPtr0;
     int			rank;
     Tk_PhotoImageBlock	block;
-    Nap_NAO		*oldnao;
-    Nap_NAO		*newnao;
     NapClientData	*nap_cd = Nap_GetClientData(interp);
 
-/*
- * Open the NAO and return the dimensions!
- */
-
-    oldnao = Nap_GetNaoFromObj(nap_cd, nap_expr);
-    if(!oldnao) return(0);
-
-    rank = oldnao->rank;
-
+    naoPtr0 = Nap_GetNaoFromObj(nap_cd, nap_expr);
+    CHECK2(naoPtr0, "StringReadNAO: error calling Nap_GetNaoFromObj");
+    Nap_IncrRefCount(nap_cd, naoPtr0);
+    naoPtr = Nap_CastNAO(nap_cd, naoPtr0, NAP_U8);
+    Nap_IncrRefCount(nap_cd, naoPtr);
+    Nap_DecrRefCount(nap_cd, naoPtr0);
+    rank = naoPtr->rank;
     switch (rank) {
     case 2:
-        naoWidth = oldnao->shape[1]; 
-        naoHeight = oldnao->shape[0]; 
+        naoWidth = naoPtr->shape[1]; 
+        naoHeight = naoPtr->shape[0]; 
 	break;
     case 3:
-        naoWidth = oldnao->shape[2]; 
-        naoHeight = oldnao->shape[1]; 
-        naoDepth = oldnao->shape[0];
+        naoWidth = naoPtr->shape[2]; 
+        naoHeight = naoPtr->shape[1]; 
+        naoDepth = naoPtr->shape[0];
 	break;
     default:
-	return TCL_ERROR;
-    }
-
-/*
- * If the nao is not a type byte then make a new nao of type byte
- */
-
-    if(oldnao->dataType == NAP_U8) {
-        newnao = oldnao;
-    } else {
-        newnao = Nap_CastNAO(nap_cd, oldnao, NAP_U8);
+	CHECK2(0, "StringReadNAO: Rank is not 1 or 2");
     }
 
 /*
@@ -187,13 +176,10 @@ StringReadNAO(
     }   
 
     /* Pointer to the first part of the first pixel */
-    block.pixelPtr = (unsigned char *) newnao->data.U8;
+    block.pixelPtr = (unsigned char *) naoPtr->data.U8;
 
     Tk_PhotoPutBlock(imageHandle, &block, destX, destY, naoWidth, naoHeight);
-    if(newnao != oldnao) {
-        Nap_FreeNAO(nap_cd, newnao);
-    }
-
+    Nap_DecrRefCount(nap_cd, naoPtr);
     return TCL_OK;
 }
 

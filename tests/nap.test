@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: nap.test,v 1.145 2002/08/07 08:22:29 dav480 Exp $
+# $Id: nap.test,v 1.148 2002/09/25 03:39:01 dav480 Exp $
 
 set NAO_PREFIX ::NAP::
 
@@ -651,17 +651,20 @@ unset closest in02 in_closest lat lon mat tmp v
 put_info "nap-14.92 19 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
 
 Test nap-15.1 {ap using ..} { [nap 3 .. 5] v } {3 4 5}
-Test nap-15.2 {f64 ap using ..} { [nap -2.7 .. 1] v} {-2.7 -1.7 -0.7 0.3 1.3}
+Test nap-15.2 {f64 ap using ..} { [nap -2.7 .. 1] v} {-2.7 -1.7 -0.7 0.3 1}
 Test nap-15.3 {ap using ap(a,z,s)} { [nap ap(-13, 23, 10)] v } {-13 -3 7 17 27}
 Test nap-15.4 {ap using ap(a,z)} { [nap ap(-1.3, 0.7)] v } {-1.3 -0.3 0.7}
 Test nap-15.5 {ap using ap(a)} { [nap ap(3)] v } {1 2 3}
 Test nap-15.5 {ap using ap(a,z,-s)} { [nap ap(7,3,-2)] v } {7 5 3}
 Test nap-15.6 {ap using ap({})} { [nap ap({})] v } {1}
 Test nap-15.7 {ap using ap({a})} { [nap ap({3})] v } {1 2 3}
-Test nap-15.8 {ap using ap({a z})} { [nap ap({-1.4 0.4})] v } {-1.4 -0.4 0.6}
-Test nap-15.9 {ap using ap({a z s})} { [nap ap({-1 -1.4 -0.3})] v } {-1 -1.3}
+Test nap-15.8 {ap using ap({a z})} { [nap ap({-1.4 0.4})] v } {-1.4 -0.4 0.4}
+Test nap-15.9 {ap using ap({a z s})} { [nap ap({-1 -1.4 -0.3})] v } {-1 -1.3 -1.4}
 Test nap-15.10 {ap with step of 0} { [nap ap(0,4,0)] v } {}
 Test nap-15.11 {ap using bigger..smaller} { [nap 3..1] v } {3 2 1}
+Test nap-15.12 {ap using n...a..b} { [nap 5...0..1] v } {0 0.25 0.5 0.75 1}
+Test nap-15.13 {ap using n...a..b} { [nap 2.5 ... 1 .. 7] v } {1 5 7}
+Test nap-15.14 {ap using a..b..d} { [nap -60.4 .. -59.8 ... 0.2]} {-60.4 -60.2 -60 -59.8}
 
 Test nap-16.1 {display vector defined above} { $j v} {8 9 9.3}
 Test nap-16.2 {count(above vector)} { [nap count(j)] v } {3}
@@ -934,9 +937,23 @@ Test nap-22.14 {laminate: check CV 2} {
     [$i coo 2]
 } {5 6 7}
 
+Test nap-22.15 {cat: vector//scalar} {[nap "{4 -9}//5"] v} {4 -9 5}
+
+Test nap-22.16 {cat: scalar//matrix} {[nap "9 // {{0 2}{-1 1}}"]} \
+{ 9  9
+ 0  2
+-1  1}
+
+Test nap-22.17 {cat: matrix//scalar} {[nap "{{0 2}{-1 1}} // 9"]} \
+{ 0  2
+-1  1
+ 9  9}
+
+Test nap-22.18 {cat: vector//scalar} {[nap "{4 -9} // 5.0"] v} {4 -9 5}
+
 unset i m mm
 # keep a3d in(+2), a
-put_info "nap-22.14 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
+put_info "nap-22.18 17 [llength [list_naos]] NAOs using [lindex [nap_info bytes] 0] bytes"
 
 Test nap-23.1 {closest: vector@@scalar} {[nap "{3.6 1 9 0}@@2"] v} 1
 

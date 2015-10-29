@@ -12,7 +12,7 @@ m4dnl   If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napSpatial.c,m4,v 1.10 2002/05/14 00:32:03 dav480 Exp $"
+static char *rcsid="@(#) $Id: napSpatial.c,m4,v 1.11 2002/10/10 09:00:21 dav480 Exp $"
 ;
 #endif /* not lint */
 
@@ -400,7 +400,7 @@ Nap_dilate(
     CHECK2NULL(box_nao->nels == 3,
              "m4NAME: Usage should be 'dilate(data,structureElement,Origin)' ");
     in_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[0]);
-    assert(in_nao);
+    CHECK2NULL(in_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
     dataType = in_nao->dataType;
     rank = in_nao->rank;
     shape[0] = ySize = in_nao->shape[0];
@@ -657,7 +657,7 @@ Nap_erode(
     CHECK2NULL(box_nao->nels == 3,
              "m4NAME: Usage should be 'dilate(data,structureElement,Origin)' ");
     in_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[0]);
-    assert(in_nao);
+    CHECK2NULL(in_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
     dataType = in_nao->dataType;
     rank = in_nao->rank;
     shape[0] = ySize = in_nao->shape[0];

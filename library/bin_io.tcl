@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1998, CSIRO Australia
 # Author: Harvey Davies, CSIRO.
-# $Id: bin_io.tcl,v 1.12 2001/11/12 05:13:53 dav480 Exp $
+# $Id: bin_io.tcl,v 1.13 2002/09/27 05:07:40 dav480 Exp $
 
 
 # check --
@@ -137,7 +137,7 @@ proc get_cif1 {
 	    set unit_x degrees_east
 	}
 	if {[string equal $unit_y (NULL)]} {
-	    set unit_y degrees_east
+	    set unit_y degrees_north
 	}
     } else {
 	default name_x x
@@ -231,7 +231,7 @@ proc get_cif {
 	    set unit_x degrees_east
 	}
 	if {[string equal $unit_y (NULL)]} {
-	    set unit_y degrees_east
+	    set unit_y degrees_north
 	}
     } else {
 	default name_x x

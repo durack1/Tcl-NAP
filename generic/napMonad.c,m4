@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.176 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napMonad.c,m4,v 1.178 2002/10/10 09:00:20 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -231,8 +231,9 @@ Nap_Reduce(
     if (verbRankNaoPtr) {
 	assert(verbRankNaoPtr->id);
 	assert(Nap_IsNAO(nap_cd, verbRankNaoPtr));
-	CHECK2NULL(verbRankNaoPtr->nels == 1, "m4NAME: Illegal verb rank");
+	CHECK2NULL(verbRankNaoPtr->nels == 1, "m4NAME: Illegal verb-rank");
 	tmpNao = Nap_CastNAO(nap_cd, verbRankNaoPtr, NAP_F64);
+	CHECK2NULL(tmpNao, "m4NAME: Error calling Nap_CastNAO");
 	verbRank = Min(old->rank, tmpNao->data.F64[0]);
 	if (tmpNao != verbRankNaoPtr) {
 	    Nap_FreeNAO(nap_cd, tmpNao);
@@ -264,7 +265,7 @@ Nap_Reduce(
     }
     cellShape = old->shape + old->rank - verbRank;
     new = Nap_NewNAO(nap_cd, newDataType, newRank, newShape);
-    assert(new);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
     for (d = 0; d < newRank; d++) {
 	i = d + rankDecrease * (d >= frameRank);
         coordNaoPtr = Nap_GetCoordVar(nap_cd, old, i);
@@ -441,11 +442,11 @@ Nap_Correlation(
     CHECK2NULL(box_nao->rank == 1, "m4NAME: Argument rank not 1");
     CHECK2NULL(box_nao->nels > 0,  "m4NAME: No arguments");
     arg0_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[0]);
-    assert(arg0_nao);
+    CHECK2NULL(arg0_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
     dataType = Max(m4DataTypeEnum(m4MinRealDataType), arg0_nao->dataType);
     if (box_nao->nels > 1) {
 	arg1_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[1]);
-	assert(arg1_nao);
+	CHECK2NULL(arg1_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
 	dataType = Max(dataType, arg1_nao->dataType);
 	CHECK2NULL(arg0_nao->rank == arg1_nao->rank, "m4NAME: Rank of x differs from that of y");
 	CHECK2NULL(arg0_nao->rank > 0, "m4NAME: Rank of x is 0");
@@ -459,22 +460,24 @@ Nap_Correlation(
 	shape[0] = arg0_nao->shape[0];
 	shape[1] = arg0_nao->rank > 1 ? arg0_nao->shape[1] : 1;
 	xnao = Nap_ReshapeNAO(nap_cd, arg0_nao, NAP_F64, 2, shape);
-	assert(xnao);
+	CHECK2NULL(xnao, "m4NAME: Error calling Nap_ReshapeNAO");
 	Nap_IncrRefCount(nap_cd, xnao);
 	shape[0] = arg1_nao->shape[0];
 	shape[1] = arg1_nao->rank > 1 ? arg1_nao->shape[1] : 1;
 	ynao = Nap_ReshapeNAO(nap_cd, arg1_nao, NAP_F64, 2, shape);
-	assert(ynao);
+	CHECK2NULL(ynao, "m4NAME: Error calling Nap_ReshapeNAO");
 	Nap_IncrRefCount(nap_cd, ynao);
 	for (i = 0; i < 2; i++) {
 	    tmp_nao = Nap_GetCoordVar(nap_cd, ynao, i);
 	    if (tmp_nao) {
 		Nap_IncrRefCount(nap_cd, tmp_nao);
 		cvy[i] = Nap_CastNAO(nap_cd, tmp_nao, NAP_F32);
+		CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_CastNAO");
 		Nap_IncrRefCount(nap_cd, cvy[i]);
 		Nap_DecrRefCount(nap_cd, tmp_nao);
 	    } else {
 		cvy[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, ynao->shape + i);
+		CHECK2NULL(cvy[i], "m4NAME: Error calling Nap_NewNAO");
 		Nap_IncrRefCount(nap_cd, cvy[i]);
 		for (j = 0; j < cvy[i]->nels; j++) {
 		    cvy[i]->data.F32[j] = j;
@@ -482,18 +485,18 @@ Nap_Correlation(
 	    }
 	    if (box_nao->nels > i+2) {
 		tmp_nao = Nap_GetNaoFromSlot(box_nao->data.Boxed[i+2]);
-		assert(tmp_nao);
+		CHECK2NULL(tmp_nao, "m4NAME: Error calling Nap_GetNaoFromSlot");
 		CHECK3NULL(tmp_nao->rank < 2, "m4NAME: Rank of lag %d > 1", i);
 		Nap_IncrRefCount(nap_cd, tmp_nao);
 		shape[0] = tmp_nao->nels;
 		lag[i] = Nap_ReshapeNAO(nap_cd, tmp_nao, NAP_I32, 1, shape);
-		assert(lag[i]);
+		CHECK2NULL(lag[i], "m4NAME: Error calling Nap_ReshapeNAO");
 		Nap_IncrRefCount(nap_cd, lag[i]);
 		Nap_DecrRefCount(nap_cd, tmp_nao);
 	    } else {
 		shape[0] = 1 + ynao->shape[i] - xnao->shape[i];
 		lag[i] = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
-		assert(lag[i]);
+		CHECK2NULL(lag[i], "m4NAME: Error calling Nap_NewNAO");
 		Nap_IncrRefCount(nap_cd, lag[i]);
 		for (j = 0; j < lag[i]->nels; j++) {
 		    lag[i]->data.I32[j] = j;
@@ -504,12 +507,12 @@ Nap_Correlation(
 	shape[1] = nrz = lag[0]->nels;
 	shape[2] = ncz = lag[1]->nels;
 	znao = Nap_NewNAO(nap_cd, dataType, 1 + arg0_nao->rank, shape);
-	assert(znao);
+	CHECK2NULL(znao, "m4NAME: Error calling Nap_NewNAO");
 	for (i = 1; i < znao->rank; i++) {
 	    cvz[i] = Nap_NewNAO(nap_cd, NAP_F32, 1, shape+i);
-	    assert(cvz[i]);
+	    CHECK2NULL(cvz[i], "m4NAME: Error calling Nap_NewNAO");
 	    status = Nap_AttachCoordVar(nap_cd, znao, cvz[i], ynao->dimName[i-1], i);
-	    assert(status == TCL_OK);
+	    CHECK1NULL(status == TCL_OK);
 	}
 	nrx = xnao->shape[0];
 	ncx = xnao->shape[1];
@@ -544,7 +547,7 @@ Nap_Correlation(
 		}
 		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
 			jz+iz*ncz, jz+iz*ncz+ncz*nrz);
-		assert(status == TCL_OK);
+		CHECK1NULL(status == TCL_OK);
 	    }
 	}
 	for (i = 0; i < 2; i++) {
@@ -555,17 +558,17 @@ Nap_Correlation(
     } else {
 	CHECK2NULL(arg0_nao->rank == 2, "m4NAME: Rank of argument should be 2");
 	xnao = Nap_CastNAO(nap_cd, arg0_nao, NAP_F64);
-	assert(xnao);
+	CHECK2NULL(xnao, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, xnao);
 	nrx = xnao->shape[0];
 	shape[0] = 2;
 	shape[1] = shape[2] = nrz = ncz = ncx = xnao->shape[1];
 	znao = Nap_NewNAO(nap_cd, dataType, 3, shape);
-	assert(znao);
+	CHECK2NULL(znao, "m4NAME: error calling Nap_NewNAO");
 	tmp_nao = Nap_GetCoordVar(nap_cd, xnao, 1);
 	for (i = 1; i < 3; i++) {
 	    status = Nap_AttachCoordVar(nap_cd, znao, tmp_nao, NULL, i);
-	    assert(status == TCL_OK);
+	    CHECK1NULL(status == TCL_OK);
 	}
 	for (iz = 0; iz < ncx; iz++) {
 	    for (jz = 0; jz <= iz; jz++) {
@@ -584,10 +587,10 @@ Nap_Correlation(
 		}
 		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
 			jz+iz*ncx, jz+iz*ncx+ncz*nrz);
-		assert(status == TCL_OK);
+		CHECK1NULL(status == TCL_OK);
 		status = Nap_CorrelationStore(n, sumx, sumx2, sumy, sumy2, sumxy, znao,
 			iz+jz*ncx, iz+jz*ncx+ncz*nrz);
-		assert(status == TCL_OK);
+		CHECK1NULL(status == TCL_OK);
 	    }
 	}
     }
@@ -695,6 +698,7 @@ Nap_pad(
 	if (box_nao->nels == 2) {
 	    pad_nao = Nap_CastNAO(nap_cd, Nap_GetNaoFromSlot(box_nao->data.Boxed[1]),
 		    dataType);
+	    CHECK2NULL(pad_nao, "m4NAME: Error calling Nap_CastNAO");
 	    CHECK2NULL(pad_nao->nels == 1, "m4NAME: pad_value is not scalar");
 	    str = pad_nao->data.c;
 	} else {
@@ -783,6 +787,7 @@ Nap_prune(
 	newMV = oldMV = in_nao->missingValueSlot;
         if (box_nao->nels == 2) {
             pad_nao = Nap_CastNAO(nap_cd, Nap_GetNaoFromSlot(box_nao->data.Boxed[1]), dataType);
+	    CHECK2NULL(pad_nao, "m4NAME: Error calling Nap_CastNAO");
             CHECK2NULL(pad_nao->nels == 1, "m4NAME: pad_value is not scalar");
 	    Nap_IncrRefCount(nap_cd, pad_nao);
 	    newMV = pad_nao->slot;
@@ -881,6 +886,7 @@ m4define(`m4psum', `
 	case m4DataTypeEnum($1):
 	    for (i = 1; i < result->nels; i++) {
 		status = mixedBase(i, rank-1, shape+1, index);
+		CHECK2NULL(!status, "m4NAME: Error calling mixedBase");
 		for (j = 1; j < n; j++) {
 		    s = -1;
 		    k = i;
@@ -1104,6 +1110,7 @@ Nap_invert_grid(
 	CHECK2NULL(tmp_nao1, "m4NAME: NULL argument");
 	CHECK2NULL(tmp_nao1->rank == rank, "m4NAME: Main array has wrong rank");
 	main_nao[i] = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
+	CHECK2NULL(main_nao[i], "m4NAME: Error calling Nap_CastNAO");
 	maxValue = -FLT_MAX;
 	minValue =  FLT_MAX;
 	for (j = 0; j < main_nao[i]->nels; j++) {
@@ -1120,6 +1127,7 @@ Nap_invert_grid(
 	CHECK2NULL(tmp_nao1, "m4NAME: NULL argument");
 	CHECK2NULL(tmp_nao1->rank == 1, "m4NAME: Coordinate variable has wrong rank");
 	tmp_nao2 = Nap_CastNAO(nap_cd, tmp_nao1, NAP_F32);
+	CHECK2NULL(tmp_nao2, "m4NAME: Error calling Nap_CastNAO");
 	shape[0] = 0;
 	for (j = 0; j < tmp_nao2->nels; j++) {
 	    value = tmp_nao2->data.F32[j];
@@ -1220,6 +1228,7 @@ Nap_invert_grid(
 	CHECK2NULL(result, "m4NAME: Error calling Nap_NewNAO");
 	shape[0] = 2;
 	tmp_nao1 = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
+	CHECK2NULL(tmp_nao1, "m4NAME: Error calling Nap_NewNAO");
 	for (i = 0; i < 2; i++) {
 	    tmp_nao1->data.I32[i] = old_cv_nao[i] ? 1 : 0;
 	}
@@ -1327,6 +1336,7 @@ Nap_nels(
     Nap_NAO             *new;
 
     new = Nap_NewNAO(nap_cd, NAP_I32, 0, NULL);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
     new->data.I32[0] = naoPtr->nels;
     return new->id;
 }
@@ -1347,6 +1357,7 @@ Nap_rank(
     Nap_NAO             *new;
 
     new = Nap_NewNAO(nap_cd, NAP_I32, 0, NULL);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
     new->data.I32[0] = naoPtr->rank;
     return new->id;
 }
@@ -1369,6 +1380,7 @@ Nap_label(
 
     shape[0] = naoPtr->label ? strlen(naoPtr->label) : 0;
     new = Nap_NewNAO(nap_cd, NAP_C8, 1, shape);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
     if (naoPtr->label) {
 	strncpy(new->data.c, naoPtr->label, shape[0]);
     }
@@ -1453,6 +1465,7 @@ Nap_shape(
 
     shape[0] = naoPtr->rank;
     new = Nap_NewNAO(nap_cd, NAP_I32, 1, shape);
+    CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
     for (i = 0; i < naoPtr->rank; i++) {
         new->data.I32[i] = naoPtr->shape[i];
     }
@@ -1569,6 +1582,7 @@ Nap_Tally(
     if (Nap_IsReal(naoPtr)) {
 	naoTmp = naoPtr;
 	naoPtr = Nap_CastNAO(nap_cd, naoTmp, NAP_I32);
+	CHECK2NULL(naoPtr, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, naoPtr);
 	Nap_DecrRefCount(nap_cd, naoTmp);
     }
@@ -1968,6 +1982,7 @@ Nap_Func1(
 	}
     } else if (strcmp(name, "isnan") == 0) {
 	new = Nap_NewNAO(nap_cd, NAP_U8, naoPtr->rank, naoPtr->shape);
+	CHECK2NULL(new, "m4NAME: Error calling Nap_NewNAO");
 	switch (naoPtr->dataType) {
 	case NAP_F32:
 	    for (i = 0; i < new->nels; i++) {
@@ -2101,7 +2116,7 @@ Nap_FuncProc(
 	    Tcl_AppendStringsToObj(scriptObj, " ", naoPtr->id, NULL);
 	}
 	list_nao = Nap_NewNAO(nap_cd, NAP_I32, 0, NULL);
-	assert(list_nao);
+	CHECK2(list_nao, "m4NAME: Error calling Nap_NewNAO");
 	old_slotList = nap_cd->slotList;
 	nap_cd->slotList = list_nao->data.U32[0] = list_nao->slot;
 	status = Tcl_EvalObj(nap_cd->interp, scriptObj);
@@ -2228,6 +2243,7 @@ Nap_Func(
 	    boxed = naoPtr2;
 	} else {
 	    boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+	    CHECK2NULL(boxed, "m4NAME: Error calling Nap_NewNAO");
 	    boxed->data.Boxed[0] = naoPtr2->slot;
 	    Nap_IncrRefCount(nap_cd, naoPtr2);
 	}

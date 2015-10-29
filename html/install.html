@@ -1,4 +1,4 @@
-<!-- $Id: install.html,v 1.1 2002/08/14 03:50:54 dav480 Exp $ -->
+<!-- $Id: install.html,v 1.4 2002/10/16 08:59:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -17,6 +17,13 @@ The <b>nap</b> extension requires the <b>BLT</b> extension.
 The graphics procedure <code>plot_nao</code> uses the
 <b>printer</b> extension.
 The following instructions explain how to install these three extensions with <b>Tcl/Tk</b>.
+
+<p>
+Note that at the time of writing (15 October 2002) 
+NAP could not be used with Tcl 8.4 (released 19 September 2002)
+because no compatible version of BLT was available.
+The most recent version of BLT available was 2.4y which was available for Tcl 8.3.
+Alternatives to BLT (for graphing) are being investigated to overcome this dependency.
 
 <h3>Installing Tcl/Tk</h3>
 
@@ -55,7 +62,7 @@ unpack it into directory <code>lib</code> using a command such as
 <h3>Installing nap</h3>
 
 Download <b>nap</b> from
-<a href="http://sourceforge.net/projects/tcl-nap/">SourceForge: Tcl-nap Project Summary</a>.
+<a href="http://sourceforge.net/project/showfiles.php?group_id=55616">Tcl-NAP Files</a>.
 Binary installation files are available for:
 
 <p>
@@ -101,7 +108,7 @@ They can be directly unpacked using many recent versions of <b>tar</b>
 and Windows programs such as <b>WinZip</b>.
 Unix users can also use:
 <pre>
-    zcat printUnix.tar.gz | tar -xvf - 
+    zcat nap3.0.4src.tgz | tar -xvf - 
 </pre>
 You should unpack into the Tcl root directory (parent of 
 <code>bin</code>
@@ -109,25 +116,38 @@ and
 <code>lib</code>).
 
 <P>
-It is convenient to include the following in your
-<code>tclsh</code> startup file
-(<code>tclshrc.tcl</code> for windows,
-<code>.tclshrc</code> for unix):
+It is convenient to include the following 
 
 <pre>
     package require nap
     namespace import ::NAP::*
 </pre>
 
-If you have problems accessing the nap Tcl library procedures then you
-may also need to explicitly source 
-<code>lib/tclIndex</code>
-as follows:
+in your startup file,
+which is normally stored in your home directory with the following name:
 
-<pre>
-    set dir $tcl_library/../nap3.0
-    source $dir/tclIndex
-</pre>
+<P>
+<table border>
+
+<tr>
+    <th> Operating System
+    <th> tclsh
+    <th> wish
+    <th> tkcon
+
+<tr>
+    <td> <b>Windows</b>
+    <td> <code>tclshrc.tcl</code>
+    <td> <code>wishrc.tcl</code>
+    <td> <code>tkcon.cfg</code>
+
+<tr>
+    <td> <b>Unix</b>
+    <td> <code>.tclshrc</code>
+    <td> <code>.wishrc</code>
+    <td> <code>.tkconrc</code>
+
+</table>
 
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
@@ -140,7 +160,7 @@ as follows:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: install.html,v 1.1 2002/08/14 03:50:54 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: install.html,v 1.4 2002/10/16 08:59:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

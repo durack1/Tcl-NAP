@@ -1,4 +1,4 @@
-<!-- $Id: op.html,v 1.2 2002/08/07 08:58:48 dav480 Exp $ -->
+<!-- $Id: op.html,v 1.3 2002/10/16 08:59:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -40,23 +40,38 @@ The nature of arguments is indicated as follows:
 <br>
 <var>n</var> represents a Tcl name, which may include namespaces.
 <br>
-<var>p</var> represents a boxed vector of pointers to arrays.
+<var>p</var> represents a boxed vector of pointers to arrays
+<var>a<sub>0</sub></var>,
+<var>a<sub>1</sub></var>,
+<var>a<sub>2</sub></var>,
+&hellip;
 
 <p>
-<table border rules=groups>
+'AP' means <em>arithmetic progression</em>.
+
+<p>
+<table>
     <colgroup span=1> <colgroup span=1>
 
-    <tr>
-	<th align=center>Syntax
-	<th align=center>Result
+    <tr><td><hr><td><hr>
 
-    <tbody>
-	<tr valign=top> <td>
+    <tr>
+	<th align=left>Syntax
+	<th align=left>Result
+
+    <tr><td><hr><td><hr>
+
+	<tr valign=bottom> <td>
 		<var>a</var><code>**</code><var>b</var>
 	    <td>
-		<var>a</var> raised to the power <var>b</var>. Right-associative
+		<var>a<sup>b</sup></var>. Right-associative
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
+	<tr valign=top> <td>
+		<code>+</code><var>a</var>
+	    <td>
+		New copy of <var>a</var>
 	<tr valign=top> <td>
 		<code>-</code><var>a</var>
 	    <td>
@@ -64,7 +79,7 @@ The nature of arguments is indicated as follows:
 	<tr valign=top> <td>
 		<code>!</code><var>a</var>
 	    <td>
-		Logical NOT: 1 if <var>a</var> is zero, 0 otherwise
+		Logical NOT: 1 if <var>a</var> is zero, else 0
 	<tr valign=top> <td>
 		<code>~</code><var>a</var>
 	    <td>
@@ -72,93 +87,82 @@ The nature of arguments is indicated as follows:
 	<tr valign=top> <td>
 		<code>#</code><var>a</var>
 	    <td>
-		Frequencies of values 0, 1, 2, &hellip;&nbsp;
-		(Ignore negative and missing values)
+		Frequencies of values 0, 1, 2, &hellip;
 	<tr valign=top> <td>
 		<code>@</code><var>a</var>
 	    <td>
-		Interpolated subscript:
-		<var>s</var> such that 
-		<var>c</var>(<var>s</var>)=<var>a</var>,
-		<br>
-		where <var>c</var> is the coordinate variable of this dimension
+		Indirect subscript
 
 	<tr valign=top> <td>
 		<code>@@</code><var>a</var>
 	    <td>
-		Subscript of closest:
-		<code>i32</code> <var>s</var> for which 
-<code>abs(</code><var>c</var><code>(</code><var>s</var><code>)-</code><var>a</var><code>)</code>
-		    is least,
-		<br>
-		where <var>c</var> is the coordinate variable of this dimension
+		Indirect subscript
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>v</var><code>@</code><var>b</var>
 	    <td>
-		Interpolated subscript:
-		<code>f32</code> subscript <var>s</var> such that
-		<var>v</var><code>(</code><var>s</var><code>)==</code><var>b</var>,
-		<br>
+		<var>s</var> such that
+		<var>v<sub>s</sub>=b</var>,
 		where <var>v</var> is ordered vector
 	<tr valign=top> <td>
 		<var>v</var><code>@@</code><var>b</var>
 	    <td>
-		Subscript of closest:
-		<code>i32</code> subscript <var>s</var> for which 
-<code>abs(</code><var>v</var><code>(</code><var>s</var><code>)-</code><var>b</var><code>)</code>
+		<code>i32</code> <var>s</var> for which 
+		|<var>v<sub>s</sub>-b</var>|
 		    is least
 	<tr valign=top> <td>
 		<var>v</var><code>@@@</code><var>b</var>
 	    <td>
-		Subscript of match:
-		smallest <code>i32</code> subscript <var>s</var> for which
-		    <var>v</var><code>(</code><var>s</var><code>)==</code><var>b</var>
+		smallest <code>i32</code> <var>s</var> for which
+		<var>v<sub>s</sub>=b</var>
 
 	<tr valign=top> <td nowrap>
 		[<var>a</var>]<code>...</code>[<var>b</var>]
 	    <td>
-		High-precedence Link:
 		Boxed vector pointing to <var>a</var>
 		and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>x</var><code>..</code><var>y</var>
 	    <td>
-		(<var>x</var> and <var>y</var> scalar)
-		Arithmetic progression from <var>x</var> to <var>y</var>
+		AP from <var>x</var> to <var>y</var>
 		in steps of <code>+1</code> or <code>-1</code>
 
 	<tr valign=top> <td>
 		<var>x</var><code>..</code><var>p</var>
 	    <td>
-		(<var>x</var> scalar, <var>p</var> boxed 2-element vector)
-		Arithmetic progression
-		<br>
-		<var>x</var> is 1st element;
-		<var>p</var><sub>0</sub> points to final element;
-		<var>p</var><sub>1</sub> points to step
-		<br>
-		<var>p</var> often defined using &quot;<code>...</code>&quot;, as in
-		&quot;<code>3..7...2</code>&quot; which is <code>{3 5 7}</code>
+		AP from <var>x</var> to 
+		<var>a</var><sub>0</sub>
+		in steps of 
+		<var>a</var><sub>1</sub>
 
-    <tbody>
+	<tr valign=top> <td>
+		<var>p</var><code>..</code><var>y</var>
+	    <td>
+		AP from
+		<var>a</var><sub>1</sub>
+		to <var>y</var>
+		with
+		<var>a</var><sub>0</sub> elements
+
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>u</var><code>#</code><var>v</var>
 	    <td>
 		<var>u</var> copies of <var>v</var>
-		(<var>u</var> and <var>v</var> are vectors with same shape (or scalars))
 
 	<tr valign=top> <td>
 		<var>p</var><code>#</code><var>b</var>
 	    <td>
 		Cross-product replication
-		(<var>p</var> boxed vector with <code>rank(</code><var>b</var><code>)</code>
-		elements)
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>u</var><code>+*</code><var>v</var>
 	    <td>
@@ -171,36 +175,34 @@ The nature of arguments is indicated as follows:
 		(<var>A</var> and <var>B</var> matrices)
 		Matrix product
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>*</code><var>b</var>
 	    <td>
-		Multiply <var>a</var> and <var>b</var> 
+		<var>a</var> &times; <var>b</var> 
 	<tr valign=top> <td>
 		<var>a</var><code>/</code><var>b</var>
 	    <td>
-		Divide <var>a</var> by <var>b</var>
+		<var>a</var> &divide; <var>b</var> 
 	<tr valign=top> <td>
 		<var>a</var><code>%</code><var>b</var>
 	    <td>
-		Remainder <var>r</var> after dividing <var>a</var>
-		by <var>b</var>, which need not be integers
-		<br>
-		If <var>b</var>&gt;0 then 0&le;<var>r</var>&lt;<var>b</var>.
-		If <var>b</var>=0 then <var>r</var>=0.
-		If <var>b</var>&lt;0 then <var>b</var>&lt;<var>r</var>&le;0
+		Remainder after dividing <var>a</var> by <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>+</code><var>b</var>
 	    <td>
-		Add <var>a</var> and <var>b</var>
+		<var>a</var> + <var>b</var>
 	<tr valign=top> <td>
 		<var>a</var><code>-</code><var>b</var>
 	    <td>
-		Subtract <var>b</var> from <var>a</var>
+		<var>a</var> &minus; <var>b</var> 
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code><<</code><var>b</var>
 	    <td>
@@ -210,7 +212,8 @@ The nature of arguments is indicated as follows:
 	    <td>
 		Right-shift <var>a</var> by <var>b</var> bits
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code><<<</code><var>b</var>
 	    <td>
@@ -220,102 +223,123 @@ The nature of arguments is indicated as follows:
 	    <td>
 		Greater of <var>a</var> and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code><</code><var>b</var>
 	    <td>
-		1 if <var>a</var> is less than <var>b</var>,
-		0 otherwise
+		1 if <var>a</var> &lt; <var>b</var>,
+		else 0
 	<tr valign=top> <td>
 		<var>a</var><code>></code><var>b</var>
 	    <td>
-		1 if <var>a</var> is greater than <var>b</var>,
-		0 otherwise
+		1 if <var>a</var> &gt; <var>b</var>,
+		else 0
 	<tr valign=top> <td>
 		<var>a</var><code><=</code><var>b</var>
 	    <td>
-		1 if <var>a</var> is less than or equal to <var>b</var>,
-		0 otherwise
+		1 if <var>a</var> &le; <var>b</var>,
+		else 0
 	<tr valign=top> <td>
 		<var>a</var><code>>=</code><var>b</var>
 	    <td>
-		1 if <var>a</var> is greater than or equal to
-		<var>b</var>, 0 otherwise
+		1 if <var>a</var> &ge; <var>b</var>,
+		else 0
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>==</code><var>b</var>
 	    <td>
-		1 if <var>a</var> is equal to <var>b</var>, 0 otherwise
+		1 if <var>a</var> = <var>b</var>, else 0
 	<tr valign=top> <td>
 		<var>a</var><code>!=</code><var>b</var>
 	    <td>
-		1 if <var>a</var> is not equal to <var>b</var>,
-		0 otherwise
+		1 if <var>a</var> &ne; <var>b</var>,
+		else 0
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>&</code><var>b</var>
 	    <td>
 		Bit-wise AND of <var>a</var> and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>^</code><var>b</var>
 	    <td>
 		Bit-wise exclusive OR of <var>a</var> and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>|</code><var>b</var>
 	    <td>
 		Bit-wise OR of <var>a</var> and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>&&</code><var>b</var>
 	    <td>
-		Logical AND: 1 if both <var>a</var> and
-		<var>b</var> are non-zero, 0 otherwise
+		Logical AND: 1 if 
+		<var>a</var> &ne; 0
+		and
+		<var>b</var> &ne; 0,
+		else 0
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>||</code><var>b</var>
 	    <td>
-		Logical OR: 1 if either <var>a</var> or
-		<var>b</var> is non-zero, 0 otherwise
+		Logical OR: 1 if 
+		<var>a</var> &ne; 0
+		or
+		<var>b</var> &ne; 0,
+		else 0
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>?</code><var>b</var><code>:</code><var>c</var>
 	    <td>
-		Choice: if <var>a</var> is non-zero then <var>b</var>, 
-		    else <var>c</var>
+		Choice: if 
+		<var>a</var> &ne; 0
+		then <var>b</var>, 
+		else <var>c</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>a</var><code>//</code><var>b</var>
 	    <td>
-		Concatenate along an existing dimension
+		Concatenate along existing dimension
 	<tr valign=top> <td>
 		<var>a</var><code>///</code><var>b</var>
 	    <td>
-		Concatenate along a new dimension
+		Concatenate along new dimension
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		[<var>a</var>]<code>,</code>[<var>b</var>]
 		<td>
-		Low-precedence Link:
 		Boxed vector pointing to <var>a</var>
 		and <var>b</var>
 
-    <tbody>
+    <tr><td><hr><td><hr>
+
 	<tr valign=top> <td>
 		<var>n</var><code>=</code><var>a</var>
 	    <td>
-		Assignment: Set <var>n</var> to OOC-name of <var>a</var>.
 		Result is <var>a</var>. Right-associative
+		<br>
+		Side Effect: Set <var>n</var> to OOC-name of <var>a</var>
+
+    <tr><td><hr><td><hr>
 
 </table>
 
@@ -353,72 +377,17 @@ expressions such as:
 4.5 3
 </PRE>
 
-<h3>Arithmetic Progression Operator &quot;<code>..</code>&quot;</h3>
-
-<P>
-The data-type of the result depends on the data-types of
-<var>first</var>, <var>final</var> and <var>step</var>.
-
-<P>
-If <code>(</code><var>final</var><code>-</code><var>first</var><code>)/</code><var>step</var>
-is non-integer then 
-<var>final</var> is adjusted to the closest value giving an integer.
-For example:
-
-<PRE>
-% [nap "-3 .. 8 &hellip; 3"] all
-::NAP::51-51  i32  MissingValue: -2147483648  References: 0  Unit: (NULL)
-Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
-Value:
--3 0 3 6 9
-% [nap "9.1 .. 4.7"] all
-::NAP::55-55  f64  MissingValue: NaN  References: 0  Unit: (NULL)
-Dimension 0   Size: 5      Name: (NULL)    Coordinate-variable: (NULL)
-Value:
-9.1 8.1 7.1 6.1 5.1
-</PRE>
-
 <h3> Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</h3>
 
 <P>
 The link operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;
 are identical except for precedence.
-The left operand generates one boxed vector and the right operand generates another.
-These two boxed vectors are concatenated to form the result, which is also a boxed vector.
+They produce a boxed vector pointing to the operands.
 
 <P>
-If the data-type of an operand is not boxed then it generates a single-element boxed
-vector pointing to it.
-If an operand is a boxed vector then it generates a copy of itself.
-If an operand is a boxed scalar then it is treated as a boxed vector with a single element.
-If an operand is absent (NULL) then it generates a single-element (whose value is 0,
-the missing-value) boxed vector.
-
-<P>
-A binary operator takes exactly two arguments, one on its left and one on its right.
-However some operators allow the effect of additional arguments by
-allowing the right-hand argument to be a boxed vector pointing to other NAOs.
-In particular, the arithmetic progression operator
-&quot;<code>..</code>&quot;
-allows its right argument to be a 2-element
-boxed vector pointing to <var>final</var> and <var>step</var>, as in:
-
-<PRE>
-% [nap "3 .. (9,2)"]
-3 5 7 9
-</PRE>
-
-which can be written using 
-&quot;<code>...</code>&quot; as:
-
-<PRE>
-% [nap "3 .. 9 ... 2"]
-3 5 7 9
-</PRE>
-
-<P>
-Similarly, some functions accept multiple arguments.
-These are normally specified using the operator &quot;<code>,</code>&quot;.
+A common use of 
+&quot;<code>,</code>&quot;
+is to pass multiple arguments to a function.
 For example the logarithm function <code>log</code> takes an optional second argument
 specifying <var>base</var>, as in:
 
@@ -431,6 +400,110 @@ specifying <var>base</var>, as in:
 The operator &quot;<code>,</code>&quot; is also used in <em>cross-product indexing</em>,
 as discussed in the section 
 <a href="indexing.html">NAP Indexing</a>.
+
+<P>
+A common use of 
+&quot;<code>...</code>&quot; 
+is in conjunction with the
+<a href="#AP">arithmetic progression operator</a>
+&quot;<code>..</code>&quot;,
+which is discussed in the next section.
+
+<P>
+The left operand of 
+&quot;<code>...</code>&quot; 
+or
+&quot;<code>,</code>&quot;
+generates one boxed vector and the right operand generates another.
+These two boxed vectors are concatenated to form the result, which is also a boxed vector.
+If the data-type of an operand is not boxed then it generates a single-element boxed
+vector pointing to it.
+If an operand is a boxed vector then it generates a copy of itself.
+If an operand is a boxed scalar then it is treated as a boxed vector with a single element.
+If an operand is absent (NULL) then it generates a single-element (whose value is 0,
+the missing-value) boxed vector.
+
+<h3><a name=AP>Arithmetic Progression Operator &quot;<code>..</code>&quot;</h3>
+
+<P>
+The operator
+&quot;<code>..</code>&quot;
+generates an arithmetic progression.
+If both operands are simple numeric scalars 
+then the step size is +1 or &minus;1,
+the left operand specifies the first value and
+the right operand specifies the final value.
+For example:
+
+<PRE>
+% [nap "3 .. 6"]
+3 4 5 6
+% [nap "6 .. 3"]
+6 5 4 3
+% [nap "1.8 .. -1.2"]
+1.8 0.8 -0.2 -1.2
+</PRE>
+
+If the difference between the operands is not an integral multiple of the 
+step size then the final step is smaller than the preceding steps.
+This is shown by:
+
+<PRE>
+% [nap "2.3 .. 5.9"]
+2.3 3.3 4.3 5.3 5.9
+</PRE>
+
+<P>
+The right operand can be a boxed two-element vector pointing to the final value and the step size.
+Such a boxed operand is usually generated using the operator
+&quot;<code>...</code>&quot;,
+as in:
+
+<PRE>
+% [nap "3 .. 9 ... 2"]
+3 5 7 9
+% [nap "0 .. -1.6 ... -0.5"]
+0 -0.5 -1 -1.5 -1.6
+</PRE>
+
+<P>
+The left operand can be a boxed two-element vector pointing to the number of elements
+and the first value.
+Such a boxed operand is also usually generated using the operator
+&quot;<code>...</code>&quot;,
+as in:
+
+<PRE>
+% [nap "5 ... 1 .. 7"]
+1 2.5 4 5.5 7
+</PRE>
+
+It is not legal for both operands to be boxed.
+It is legal to specify a non-integral number of elements, as in:
+
+<PRE>
+% [nap "3.5 ... 2 .. 12"]
+2 6 10 12
+</PRE>
+
+Note that 3.5 elements means 2.5 steps.
+There are two full steps of 4, followed by a half step of 2.
+When the left operand is boxed the step size is calculated using
+(<var>final</var>&nbsp;&minus;&nbsp;<var>first</var>)/(<var>n</var>&nbsp;&minus;&nbsp;1),
+where <var>n</var> is the number of elements.
+
+<P>
+The data-type of the result depends on the data-types of
+<var>first</var>, <var>final</var> and <var>step</var>.
+For example:
+
+<PRE>
+% [nap "1 .. 7.0 ... 2"] all
+::NAP::262-262  f64  MissingValue: NaN  References: 0  Unit: (NULL)
+Dimension 0   Size: 4      Name: (NULL)    Coordinate-variable: (NULL)
+Value:
+1 3 5 7
+</PRE>
 
 <h3> Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</h3>
 
@@ -475,9 +548,8 @@ and &quot;<code>@@@</code>&quot;</h3>
 <P>
 These three operators all take an optional vector left argument.
 The result is a subscript of this vector.
-The left argument defaults to the coordinate-variable of the dimension (only relevant
-to indirect cross-product indexing, which is discussed in the section 
-<a href="indexing.html">NAP Indexing</a>.)
+The left argument defaults to the coordinate-variable of the dimension (only relevant to 
+<a href="indexing.html#indirect_indexing">indirect indexing</a>).
 
 <h3>Interpolated Subscript &quot;<code>@</code>&quot;</h3>
 
@@ -676,6 +748,33 @@ This is equivalent to using the following cross-product index:
  9  9  9 10 10 12
 </PRE>
 
+<h3>Remainder Operator &quot;<code>%</code>&quot;</h3>
+
+The value of the remainder 
+<var>r</var> = <var>a</var> <code>%</code> <var>b</var>
+is defined for all real 
+<var>a</var> and <var>b</var>
+so that:
+<br>
+if <var>b</var> &gt; 0 then 0 &le; <var>r</var> &lt; <var>b</var><br>
+if <var>b</var> = 0 then <var>r</var> = 0<br>
+if <var>b</var> &lt; 0 then <var>b</var> &lt; <var>r</var> &le; 0<br>
+if <var>a</var> &ge; 0 and b = &infin; then <var>r</var> = <var>a</var><br>
+if <var>a</var> &le; 0 and b = &minus;&infin; then <var>r</var> = <var>a</var><br>
+if <var>a</var> &lt; 0 and b = &infin; then <var>r</var> = &infin;<br>
+if <var>a</var> &gt; 0 and b = &minus;&infin; then <var>r</var> = &minus;&infin;.
+<br>
+Thus:
+
+<PRE>
+% [nap "0.7 % {0.3 0 -0.3}"]
+0.1 0 -0.2
+% [nap "{7 0 -7} % 1if32"]
+7 0 Inf
+% [nap "{7 0 -7} % -1if32"]
+-Inf 0 -7
+</PRE>
+
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
   <TR>
@@ -687,7 +786,7 @@ This is equivalent to using the following cross-product index:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: op.html,v 1.2 2002/08/07 08:58:48 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: op.html,v 1.3 2002/10/16 08:59:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

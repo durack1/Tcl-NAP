@@ -10,7 +10,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.115 2002/08/14 03:41:13 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.123 2002/10/10 05:11:29 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -118,12 +118,12 @@ OBJS = \
 PACKAGE = nap
 MAJOR_VERSION = 3
 MINOR_VERSION = 0
-PATCHLEVEL = .4
+PATCHLEVEL = .5
 VERSION = 3.0
 NODOT_VERSION = 30
-NODOT_PATCHLEVEL = 4
+NODOT_PATCHLEVEL = 5
 USE_VERSION = 3.0
-USE_PATCHLEVEL = .4
+USE_PATCHLEVEL = .5
 
 #------------------------------------------------------------------------------
 # Package directories
@@ -185,7 +185,7 @@ DBGX =
 #------------------------------------------------------------------------------
 
 CC_MAKEDEPEND = gcc -MM -DMAKE_DEPEND $(CPPFLAGS)
-CPPFLAGS =   -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.0\" -DPATCHLEVEL=\".4\"  $(INCLUDES)
+CPPFLAGS =   -DUSE_TCL_STUBS=1 -DHAVE_UNISTD_H=1 -DISNAN64=isnan -DVERSION=\"3.0\" -DPATCHLEVEL=\".5\"  $(INCLUDES)
 HDF_HEADER_DIR = /home/dav480/hdf/use/include
 NC_HEADER_DIR = /home/dav480/nc/use/include
 TCL_HEADER_DIR = /home/dav480/tcl/include
@@ -233,7 +233,7 @@ TCL_LINK_SPEC = -ltcl8.3$(DBGX)
 TCL_SHLIB_SPEC = -ltclstub8.3$(DBGX) ${LIBS}
 
 LIBS = 
-SYS_LIBS =  -lieee -lm -lX11
+SYS_LIBS =  -lieee -lm -L/usr/X11R6/lib -lX11
 LINK_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(SYS_LIBS)
 SHLIB_LD_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(SYS_LIBS)
 EXTRA_LIBS = -L/home/dav480/nc/use/lib -lnetcdf -L/home/dav480/hdf/use/lib -lmfhdf -ldf -ljpeg -lz -L/home/dav480/tcl/lib -lBLT
@@ -276,8 +276,8 @@ COMPRESS = gzip
 TAR = tar -cf -
 TAR_SUFFIX = .tgz
 
-SRC_TAR = $(PWD)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
-INSTALL_TAR = $(PWD)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
+SRC_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
+INSTALL_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
 
 #------------------------------------------------------------------------------
 # all (default target)
@@ -369,13 +369,8 @@ install-libraries: libraries
 	if test ! -d $(PACKAGE_LIBRARY_DIR) ; then \
 	    mkdir $(PACKAGE_LIBRARY_DIR); fi
 	$(CP) $(LIBRARY_DIR)/*.tcl $(PACKAGE_LIBRARY_DIR)
+	$(CP) pkgIndex.tcl $(PACKAGE_LIBRARY_DIR)
 	$(ECHO) "auto_mkindex `$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` *.tcl" > tmp.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
-	$(ECHO) "pkg_mkIndex \
-		`$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` \
-		*.tcl \
-		../../$(SHLIB_DIR_BASE)/$(PACKAGE_SHLIB)" \
-		> tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
@@ -475,7 +470,6 @@ clean:
 		config.cache \
 		config.log \
 		config.status \
-		pkgIndex.tcl \
 		so_locations \
 		vc50.pch
 

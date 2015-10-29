@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.130 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyad.c,m4,v 1.133 2002/10/10 09:00:20 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -146,7 +146,7 @@ Nap_DyadInit(
 		i1, i2);
     }
     naoResultPtr = Nap_NewNAO(nap_cd, resultDataType, rank, shape);
-    assert(naoResultPtr);
+    CHECK2(naoResultPtr, "m4NAME: Error calling Nap_NewNAO");
     if (resultHasMissingValue) {
 	if (naoResultPtr->missingValueSlot == 0) {
 	    naoMissingValuePtr = Nap_StandardMissingValueNAO(nap_cd, resultDataType);
@@ -525,8 +525,65 @@ m4shift(`ShiftRight', `$1 >> $2')
 
 
 /*
+ * Nap_AP_check --
+ *
+ *	Called by Nap_AP & Nap_AP_arg
+ */
+
+static int
+Nap_AP_check(
+    NapClientData	*nap_cd,
+    Nap_NAO		*naoPtr,
+    char		*name)		/* name of arg for messages */
+{
+    CHECK3(naoPtr , "m4NAME: Operand '%s' is bad", name);
+    CHECK3(Nap_TypeIsNumeric(naoPtr->dataType), "m4NAME: Operand '%s' is not numeric", name);
+    CHECK3(naoPtr->rank == 0, "m4NAME: Operand '%s' is not scalar", name);
+    CHECK3(!IsMissing(naoPtr, 0), "m4NAME: Operand '%s' == missing value", name);
+    return TCL_OK;
+}
+
+/*
+ * Nap_AP_arg --
+ *
+ *	Called by Nap_AP
+ */
+
+static Nap_NAO *
+Nap_AP_arg(
+    NapClientData	*nap_cd,
+    Nap_NAO		*naoPtr,
+    int			i,		/* index of this arg within naoPtr */
+    char		*name)		/* name of arg for messages */
+{
+    Nap_NAO		*result;
+    int			status;
+
+    if (i < naoPtr->nels) {
+	result = Nap_GetNaoFromSlot(naoPtr->data.Boxed[i]);
+	status = Nap_AP_check(nap_cd, result, name);
+	Nap_IncrRefCount(nap_cd, result);
+	if (status != TCL_OK) {
+	    Nap_DecrRefCount(nap_cd, result);
+	    CHECK1NULL(FALSE);
+	}
+    } else {
+	result = NULL;
+    }
+    return result;
+}
+
+/*
  * Nap_AP --
- *      Generate arithmetic progression.
+ *      Generate arithmetic progression -- operator '..'
+ *
+ *	Either operand can be boxed, but not both
+ *	If left  argument is unboxed it represents 'from' value
+ *	If right argument is unboxed it represents 'to' value
+ *	If left  argument is unboxed it represents values: (n , from)
+ *		where n is # elements in result
+ *	If right argument is unboxed it represents values: (to , step [, tolerance])
+ *		where tolerance (default 1e-9) is used to define n=floor((to-from)/step+tolerance)
  */
 
 m4begin
@@ -535,7 +592,7 @@ m4begin
 m4define(`m4generateAP', `
             case m4DataTypeEnum($1):
                 for (i = 0; i < n; i++) {
-                    result->data.$1[i] = naoFrom->data.$1[0] + i * naoStep->data.$1[0];
+                    result->data.$1[i] = naoFrom->data.$1[0] + i * step;
                 }
                 break;')
 
@@ -545,6 +602,12 @@ m4define(`m4generateAP1', `
                 for (i = 0; i < n; i++) {
                     result->data.$1[i] = naoFrom->data.$1[0] $2 i;
                 }
+                break;')
+
+# m4appendAP(type)
+m4define(`m4appendAP', `
+            case m4DataTypeEnum($1):
+		result->data.$1[n] = to;
                 break;')
 
 m4define(`m4NAME', `Nap_AP')
@@ -558,63 +621,104 @@ Nap_AP(
     char		*str2)		/* either 'to' value or 'to,step' (boxed) */
 {
     Nap_dataType	dataType;
+    int                 extra;		/* 1 if need extra element at end, else 0 */
     double              from;		/* initial value of A.P. */
     size_t		i;
-    int                 n;              /* number of elements in A.P. */
-    Nap_NAO		*naoFrom;
+    int                 n;		/* integer number of elements in A.P. */
+    					/*(excludes any extra element at end) */
+    double              nn;		/* floating point number of elements in A.P. */
+    Nap_NAO		*naoFrom = NULL;
+    Nap_NAO		*naoN = NULL;
+    Nap_NAO		*naoPtr1;
     Nap_NAO		*naoPtr2;
-    Nap_NAO		*naoStep;
-    Nap_NAO		*naoTo;
-    double              q;		/* quotient */
+    Nap_NAO		*naoStep = NULL;
+    Nap_NAO		*naoTol = NULL;
+    Nap_NAO		*naoTo = NULL;
     Nap_NAO		*result;
     size_t		shape[1];
     int			status;
     double              step;           /* A.P. increment */
     double              to;		/* final value of A.P. */
+    double              tol = 1.0e-9;	/* tolerance (see above) */
     Nap_NAO		*tmp;
 
     CHECK2NULL(str1, "m4NAME: Left argument of .. is NULL");
-    naoFrom = Nap_GetNaoFromId(nap_cd, str1);
-    CHECK2NULL(naoFrom , "m4NAME: Bad 'from' argument");
-    Nap_IncrRefCount(nap_cd, naoFrom);
-    dataType = naoFrom->dataType;
-    CHECK2NULL(Nap_TypeIsNumeric(dataType), "m4NAME: 'from' argument is not numeric");
-    CHECK2NULL(naoFrom->rank == 0, "m4NAME: 'from' argument is not scalar");
-    CHECK2NULL(!IsMissing(naoFrom, 0), "m4NAME: 'from' argument == missing value");
+    naoPtr1 = Nap_GetNaoFromId(nap_cd, str1);
+    CHECK2NULL(naoPtr1, "m4NAME: Bad left argument of ..");
+    Nap_IncrRefCount(nap_cd, naoPtr1);
+    if (naoPtr1->dataType == NAP_BOXED) {
+	CHECK2NULL(naoPtr1->rank == 1, "m4NAME: Left boxed argument of .. is not vector");
+	CHECK2NULL(naoPtr1->nels == 2, "m4NAME: Left boxed argument of .. does not have shape {2}");
+	naoN    = Nap_AP_arg(nap_cd, naoPtr1, 0, "n");
+	naoFrom = Nap_AP_arg(nap_cd, naoPtr1, 1, "n");
+    } else {
+	naoFrom = naoPtr1;
+	status = Nap_AP_check(nap_cd, naoFrom, "from");
+	Nap_IncrRefCount(nap_cd, naoFrom);
+	if (status != TCL_OK) {
+	    Nap_DecrRefCount(nap_cd, naoFrom);
+	    CHECK1NULL(FALSE);
+	}
+    }
     CHECK2NULL(str2, "m4NAME: Right argument of .. is NULL");
     naoPtr2 = Nap_GetNaoFromId(nap_cd, str2);
-    CHECK2NULL(naoFrom , "m4NAME: Bad right argument of ..");
+    CHECK2NULL(naoPtr2, "m4NAME: Bad right argument of ..");
     Nap_IncrRefCount(nap_cd, naoPtr2);
     if (naoPtr2->dataType == NAP_BOXED) {
 	CHECK2NULL(naoPtr2->rank == 1, "m4NAME: Right boxed argument of .. is not vector");
-	CHECK2NULL(naoPtr2->nels == 2,
-		"m4NAME: Right boxed argument of .. does not have shape {2}");
-	naoTo = Nap_GetNaoFromSlot(naoPtr2->data.Boxed[0]);
-	dataType = Nap_DataType2(dataType, naoTo->dataType);
-	naoStep = Nap_GetNaoFromSlot(naoPtr2->data.Boxed[1]);
-	CHECK2NULL(naoStep , "m4NAME: Bad step");
-	CHECK2NULL(Nap_TypeIsNumeric(naoStep->dataType), "m4NAME: Step is not numeric");
-	CHECK2NULL(naoStep->rank == 0, "m4NAME: Step is not scalar");
-	CHECK2NULL(!IsMissing(naoStep, 0), "m4NAME: 'step' argument == missing value");
-	Nap_IncrRefCount(nap_cd, naoStep);
-	dataType = Nap_DataType2(dataType, naoStep->dataType);
-	tmp = naoStep;
-	naoStep = Nap_CastNAO(nap_cd, tmp, dataType);
-	Nap_IncrRefCount(nap_cd, naoStep);
-	Nap_DecrRefCount(nap_cd, tmp);
-	status = Nap_F64ScalarValue(nap_cd, naoStep, &step);
-	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
-	CHECK2NULL(!IsNaN64(step), "m4NAME: step is NaN");
+	CHECK2NULL(naoPtr2->nels == 2 || naoPtr2->nels == 3,
+		"m4NAME: Right boxed argument of .. does not have shape {2} or {3}");
+	naoTo   = Nap_AP_arg(nap_cd, naoPtr2, 0, "to");
+	CHECK1NULL(naoTo);
+	naoStep = Nap_AP_arg(nap_cd, naoPtr2, 1, "step");
+	CHECK1NULL(naoStep);
+	if (naoPtr2->nels == 3) {
+	    naoTol  = Nap_AP_arg(nap_cd, naoPtr2, 2, "tolerance");
+	    CHECK1NULL(naoTol);
+	}
     } else {
 	naoTo = naoPtr2;
-	dataType = Nap_DataType2(dataType, naoTo->dataType);
-	naoStep = NULL;
+	status = Nap_AP_check(nap_cd, naoTo, "to");
+	Nap_IncrRefCount(nap_cd, naoTo);
+	if (status != TCL_OK) {
+	    Nap_DecrRefCount(nap_cd, naoTo);
+	    CHECK1NULL(FALSE);
+	}
     }
-    CHECK2NULL(naoTo , "m4NAME: Bad 'to' argument");
-    Nap_IncrRefCount(nap_cd, naoTo);
-    CHECK2NULL(Nap_TypeIsNumeric(naoTo->dataType), "m4NAME: 'to' argument is not numeric");
-    CHECK2NULL(naoTo->rank == 0, "m4NAME: 'to' argument is not scalar");
-    CHECK2NULL(!IsMissing(naoTo, 0), "m4NAME: 'to' argument == missing value");
+    assert(naoFrom);
+    CHECK2NULL(!naoN || !naoStep, "m4NAME: Both 'n' and 'step' specified");
+    status = Nap_F64ScalarValue(nap_cd, naoFrom, &from);
+    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+    assert(naoTo);
+    status = Nap_F64ScalarValue(nap_cd, naoTo, &to);
+    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+    dataType = Nap_DataType2(naoFrom->dataType, naoTo->dataType);
+    if (from == to) {
+	step = 1.0;
+	nn = 1.0;
+    } else if (naoN) {
+	status = Nap_F64ScalarValue(nap_cd, naoN, &nn);
+	CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+	nn = Max(0.0, nn);
+	step = nn == 1.0 ? 1.0 : (to - from) / (nn - 1.0);
+    } else {
+	if (naoStep) {
+	    status = Nap_F64ScalarValue(nap_cd, naoStep, &step);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+	    if (naoTol) {
+		status = Nap_F64ScalarValue(nap_cd, naoTol, &tol);
+		CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
+	    }
+	} else {
+	    step = Sign(to - from);
+	}
+	nn = step ? 1.0 + (to - from) / step : 0.0;
+    }
+    nn = Max(0.0, floor(nn+tol) > floor(nn) ? ceil(nn) : nn);
+    n = nn;
+    if (step != floor(step)) {
+	dataType = Nap_DataType2(dataType, NAP_F32);
+    }
     tmp = naoFrom;
     naoFrom = Nap_CastNAO(nap_cd, tmp, dataType);
     Nap_IncrRefCount(nap_cd, naoFrom);
@@ -623,24 +727,8 @@ Nap_AP(
     naoTo = Nap_CastNAO(nap_cd, tmp, dataType);
     Nap_IncrRefCount(nap_cd, naoTo);
     Nap_DecrRefCount(nap_cd, tmp);
-    status = Nap_F64ScalarValue(nap_cd, naoFrom, &from);
-    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
-    CHECK2NULL(!IsNaN64(from), "m4NAME: 'from' argument is NaN");
-    status = Nap_F64ScalarValue(nap_cd, naoTo, &to);
-    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_F64ScalarValue");
-    CHECK2NULL(!IsNaN64(to), "m4NAME: 'to' argument is NaN");
-    if (from == to) {
-	step = 1.0;
-    } else if (!naoStep) {
-	step = to > from ? 1.0 : -1.0;
-    }
-    if (step == 0.0) {
-	n = 0;
-    } else {
-	q = (to - from) / step;
-	n = q < 0.0 ? 0 : 1 + Nint(q);
-    }
-    shape[0] = n;
+    extra = nn > n+tol;
+    shape[0] = n + extra;
     result = Nap_NewNAO(nap_cd, dataType, 1, shape);
     if (n > 0) {
 	if (step == 1.0) {
@@ -663,9 +751,18 @@ Nap_AP(
 	    }
 	}
     }
+    if (extra) {
+	switch (dataType) {
+	    m4ForAllNumericDataType(`m4appendAP(', `)')
+	    default:                /* error */
+		return NULL;
+	}
+    }
+    Nap_DecrRefCount(nap_cd, naoN);
     Nap_DecrRefCount(nap_cd, naoFrom);
     Nap_DecrRefCount(nap_cd, naoTo);
     Nap_DecrRefCount(nap_cd, naoStep);
+    Nap_DecrRefCount(nap_cd, naoPtr1);
     Nap_DecrRefCount(nap_cd, naoPtr2);
     result->step = NAP_EQUAL;
     return result->id;

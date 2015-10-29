@@ -9,7 +9,7 @@
 #
 # Author: Harvey Davies, CSIRO Atmospheric Research
 #
-# RCS: @(#) $Id: Makefile.in,v 1.115 2002/08/14 03:41:13 dav480 Exp $
+# RCS: @(#) $Id: Makefile.in,v 1.124 2002/10/18 05:37:44 dav480 Exp $
 
 #------------------------------------------------------------------------------
 # Header (#include) files i.e. *.h files
@@ -232,7 +232,7 @@ TCL_LINK_SPEC = @TCL_LINK_SPEC@
 TCL_SHLIB_SPEC = @TCL_SHLIB_SPEC@
 
 LIBS = @LIBS@
-SYS_LIBS = @SYS_LIBS@ @MATH_LIBS@ @X11_LIB_SWITCHES@
+SYS_LIBS = @SYS_LIBS@ @MATH_LIBS@ @XLIBSW@
 LINK_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_LINK_SPEC) $(LIBS) $(SYS_LIBS)
 SHLIB_LD_LIBS = $(EXTRA_LIBS) $(TK_LIB_SPEC) $(TCL_SHLIB_SPEC) $(SYS_LIBS)
 EXTRA_LIBS = @NC_LIB_SPEC@ @HDF_LIB_SPEC@ @BLT_LIB_SPEC@
@@ -275,8 +275,8 @@ COMPRESS = @COMPRESS@
 TAR = @TAR@
 TAR_SUFFIX = @TAR_SUFFIX@
 
-SRC_TAR = $(PWD)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
-INSTALL_TAR = $(PWD)/$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
+SRC_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)src$(TAR_SUFFIX)
+INSTALL_TAR = $(PWD)/../$(PACKAGE)$(USE_VERSION)$(USE_PATCHLEVEL)$(PLATFORM)$(TAR_SUFFIX)
 
 #------------------------------------------------------------------------------
 # all (default target)
@@ -368,13 +368,8 @@ install-libraries: libraries
 	if test ! -d $(PACKAGE_LIBRARY_DIR) ; then \
 	    mkdir $(PACKAGE_LIBRARY_DIR); fi
 	$(CP) $(LIBRARY_DIR)/*.tcl $(PACKAGE_LIBRARY_DIR)
+	$(CP) pkgIndex.tcl $(PACKAGE_LIBRARY_DIR)
 	$(ECHO) "auto_mkindex `$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` *.tcl" > tmp.tcl
-	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
-	$(ECHO) "pkg_mkIndex \
-		`$(NATIVE_PATH) $(PACKAGE_LIBRARY_DIR)` \
-		*.tcl \
-		../../$(SHLIB_DIR_BASE)/$(PACKAGE_SHLIB)" \
-		> tmp.tcl
 	TCL_LIBRARY=$(TCL_LIBRARY_DIR) $(TCLSH_PROG) tmp.tcl
 	$(RM) tmp.tcl
 
@@ -474,7 +469,6 @@ clean:
 		config.cache \
 		config.log \
 		config.status \
-		pkgIndex.tcl \
 		so_locations \
 		vc50.pch
 

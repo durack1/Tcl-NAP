@@ -4,7 +4,7 @@
 #
 # Copyright (c) 1999, CSIRO Australia
 # Author: Harvey Davies, CSIRO Atmospheric Research
-# $Id: all.tcl,v 1.13 2002/06/06 05:27:53 dav480 Exp $
+# $Id: all.tcl,v 1.14 2002/08/26 06:49:00 dav480 Exp $
 
 
 if {[lsearch [namespace children] ::tcltest] == -1} {
@@ -34,6 +34,7 @@ namespace import ::NAP::*
 
 set files "\
 	$env(LIBRARY_DIR)/nap_proc_lib.tcl \
+	$env(LIBRARY_DIR)/nap_function_lib.tcl \
 	$env(LIBRARY_DIR)/proc_lib.tcl \
 	$env(LIBRARY_DIR)/old.tcl \
 	[::tcltest::getMatchingFiles]"

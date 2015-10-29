@@ -1,4 +1,4 @@
-<!-- $Id: indexing.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $ -->
+<!-- $Id: indexing.html,v 1.2 2002/10/16 08:59:45 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -428,22 +428,103 @@ Value:
 2 3 5
 </pre>
 
-Each element (corresponding to a dimension) of a cross-product index can be 
-<em>direct</em> or <em>indirect</em>.
-The <em>direct</em> type is the only one discussed so far 
-&mdash; this type specifies an ordinary subscript value.
-The <em>indirect</em> type specifies a value 
-(say <code><var>v</var></code>)
-of the <em>coordinate-variable</em>
-using one of the unary (monadic) operators
-<code>@</code> and <code>@@</code>.
-The following table defines how the subscript for dimension
-<code><var>d</var></code>
-of array
-<code><var>a</var></code>
-is calculated from these values of 
-<code><var>v</var></code>:
+<h3><a name=indirect_indexing>Indirect Indexing</h3>
 
+It is often more natural to index via coordinate variables rather than subscripts.
+For example, consider a matrix with latitude and longitude coordinate variables.
+One could specify an element directly using subscripts such as "row 3, column 5".
+One could also specify an interpolated point directly using subscripts such as
+"row 3.5, column 5.2".
+However many users would prefer to specify latitude and longitude
+(values of the coordinate variables) rather than specify row and column.
+<em>Indirect indexing</em> simplifies such indexing via coordinate variables.
+The following three sections correspond to the three types of index:
+<em>shape-preserving</em>,
+<em>cross-product</em>
+and
+<em>full</em>.
+
+<h4>Indirect Shape-Preserving Indexing</h4>
+
+The following table defines 
+<em>indirect shape-preserving</em> indexing of any vector
+<var>v</var>
+via any array
+<var>c</var>
+containing coordinate variable values:
+
+<p>
+<table border>
+    <tr>
+	<th align=center>Syntax
+	<th align=center>Value
+	<tr valign=top> <td>
+		<var>v</var><code>(@</code><var>c</var><code>)</code>
+	    <td>
+    <var>v</var><code>(coordinate_variable(</code><var>v</var><code>)@</code><var>c</var>)</code>
+	<tr valign=top> <td>
+		<var>v</var><code>(@@</code><var>c</var><code>)</code>
+	    <td>
+    <var>v</var><code>(coordinate_variable(</code><var>v</var><code>)@@</code><var>c</var>)</code>
+</table>
+
+<p>
+For example, suppose we have temperatures at two-hourly intervals from time 1000 
+to 1600 as follows:
+
+<pre>
+% nap "t = {20.2 21.6 24.9 22.7}"
+::NAP::159-159
+% $t set coord "10 .. 16 ... 2"
+</pre>
+
+We could estimate temperatures every hour during this period as follows:
+
+<pre>
+% [nap "t(coordinate_variable(t)@(10..16))"] value
+20.2 20.9 21.6 23.25 24.9 23.8 22.7
+</pre>
+
+Indirect indexing allows us to omit the left argument of operators
+&quot;<code>@</code>&quot;
+and
+&quot;<code>@@</code>&quot;
+in such expressions.
+This enables the above expression to be simplified as follows:
+
+<pre>
+% [nap "t(@(10..16))"] value
+20.2 20.9 21.6 23.25 24.9 23.8 22.7
+</pre>
+
+<p>
+Note that this syntax does not allow indirect indices such as that in "<code>t(3+@@12)</code>".
+Instead we have to use <em>binary</em> "<code>@@</code>" as in
+"<code>t(3+coordinate_variable(t)@@12)</code>".
+
+<h4>Indirect Cross-Product Indexing</h4>
+
+The syntax for a general <em>cross-product-index</em> (involving direct and/or indirect
+indexing) is:<br>
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+[<code>@</code>[<code>@</code>]]<var>expr</var>, 
+&hellip;
+<br>
+where 
+<var>expr</var>
+is an expression (which may need to be enclosed in parentheses).
+
+<p>
+The following table defines <em>indirect cross-product</em> indexing.
+It shows how the subscript for dimension
+<var>d</var>
+of array
+<var>a</var>
+is calculated from (vector or scalar)
+<var>v</var>:
+
+<p>
 <table border>
     <tr>
 	<th align=center>Syntax
@@ -457,26 +538,6 @@ is calculated from these values of
 	    <td>
 <code>coordinate_variable(</code><var>a</var><code>,</code><var>d</var><code>)@@</code><var>v</var>
 </table>
-
-<p>
-The syntax for a cross-product-index is:<br>
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-[<code>@</code>[<code>@</code>]]<var>expr</var>, 
-&hellip;
-<br>
-where 
-<code><var>expr</var></code>
-is an expression (which may need to be enclosed in parentheses).
-<p>
-Note that this syntax does not allow indices such as:
-<pre>
-a(3+@7.5, 0)
-</pre>
-Instead we have to use <em>binary</em> <code>@</code> as follows:
-<pre>
-a(3+coordinate_variable(a,0)@7.5, 0)
-</pre>
 
 <p>
 The following creates a 3&times;4 matrix 
@@ -612,6 +673,38 @@ such as
 <li>wrap around to allow interpolation across longitude 180
 <li>data-type <code>f32</code>
 
+<h4>Indirect Full Indexing</h4>
+
+A full index can be preceded by the unary "<code>@</code>"
+or "<code>@@</code>" operator to give indirect indexing.
+However, unlike cross-product indexing, this operator applies to all dimensions.
+The following example shows how full indexing can be used to produce the same values
+as those in the above example of cross-product indexing.
+
+<pre>
+% [nap "temperature({{1 2}{1.1 2.8}})"]; # direct indexing
+29 23
+% [nap "temperature(@{{20 130}{21 138}})"]
+29 23
+% [nap "temperature(@@{{20 130}{21 138}})"]
+29 21.9
+</pre>
+
+<h4>How Indirect Indexing Works</h4>
+
+Indirect indexing uses ancillary NAOs linked to index NAOs using their link slots.
+These ancillary NAOs contain integers with value <br>
+&bull; 0 for direct indexing <br>
+&bull; 1 for indirect indexing using "<code>@</code>" <br>
+&bull; 2 for indirect indexing using "<code>@@</code>".
+
+<p>
+The unary "<code>@</code>" and "<code>@@</code>" operators simply create a copy of
+their operand and attach to it such an ancillary NAO.
+Another process in which indirect full indices are created by attaching such
+an ancillary NAO, is
+the function <code>invert_grid()</code>.
+
 <P>
 <TABLE width="100%" border="0" cellspacing="0" cellpadding="2" bgcolor="737b9c">
   <TR>
@@ -623,7 +716,7 @@ such as
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: indexing.html,v 1.1 2002/08/07 08:09:24 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: indexing.html,v 1.2 2002/10/16 08:59:45 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

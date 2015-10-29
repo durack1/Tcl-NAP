@@ -15,7 +15,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.44 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: nap_netcdf.c,m4,v 1.45 2002/10/10 09:00:22 dav480 Exp $";
 #endif /* not lint */
 
 #define CHECK2NC(STATUS, FORMAT) \
@@ -543,7 +543,7 @@ Nap_NetcdfCreateVar(
 	CHECK2(valid_range_NAO->rank == 1, "m4NAME: valid_range not vector");
 	CHECK2(valid_range_NAO->nels == 2, "m4NAME: nels(valid_range) != 2");
 	tmp_NAO = Nap_CastNAO(nap_cd, valid_range_NAO, NAP_F64);
-	assert(tmp_NAO);
+	CHECK2(tmp_NAO, "m4NAME: Error calling Nap_CastNAO");
 	if (tmp_NAO->data.F64[0] > tmp_NAO->data.F64[1]) {
 	    double old0 = tmp_NAO->data.F64[0];
 	    tmp_NAO->data.F64[0] = tmp_NAO->data.F64[1];
@@ -557,7 +557,7 @@ Nap_NetcdfCreateVar(
     }
     if (missingValue_NAO) {
 	tmp_NAO = Nap_CastNAO(nap_cd, missingValue_NAO, dataType);
-	assert(tmp_NAO);
+	CHECK2(tmp_NAO, "m4NAME: Error calling Nap_CastNAO");
 	switch (dataType) {
 	    case NAP_C8:
 		status = nc_put_att_text(ncid, varid, "_FillValue", 1, tmp_NAO->data.c);
@@ -816,7 +816,7 @@ Nap_NetcdfScaleBeforePut(
 	CHECK2(fill_nao, "m4NAME: Error calling Nap_NewScalarNAO");
     } else {
 	fill_nao = Nap_StandardMissingValueNAO(nap_cd, dataType);
-	assert(fill_nao);
+	CHECK2(fill_nao, "m4NAME: Error calling Nap_StandardMissingValueNAO");
     }
     Nap_IncrRefCount(nap_cd, fill_nao);
     for (i = 0; i < rank32; i++) {
@@ -1131,6 +1131,7 @@ Nap_NetcdfDefineSubscript(
 	    tmp_NAO = subscript_NAO;
 	    shape1[0] = 1;
 	    subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape1);
+	    CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
 	    subscript_NAO->data.Boxed[0] = tmp_NAO->slot;
 	    ++ tmp_NAO->count;
 	}
@@ -1178,6 +1179,7 @@ Nap_NetcdfDefineSubscript(
 			}
 		    } else {
 			sub_NAO = Nap_NewNAO(nap_cd, NAP_I32, 1, shape1+i);
+			CHECK2(sub_NAO, "m4NAME: Error calling Nap_NewNAO");
 			for (j = 0; j < shape1[i]; j++) {
 			    sub_NAO->data.I32[j] = j;
 			}
@@ -1188,6 +1190,7 @@ Nap_NetcdfDefineSubscript(
 		}
 	    } else {
 		sub_NAO = Nap_NewNAO(nap_cd, NAP_I32, 1, shape1+i);
+		CHECK2(sub_NAO, "m4NAME: Error calling Nap_NewNAO");
 		for (j = 0; j < shape1[i]; j++) {
 		    sub_NAO->data.I32[j] = j;
 		}
@@ -1521,6 +1524,7 @@ Nap_NetcdfPut(
 		    tmp_NAO = boxed_cv_nc;
 		    shape[0] = 1;
 		    boxed_cv_nc = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		    CHECK2(boxed_cv_nc, "m4NAME: Error calling Nap_NewNAO");
 		    boxed_cv_nc->data.Boxed[0] = tmp_NAO->slot;
 		    ++tmp_NAO->count;
 		}
@@ -1595,6 +1599,7 @@ Nap_NetcdfPut(
 	    } else {
 		shape[0] = rank;
 		subscript_NAO = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
+		CHECK2(subscript_NAO, "m4NAME: Error calling Nap_NewNAO");
 		for (i = 0; i < rank; i++) {
 		    tmp_NAO = Nap_GetCoordVar(nap_cd, main_NAO, i);
 		    if (tmp_NAO) {

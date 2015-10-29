@@ -13,7 +13,7 @@ m4dnl	If you see this line, you can ignore the next one.
  */
 
 #ifndef lint
-static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.65 2002/08/07 08:16:54 dav480 Exp $";
+static char *rcsid="@(#) $Id: napDyadLib.c,m4,v 1.68 2002/10/10 09:00:20 dav480 Exp $";
 #endif /* not lint */
 
 #include "nap.h"
@@ -84,10 +84,10 @@ Nap_InnerProd(
     int                 status;
 
     naoArg1 = Nap_GetNumericNaoFromId(nap_cd, str1);
-    assert(naoArg1);
+    CHECK1NULL(naoArg1);
     Nap_IncrRefCount(nap_cd, naoArg1);
     naoArg2 = Nap_GetNumericNaoFromId(nap_cd, str2);
-    assert(naoArg2);
+    CHECK1NULL(naoArg2);
     Nap_IncrRefCount(nap_cd, naoArg2);
     dataType = Nap_DataType2(naoArg1->dataType , naoArg2->dataType);
     nao1 = Nap_CastNAO(nap_cd, naoArg1, dataType);
@@ -558,7 +558,7 @@ Nap_SubscriptCrossProduct(
 	    if (naoSubNewEl[d]) {
 		naoTmp = naoSubNewEl[d];
 		naoSubNewEl[d] = Nap_CastNAO(nap_cd, naoTmp, dataType);
-		assert(naoSubNewEl[d]);
+		CHECK2(naoSubNewEl[d], "m4NAME: Error calling Nap_CastNAO");
 		Nap_IncrRefCount(nap_cd, naoSubNewEl[d]);
 		Nap_DecrRefCount(nap_cd, naoTmp);
 	    }
@@ -577,9 +577,9 @@ Nap_SubscriptCrossProduct(
 		    newCV[rank]->unit = Nap_StrDup(naoTmp ? naoTmp->unit : NULL);
 		} else if (naoArray->coordVarSlot[d] > 0) {
 		    naoTmp = Nap_GetNaoFromSlot(naoArray->coordVarSlot[d]);
-		    assert(naoTmp);
+		    CHECK2(naoTmp, "m4NAME: Error calling Nap_GetNaoFromSlot");
 		    str = Nap_Func(nap_cd, naoTmp->id, naoSubNewEl[d]->id);
-		    assert(str);
+		    CHECK2(str, "m4NAME: Error calling Nap_Func");
 		    newCV[rank] = Nap_GetNumericNaoFromId(nap_cd, str);
 		} else {
 		    newCV[rank] = NULL;
@@ -595,11 +595,11 @@ Nap_SubscriptCrossProduct(
     }
     if (dataType == NAP_I32) {
 	naoResult = Nap_NewNAO(nap_cd, naoArray->dataType, rank, shape);
-	assert(naoResult);
+	CHECK2(naoResult, "m4NAME: Error calling Nap_NewNAO");
 	status = Nap_SetMissing(nap_cd, naoResult, naoArray->missingValueSlot);
 	CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
 	mv_nao = Nap_GetMissingValueNAO(nap_cd, naoResult);
-	assert(mv_nao);
+	CHECK2(mv_nao, "m4NAME: Error calling Nap_GetMissingValueNAO");
 	d = n;
 	prodShape[d] = Nap_SizeOf(naoArray->dataType);
 	while (--d >= 0) {
@@ -619,13 +619,13 @@ Nap_SubscriptCrossProduct(
 	}
     } else {
 	naoResult = Nap_NewNAO(nap_cd, NAP_F32, rank, shape);
-	assert(naoResult);
+	CHECK2(naoResult, "m4NAME: Error calling Nap_NewNAO");
 	if (naoResult->dataType == naoArray->dataType) {
 	    status = Nap_SetMissing(nap_cd, naoResult, naoArray->missingValueSlot);
 	    CHECK2(status == TCL_OK, "m4NAME: Error calling Nap_SetMissing");
 	}
 	naoTmp = Nap_CastNAO(nap_cd, naoArray, NAP_F32);
-	assert(naoTmp);
+	CHECK2(naoTmp, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, naoTmp);
 	mv = Nap_GetF64MissingValue(nap_cd, naoResult->slot);
 	pF32 = naoResult->data.F32;
@@ -736,7 +736,7 @@ Nap_SubscriptFull(
     shape[0] = naoSub->nels / n;
     for (d = 0; d < n; d++) {
 	naoCol[d] = Nap_NewNAO(nap_cd, naoSub->dataType, 1, shape);
-	assert(naoCol[d]);
+	CHECK2(naoCol[d], "m4NAME: Error calling Nap_NewNAO");
 	Nap_IncrRefCount(nap_cd, naoCol[d]);
 	for (j = 0; j < naoCol[d]->nels; j++) {
 	    memcpy(naoCol[d]->data.c+s*j, naoSub->data.c+s*(d+n*j), s);
@@ -749,7 +749,7 @@ Nap_SubscriptFull(
     }
     dataType = Nap_TypeIsInteger(dataType) ? naoArray->dataType : NAP_F32;
     naoResult = Nap_NewNAO(nap_cd, dataType, naoSub->rank - 1, naoSub->shape);
-    assert(naoResult);
+    CHECK2(naoResult, "m4NAME: Error calling Nap_NewNAO");
     status = Nap_CopyDims(nap_cd, naoSub, naoResult);
     CHECK(status == TCL_OK);
     if (dataType == naoArray->dataType) {
@@ -759,7 +759,7 @@ Nap_SubscriptFull(
     naoResult->unit = Nap_StrDup(naoArray->unit);
     if (Nap_TypeIsInteger(naoIndex[0]->dataType)) {
 	mv_nao = Nap_GetMissingValueNAO(nap_cd, naoResult);
-	assert(mv_nao);
+	CHECK2(mv_nao, "m4NAME: Error calling Nap_GetMissingValueNAO");
 	j = n - 1;
 	prodShape[j] = 1;
 	while (--j >= 0) {
@@ -772,7 +772,7 @@ Nap_SubscriptFull(
 	}
     } else {
 	naoTmp = Nap_CastNAO(nap_cd, naoArray, NAP_F32);
-	assert(naoTmp);
+	CHECK2(naoTmp, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, naoTmp);
 	mv = Nap_GetF64MissingValue(nap_cd, naoResult->slot);
 	for (i = 0; i < naoResult->nels; i++) {
@@ -891,7 +891,7 @@ Nap_SubscriptOfVector(
     rank = naoSubNew->rank;
     dataType = Nap_TypeIsInteger(naoSubNew->dataType) ? naoArray->dataType : NAP_F32;
     naoResult = Nap_NewNAO(nap_cd, dataType, rank, naoSub->shape);
-    assert(naoResult);
+    CHECK2(naoResult, "m4NAME: Error calling Nap_NewNAO");
     status = Nap_CopyDims(nap_cd, naoSub, naoResult);
     CHECK(status == TCL_OK);
     if (dataType == naoArray->dataType) {
@@ -923,7 +923,7 @@ Nap_SubscriptOfVector(
     }
     if (Nap_TypeIsInteger(naoSubNew->dataType)) {
 	mv_nao = Nap_GetMissingValueNAO(nap_cd, naoResult);
-	assert(mv_nao);
+	CHECK2(mv_nao, "m4NAME: Error calling Nap_GetMissingValueNAO");
 	modulus = naoArray->nels;
 	switch (naoResult->dataType) {
 	m4ForAllDataType(`m4v_ia(', `)')
@@ -933,11 +933,11 @@ Nap_SubscriptOfVector(
     } else {
 	naoTmp = naoSubNew;
 	naoSubNew = Nap_CastNAO(nap_cd, naoTmp, NAP_F32);
-	assert(naoSubNew);
+	CHECK2(naoSubNew, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, naoSubNew);
 	Nap_DecrRefCount(nap_cd, naoTmp);
 	naoTmp = Nap_CastNAO(nap_cd, naoArray, NAP_F32);
-	assert(naoTmp);
+	CHECK2(naoTmp, "m4NAME: Error calling Nap_CastNAO");
 	Nap_IncrRefCount(nap_cd, naoTmp);
 	mv = Nap_GetF64MissingValue(nap_cd, naoResult->slot);
 	k = naoResult->nels == 0 ? 1 : naoSubNew->nels / naoResult->nels;
@@ -1062,18 +1062,18 @@ Nap_Subscript(
     CHECK2NULL(naoSub->nels > 0, "m4NAME: empty subscript");
     if (naoSub->nels == 1) {
 	naoSubEl = Nap_GetNaoFromSlot(naoSub->data.Boxed[0]);
-	assert(naoSubEl);
+	CHECK2NULL(naoSubEl, "m4NAME: Error calling Nap_GetNaoFromSlot");
 	Nap_IncrRefCount(nap_cd, naoSubEl);
 	if (naoSubEl->dataType == NAP_RAGGED) {
 	    naoTmp = Nap_GetNumericNaoFromId(nap_cd, naoSubEl->id);
-	    assert(naoTmp);
+	    CHECK2NULL(naoTmp, "m4NAME: Error calling Nap_GetNumericNaoFromId");
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoSubEl);
 	    naoSubEl = naoTmp;
 	}
 	if (naoArray->dataType == NAP_C8  &&  Nap_IsReal(naoSubEl)) {
 	    naoTmp = Nap_CastNAO(nap_cd, naoSubEl, NAP_I32);
-	    assert(naoTmp);
+	    CHECK2NULL(naoTmp, "m4NAME: Error calling Nap_CastNAO");
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoSubEl);
 	    naoSubEl = naoTmp;
@@ -1161,7 +1161,7 @@ Nap_Copy(
     } else {
 	shape[0] = nao2->rank;
 	boxed = Nap_NewNAO(nap_cd, NAP_BOXED, 1, shape);
-	assert(boxed);
+	CHECK2NULL(boxed, "m4NAME: Error calling Nap_NewNAO");
 	Nap_IncrRefCount(nap_cd, boxed);
 	boxed->data.Boxed[0] = nao1->slot;
 	Nap_IncrRefCount(nap_cd, nao1);
@@ -1182,7 +1182,7 @@ Nap_Copy(
 	    CHECK2NULL(boxedElement->nels <= nao2->shape[i], "m4NAME: Illegal left operand");
 	    shape[0] = boxedElement->nels;
 	    tmpNAO = Nap_ReshapeNAO(nap_cd, boxedElement, NAP_I32, 1, shape);
-	    assert(tmpNAO);
+	    CHECK2NULL(tmpNAO, "m4NAME: Error calling Nap_ReshapeNAO");
 	    Nap_IncrRefCount(nap_cd, tmpNAO);
 	    shape[0] = 0;
 	    for (j = 0; j < tmpNAO->nels; j++) {
@@ -1211,7 +1211,7 @@ Nap_Copy(
 	subscript->data.Boxed[i] = subscriptElement ? subscriptElement->slot : 0;
     }
     id = Nap_Subscript(nap_cd, nao2->id, subscript->id);
-    assert(id);
+    CHECK2NULL(id, "m4NAME: Error calling Nap_Subscript");
     Nap_DecrRefCount(nap_cd, subscript);
     Nap_DecrRefCount(nap_cd, boxed);
     Nap_DecrRefCount(nap_cd, nao1);
@@ -1298,7 +1298,6 @@ Nap_Cat(
 {
     Nap_NAO		*cv1;
     Nap_NAO		*cv2;
-    int                 d;			/* difference in rank */
     Nap_dataType        dataType;
     int                 i;
     char		*id;			/* ID of new CV */
@@ -1314,34 +1313,30 @@ Nap_Cat(
 
     naoPtr1 = Nap_GetNumericNaoFromId(nap_cd, str1);
     CHECK2NULL(naoPtr1, "m4NAME: Undefined left-hand operand");
+    Nap_IncrRefCount(nap_cd, naoPtr1);
     naoPtr2 = Nap_GetNumericNaoFromId(nap_cd, str2);
     CHECK2NULL(naoPtr2, "m4NAME: Undefined right-hand operand");
+    Nap_IncrRefCount(nap_cd, naoPtr2);
     dataType = Max(naoPtr1->dataType, naoPtr2->dataType);
     rank = Max(1, Max(naoPtr1->rank, naoPtr2->rank));
+    for (i = 1; i < rank; i++) {
+	shape[i] = naoPtr1->rank < rank ? naoPtr2->shape[i] : naoPtr1->shape[i];
+    }
     if (naoPtr1->dataType < dataType  ||  naoPtr1->rank < rank) {
-	d = rank - naoPtr1->rank;
-	for (i = 0; i < rank; i++) {
-	    shape[i] = i < d ? 1 : naoPtr1->shape[i-d];
-	}
+	shape[0] = naoPtr1->rank < rank ? 1 : naoPtr1->shape[0];
 	naoTmp = naoPtr1;
 	naoPtr1 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
 	CHECK2NULL(naoPtr1, "m4NAME: Error calling Nap_ReshapeNAO_trailing");
-	Nap_FreeNAO(nap_cd, naoTmp);
+	Nap_IncrRefCount(nap_cd, naoPtr1);
+	Nap_DecrRefCount(nap_cd, naoTmp);
     }
     if (naoPtr2->dataType < dataType  ||  naoPtr2->rank < rank) {
-	d = rank - naoPtr2->rank;
-	for (i = 0; i < rank; i++) {
-	    shape[i] = i < d ? 1 : naoPtr2->shape[i-d];
-	}
+	shape[0] = naoPtr2->rank < rank ? 1 : naoPtr2->shape[0];
 	naoTmp = naoPtr2;
 	naoPtr2 = Nap_ReshapeNAO_trailing(nap_cd, naoTmp, dataType, rank, shape);
 	CHECK2NULL(naoPtr2, "m4NAME: Error calling Nap_ReshapeNAO_trailing");
-	Nap_FreeNAO(nap_cd, naoTmp);
-    }
-    for (i = 1; i < rank; i++) {
-	CHECK2NULL(naoPtr1->shape[i] == naoPtr2->shape[i],
-		"m4NAME: arguments have incompatible shapes");
-	shape[i] = naoPtr1->shape[i];
+	Nap_IncrRefCount(nap_cd, naoPtr2);
+	Nap_DecrRefCount(nap_cd, naoTmp);
     }
     shape[0] = naoPtr1->shape[0] + naoPtr2->shape[0];
     result = Nap_NewNAO(nap_cd, dataType, rank, shape);
@@ -1371,8 +1366,8 @@ Nap_Cat(
     } else if (naoPtr2->unit) {
 	result->unit = Nap_StrDup(naoPtr2->unit);
     }
-    Nap_FreeNAO(nap_cd, naoPtr1);
-    Nap_FreeNAO(nap_cd, naoPtr2);
+    Nap_DecrRefCount(nap_cd, naoPtr1);
+    Nap_DecrRefCount(nap_cd, naoPtr2);
     Tcl_SetResult(nap_cd->interp, result->id, TCL_VOLATILE);
     return result->id;
 }
@@ -1531,7 +1526,7 @@ Nap_IndexOf2(
 		naoPtr1->data.F32[j] = x0 + delta;
 	    }
 	    status = Nap_OilNao(naoPtr1);
-	    assert(status == TCL_OK);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr2, NAP_F32);
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoPtr2);
@@ -1561,7 +1556,7 @@ Nap_IndexOf2(
 	    Nap_DecrRefCount(nap_cd, naoPtr1);
 	    naoPtr1 = naoTmp;
 	    status = Nap_OilNao(naoPtr1);
-	    assert(status == TCL_OK);
+	    CHECK2NULL(status == TCL_OK, "m4NAME: Error calling Nap_OilNao");
 	    naoTmp = Nap_CastNAO(nap_cd, naoPtr2, dataType);
 	    Nap_IncrRefCount(nap_cd, naoTmp);
 	    Nap_DecrRefCount(nap_cd, naoPtr2);
