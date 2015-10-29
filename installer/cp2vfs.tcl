@@ -26,13 +26,14 @@ proc glob1 pattern {
     return $result
 }
 
+set include [file tail [lindex [glob $root/include*] end]]
 if {$tcl_platform(machine) eq "ia64" } {
     file mkdir $vfs/home $vfs/tcl
-    file copy $root/bin $root/include $root/lib $root/man $vfs/tcl/
+    file copy $root/bin $root/$include $root/lib $root/man $vfs/tcl/
 } else {
-    file mkdir $vfs/home $vfs/tcl/bin $vfs/tcl/include $vfs/tcl/lib/$package$version 
-    foreach f [glob -nocomplain $root/include/${package}*.h] {
-	file copy $f $vfs/tcl/include
+    file mkdir $vfs/home $vfs/tcl/bin $vfs/tcl/$include $vfs/tcl/lib/$package$version 
+    foreach f [glob -nocomplain $root/$include/${package}*.h] {
+	file copy $f $vfs/tcl/$include
     }
     copy_tree $root/lib/$package$version $vfs/tcl/lib/$package$version
     switch $tcl_platform(platform) {

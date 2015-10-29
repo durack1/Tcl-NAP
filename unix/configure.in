@@ -2,13 +2,13 @@ dnl	configure.in --
 dnl
 dnl	Copyright (c) 1999, CSIRO Australia
 dnl	Author: Harvey Davies, CSIRO Atmospheric Research
-dnl	$Id: configure.in,v 1.81 2005/07/13 07:53:53 dav480 Exp $
+dnl	$Id: configure.in,v 1.82 2005/07/14 04:33:02 dav480 Exp $
 dnl
 dnl	This file is an input file used by the GNU "autoconf" program to
 dnl	generate the file "configure", which is run to configure the
 dnl	Makefile in this directory.
 
-AC_REVISION($Revision: 1.81 $)
+AC_REVISION($Revision: 1.82 $)
 AC_INIT(../generic)
 
 #------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ PACKAGE=nap
 
 MAJOR_VERSION=5
 MINOR_VERSION=0
-PATCHLEVEL=.2
+PATCHLEVEL=.3
 
 #------------------------------------------------------------------------------
 # HDF version numbers

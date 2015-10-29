@@ -1,4 +1,4 @@
-<!-- $Id: op.html,v 1.13 2005/06/28 04:34:45 dav480 Exp $ -->
+<!-- $Id: op.html,v 1.14 2005/07/14 08:16:09 dav480 Exp $ -->
 <html>
 
 <head> <title>
@@ -17,8 +17,9 @@ Operators
     <li><a href="#Precedence">Operators and Precedence</a>
     <li><a href="#Assignment">Assignment Operator &quot;<code>=</code>&quot;</a>
     <li><a href="#Link">
-	Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</a>
-    <li><a href="#AP">Arithmetic Progression Operator &quot;<code>..</code>&quot;</a>
+	Link Operator &quot;<code>,</code>&quot;</a>
+    <li><a href="#AP">Arithmetic Progression Operators &quot;<code>..</code>&quot;
+	and &quot;<code>...</code>&quot;</a>
     <li><a href="#Concatenation">
 	Concatenation Operators &quot;<code>//</code>&quot; and &quot;<code>///</code>&quot;</a>
     <li><a href="#Inverse_Indexing">
@@ -55,7 +56,7 @@ The nature of operands is indicated as follows:
 <br>
 <var>a</var> and <var>b</var> represent general arrays.
 <br>
-<var>x</var> and <var>y</var> represent scalars.
+<var>x</var>, <var>y</var> and <var>z</var> represent scalars.
 <br>
 <var>u</var> and <var>v</var> represent vectors.
 <br>
@@ -313,14 +314,6 @@ The nature of operands is indicated as follows:
 
     <tr><td><hr><td><hr>
 
-	<tr valign=top> <td nowrap>
-		[<var>a</var>]<code>...</code>[<var>b</var>]
-	    <td>
-		Boxed vector pointing to <var>a</var>
-		and <var>b</var>
-
-    <tr><td><hr><td><hr>
-
 	<tr valign=top> <td>
 		<var>x</var><code>..</code><var>y</var>
 	    <td>
@@ -328,21 +321,17 @@ The nature of operands is indicated as follows:
 		in steps of <code>+1</code> or <code>-1</code>
 
 	<tr valign=top> <td>
-		<var>x</var><code>..</code><var>p</var>
+		<var>x</var><code>..</code><var>y</var><code>...</code><var>z</var>
 	    <td>
-		AP from <var>x</var> to 
-		<var>a</var><sub>0</sub>
-		in steps of 
-		<var>a</var><sub>1</sub>
+		AP from <var>x</var> to <var>y</var>
+		in steps of <var>z</var>
 
 	<tr valign=top> <td>
-		<var>p</var><code>..</code><var>y</var>
+		<var>x</var><code>...</code><var>y</var><code>..</code><var>z</var>
 	    <td>
 		AP from
-		<var>a</var><sub>1</sub>
-		to <var>y</var>
-		with
-		<var>a</var><sub>0</sub> elements
+		<var>y</var> to <var>z</var>
+		with <var>x</var> elements
 
     <tr><td><hr><td><hr>
 
@@ -372,6 +361,10 @@ The nature of operands is indicated as follows:
 		<td>
 		Boxed vector pointing to <var>a</var>
 		and <var>b</var>
+		(unless already boxed)
+		<br>
+		If <var>a</var> or <var>b</var>
+		is already boxed then concatentate it
 
     <tr><td><hr><td><hr>
 
@@ -420,14 +413,11 @@ expressions such as:
 4.5 3
 </PRE>
 
-<h3><a name=Link>Link Operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;</h3>
+<h3><a name=Link>Link Operator &quot;<code>,</code>&quot;</h3>
 
 <P>
-The link operators &quot;<code>...</code>&quot; and &quot;<code>,</code>&quot;
-are identical except for precedence.
-They produce a boxed vector pointing to the operands.
-
-<P>
+The link operator &quot;<code>,</code>&quot;
+produces a boxed vector pointing to the operands.
 A common use of 
 &quot;<code>,</code>&quot;
 is to pass multiple arguments to a function.
@@ -445,17 +435,7 @@ as discussed in the section
 <a href="indexing.html">NAP Indexing</a>.
 
 <P>
-A common use of 
-&quot;<code>...</code>&quot; 
-is in conjunction with the
-<a href="#AP">arithmetic progression operator</a>
-&quot;<code>..</code>&quot;,
-which is discussed in the next section.
-
-<P>
 The left-hand operand of 
-&quot;<code>...</code>&quot; 
-or
 &quot;<code>,</code>&quot;
 generates one boxed vector and the right-hand operand generates another.
 These two boxed vectors are concatenated to form the result, which is also a boxed vector.
@@ -466,7 +446,12 @@ If an operand is a boxed scalar then it is treated as a boxed vector with a sing
 If an operand is absent (NULL) then it generates a single-element (whose value is 0,
 the missing-value) boxed vector.
 
-<h3><a name=AP>Arithmetic Progression Operator &quot;<code>..</code>&quot;</h3>
+<h3>
+<a name=AP>Arithmetic Progression Operators
+&quot;<code>..</code>&quot;
+and
+&quot;<code>...</code>&quot;
+</h3>
 
 <P>
 The operator
@@ -1041,7 +1026,7 @@ Thus:
         <a href="http://www.csiro.au/legalnotices/disclaimer.html">Legal Notice and Disclaimer</a>
         <br>
 
-        <b>CVS Version Details:</b> $Id: op.html,v 1.13 2005/06/28 04:34:45 dav480 Exp $
+        <b>CVS Version Details:</b> $Id: op.html,v 1.14 2005/07/14 08:16:09 dav480 Exp $
         </SPAN></FONT>
     </TD>
   </TR>

@@ -62,7 +62,8 @@ set dst [tk_chooseDirectory \
     -title "directory in which to install nap"]
 if {$dst ne ""} {
     if {$tcl_platform(machine) ne "ia64" } {
-	foreach dir {bin include lib} {
+	set include [file tail [lindex [glob $dst/include*] end]]
+	foreach dir "bin $include lib" {
 	    if {![file isdirectory $dst/$dir]} {
 		set reply [tk_messageBox \
 		    -message "Expected directory '$dst/$dir' not found! Continue?" \
@@ -74,7 +75,7 @@ if {$dst ne ""} {
 	}
     }
     set bin_files     [glob -nocomplain -types f $dst/bin/nap*.dll]
-    set include_files [glob -nocomplain -types f $dst/include/nap*.h]
+    set include_files [glob -nocomplain -types f $dst/$include/nap*.h]
     set lib_files     [glob -nocomplain -types f $dst/lib/nap*.lib $dst/lib/libnap*.s?]
     set lib_dirs      [glob -nocomplain -types d $dst/lib/nap*]
     set files "$bin_files $include_files $lib_files $lib_dirs"
